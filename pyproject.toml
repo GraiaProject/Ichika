@@ -45,11 +45,13 @@ python-source = "python"
 [tool.pdm.scripts]
 ensure-pip = {shell = "pdm run python -m ensurepip"}
 install-deps = {shell = "pdm install --no-self"}
-build-rs-devel = {shell = "maturin develop"}
-devel = {composite = ["ensure-pip", "install-deps", "build-rs-devel"]}
+install-rs-deps = {shell = "cargo update"}
+build-rs-devel = {shell = "pdm run maturin develop"}
+devel = {composite = ["ensure-pip", "install-deps", "install-rs-deps", "build-rs-devel"]}
 [tool.pdm.dev-dependencies]
 dev = [
     "black>=22.10.0",
     "isort>=5.10.1",
+    "maturin>=0.13,<0.14"
 ]
 
