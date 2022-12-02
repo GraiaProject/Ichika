@@ -170,6 +170,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "maturin"
+version = "0.13.7"
+requires_python = ">=3.7"
+summary = "Build and publish crates with pyo3, rust-cpython and cffi bindings as well as rust binaries as python packages"
+dependencies = [
+    "tomli>=1.1.0; python_version < \"3.11\"",
+]
+
+[[package]]
 name = "multidict"
 version = "6.0.2"
 requires_python = ">=3.7"
@@ -252,7 +261,7 @@ summary = "Backport of pathlib-compatible object wrapper for zip files"
 
 [metadata]
 lock_version = "4.0"
-content_hash = "sha256:2367cdde89d0e961e92496b1fff6d2db6db72cf59d4a5d4540ca9bd06c7cbc5d"
+content_hash = "sha256:7743fa1943c7dbc428bd499fcb7e319ceed05799452d584f0d6371e55891192e"
 
 [metadata.files]
 "attrs 22.1.0" = [
@@ -345,6 +354,20 @@ content_hash = "sha256:2367cdde89d0e961e92496b1fff6d2db6db72cf59d4a5d4540ca9bd06
 "loguru 0.6.0" = [
     {url = "https://files.pythonhosted.org/packages/75/1f/d3818863e4be96bd641c4643c535a98f0fa2a12efa7c8ba35f763fa778ee/loguru-0.6.0.tar.gz", hash = "sha256:066bd06758d0a513e9836fd9c6b5a75bfb3fd36841f4b996bc60b547a309d41c"},
     {url = "https://files.pythonhosted.org/packages/fe/21/e1d1da2586865a159fc73b611f36bdd50b6c4043cb6132d3d5e972988028/loguru-0.6.0-py3-none-any.whl", hash = "sha256:4e2414d534a2ab57573365b3e6d0234dfb1d84b68b7f3b948e6fb743860a77c3"},
+]
+"maturin 0.13.7" = [
+    {url = "https://files.pythonhosted.org/packages/28/e5/ffdac29a7d0a5927fa5f059b14d9d42490e8f8b29a005ce284710dcda996/maturin-0.13.7-py3-none-manylinux_2_12_x86_64.manylinux2010_x86_64.musllinux_1_1_x86_64.whl", hash = "sha256:a96f1b3ede71c0f76b8c7cfac18a9eec90174bdf434fa9aeff491be9a7ca5179"},
+    {url = "https://files.pythonhosted.org/packages/48/95/4f105f30c3df14625d19c46ef756fc8d9432e4c23d63da867905b02db6ea/maturin-0.13.7-py3-none-manylinux_2_17_ppc64le.manylinux2014_ppc64le.musllinux_1_1_ppc64le.whl", hash = "sha256:bb3a2830d64ae6a324571f694475b91111e827bc0ccc60a0c47f4fb596a46bd8"},
+    {url = "https://files.pythonhosted.org/packages/4f/19/6f982e341612ab442f90ba1a047a4188d48473ad0d1dbfb3dffdaa20e095/maturin-0.13.7.tar.gz", hash = "sha256:c0a77aa0c57f945649ca711c806203a1b6888ad49c2b8b85196ffdcf0421db77"},
+    {url = "https://files.pythonhosted.org/packages/58/be/349083a857919c5d8e0f7063f2570cbbce71bf4f91e2ad2a0551d73a1c48/maturin-0.13.7-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.musllinux_1_1_aarch64.whl", hash = "sha256:0b6ac1219a809155057fd1f358f7ece03c3abd2e2991832ce5146825a9fa4160"},
+    {url = "https://files.pythonhosted.org/packages/7d/29/713a6f0f3767cd11072229bfe7e17e04da959f5262af91d679e7b2131488/maturin-0.13.7-py3-none-manylinux_2_12_i686.manylinux2010_i686.musllinux_1_1_i686.whl", hash = "sha256:3137876c338eb7e551ba44a609b5f02d02454d1b3a8677ad6bf2121c5a92b2b7"},
+    {url = "https://files.pythonhosted.org/packages/9a/a4/1ad85616f1937358b00169b7daa4df1581a5b1f026446622cb9548bef8ff/maturin-0.13.7-py3-none-win_amd64.whl", hash = "sha256:f50d62aca567fdbbb929771794f3c5c78048ef0efa4af7d83ed472a8b8d26454"},
+    {url = "https://files.pythonhosted.org/packages/b7/ea/4ff0f045f16ece123ee32a57ff44cb7c93e8b18ab67e5c901964830d9324/maturin-0.13.7-py3-none-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:794f58d3103449f8cd8ab5f36fd05c31b8d8de3643cd0e3720fd5dc3c328dd5c"},
+    {url = "https://files.pythonhosted.org/packages/b8/02/01bef5d5dbe678f45b692160ffa6562ae7960184f7734b6bb1c66594367a/maturin-0.13.7-py3-none-win32.whl", hash = "sha256:63586eb286866264ec62d29df6ab955360de6226128f67d14623ffe1a12d4963"},
+    {url = "https://files.pythonhosted.org/packages/be/45/1e5405a172431528dca676b60a79d2b3f3c5b004007566c4213f00ea8bc9/maturin-0.13.7-py3-none-manylinux_2_17_armv7l.manylinux2014_armv7l.musllinux_1_1_armv7l.whl", hash = "sha256:3c36f429adc3a8af8de9838399750742a86053f0031a953b48ee92932120dc0c"},
+    {url = "https://files.pythonhosted.org/packages/c2/e9/1d426bd6681e15690089d53c3964cec02dbdac9bc48eedd30fc140fccc30/maturin-0.13.7-py3-none-macosx_10_7_x86_64.whl", hash = "sha256:bc58b0266a4c124f9afd69a987ac324ff35c0d963b41073ed64a32f94c226d5a"},
+    {url = "https://files.pythonhosted.org/packages/c7/84/63b3f87db586c7f3e98857faa82f9632872234ed10b475c655e86615bf5f/maturin-0.13.7-py3-none-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:424d53adc9684167cf89829275fe5072331a197de0ac08e7a893f9283c7df213"},
+    {url = "https://files.pythonhosted.org/packages/ed/7e/48f284850bbc4c169986fea7dd6e7d95f38d6aabd5cc22fadc202d9a0428/maturin-0.13.7-py3-none-win_arm64.whl", hash = "sha256:8c6225e7eba2885a0cd82a6cf898e74bb720796a5744e0450f3b1340d1ca97af"},
 ]
 "multidict 6.0.2" = [
     {url = "https://files.pythonhosted.org/packages/00/6f/05e5612827715de18f36a8e36fb373f58621927691213cc3f88dc24524b3/multidict-6.0.2-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:07a017cfa00c9890011628eab2503bee5872f27144936a52eaab449be5eaf032"},
