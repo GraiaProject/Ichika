@@ -1,0 +1,53 @@
+[package]
+name = "ichika"
+authors = ["BlueGlassBlock <blueglassblock@outlook.com>"]
+version = "0.1.0"
+license = "AGPL-3.0"
+edition = "2021"
+include = [
+    "/python",
+    "/src",
+    "Cargo.lock",
+    "pyproject.toml",
+    "!__pycache__",
+    "!*.so",
+]
+
+[lib]
+name = "ichika"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.17", features = ["extension-module", "anyhow", "abi3", "abi3-py38", "multiple-pymethods"] }
+pyo3-asyncio = { version = "0.17", features = ["tokio-runtime"] }
+pyo3-built = "0.4"
+ricq = "0.1.17"
+ricq-core = "0.1"
+tokio = { version = "1", features = ["rt", "fs"] }
+tokio-util = { version = "0.7", features = ["codec"] }
+tokio-stream = "0.1"
+futures-util = "0.3"
+anyhow = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3" }
+serde_json = "1"
+hex = "0.4.3"
+bytes = "1"
+rand = "0.8.5"
+rand_chacha = "0.3.1"
+either = "1.8.0"
+requestty = "0.5.0"
+rqrr = "0.5"
+qrcode = "0.12"
+image = "0.24"
+async-trait = "0.1.58"
+serde = "1.0"
+
+[package.metadata.maturin]
+python-source = "python"
+
+[build-dependencies]
+built = { version = "0.5", features = ["chrono"] }
+
+[profile.release]
+lto = true
