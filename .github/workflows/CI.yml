@@ -25,7 +25,7 @@ jobs:
 
   windows:
     runs-on: windows-latest
-    if: ${{ github.event_name == workflow_dispatch }}
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     steps:
     - uses: actions/checkout@v3
     - uses: PyO3/maturin-action@v1
@@ -41,7 +41,7 @@ jobs:
 
   macos:
     runs-on: macos-latest
-    if: ${{ github.event_name == workflow_dispatch }}
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     steps:
     - uses: actions/checkout@v3
     - uses: PyO3/maturin-action@v1
@@ -58,7 +58,7 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == workflow_dispatch }}
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     needs: [ macos, windows, linux ]
     steps:
       - uses: actions/download-artifact@v2
