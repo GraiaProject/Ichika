@@ -1,7 +1,9 @@
 [project]
 name = "ichika"
-version = "0.0.1"
 requires-python = ">=3.8"
+description = "基于 RICQ 的轻量级 Python QQ 自动化框架。"
+readme = "README.md"
+keywords = ["graia", "bot", "qq", "framework", "ricq", "ichika"]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "License :: OSI Approved :: GNU Affero General Public License v3",
@@ -23,6 +25,9 @@ dependencies = [
     "dacite>=1.6.0",
     "graia-amnesia>=0.7.0",
 ]
+
+dynamic = ["version"]
+
 [project.optional-dependencies]
 kayaku = [
     "kayaku>=0.5.0",
