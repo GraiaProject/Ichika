@@ -129,8 +129,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        platform:
-          target: [aarch64-unknown-linux-musl, armv7-unknown-linux-musleabihf]
+        target: [aarch64-unknown-linux-musl, armv7-unknown-linux-musleabihf]
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v4
@@ -141,7 +140,7 @@ jobs:
       uses: PyO3/maturin-action@v1
       with:
         rust-toolchain: nightly
-        target: ${{ matrix.platform.target }}
+        target: ${{ matrix.target }}
         manylinux: musllinux_1_2
         args: --release --out dist
 
