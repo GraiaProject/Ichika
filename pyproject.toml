@@ -1,0 +1,45 @@
+[project]
+name = "ichika"
+version = "0.0.1"
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "License :: OSI Approved :: GNU Affero General Public License v3",
+    "Natural Language :: Chinese (Simplified)",
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Communications",
+]
+
+dependencies = [
+    "loguru~=0.6.0",
+    "graia-broadcast>=0.19.0",
+    "creart-graia>=0.1.5",
+    "dacite>=1.6.0",
+    "graia-amnesia>=0.7.0",
+]
+[project.optional-dependencies]
+kayaku = [
+    "kayaku>=0.5.0",
+]
+
+
+[build-system]
+requires = ["maturin>=0.13,<0.14"]
+build-backend = "maturin"
+
+[tool.maturin]
+python-source = "python"
+
+[tool.pdm]
+[tool.pdm.scripts]
+ensure-pip = {shell = "pdm run python -m ensurepip"}
+install-deps = {shell = "pdm install --no-self"}
+build-rs-devel = {shell = "maturin develop"}
+devel = {composite = ["ensure-pip", "install-deps", "build-rs-devel"]}
+[tool.pdm.dev-dependencies]
+dev = [
+    "black>=22.10.0",
+    "isort>=5.10.1",
+]
+
