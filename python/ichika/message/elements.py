@@ -17,6 +17,9 @@ class At(Element):
 
 
 class AtAll(Element):
+    def __init__(self) -> None:
+        ...
+
     def __str__(self) -> str:
         return "@全体成员"
 
@@ -78,3 +81,6 @@ class Dice(Element):
 
     def __repr__(self) -> str:
         return f"Dice(value={self.value})"
+
+
+TYPE_MAP = {cls.__name__: cls for cls in (Text, At, AtAll, FingerGuessing, Dice)}
