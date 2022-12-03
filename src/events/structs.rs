@@ -27,6 +27,11 @@ macro_rules! py_event {
             pub fn __repr__(&self) -> String {
                 format!("<ichika.{:?}>", self.e)
             }
+
+            #[getter]
+            pub fn __name__(&self) -> String {
+                stringify!($name).into()
+            }
         }
     };
 }
@@ -79,6 +84,7 @@ fn convert_message_chain(py: Python, chain: MessageChain) -> PyResult<Py<PyList>
                     "choice" => choice
                 )
             }
+            RQElem::Other(_) => {continue;}
             unhandled => {
                 py_dict!(py,
                     "type" => "Unknown",
@@ -101,6 +107,12 @@ pub struct Login {
 impl Login {
     pub fn __repr__(&self) -> String {
         format!("<ichika.Login {{ uin: {:?}}}>", self.uin)
+    }
+
+
+    #[getter]
+    pub fn __name__(&self) -> String {
+        "Login".into()
     }
 }
 
