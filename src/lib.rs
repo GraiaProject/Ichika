@@ -5,11 +5,11 @@ use pyo3_built::pyo3_built;
 
 pub mod client;
 mod device;
+mod events;
 pub mod login;
 mod loguru;
 pub mod message;
 mod utils;
-mod events;
 
 #[pyfunction]
 pub fn init_log(module: &PyModule) -> PyResult<()> {
