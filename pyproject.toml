@@ -24,6 +24,7 @@ dependencies = [
     "creart-graia>=0.1.5",
     "dacite>=1.6.0",
     "graia-amnesia>=0.7.0",
+    "pre-commit>=2.20.0",
 ]
 
 dynamic = ["version"]
@@ -54,4 +55,3 @@ dev = [
     "isort>=5.10.1",
     "maturin>=0.13,<0.14"
 ]
-
