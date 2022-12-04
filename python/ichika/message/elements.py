@@ -5,6 +5,7 @@ from typing import Literal
 from typing_extensions import Self
 from functools import total_ordering
 from graia.amnesia.message.element import Text as Text
+from .. import ichika as lib
 
 
 @dataclass
@@ -83,4 +84,23 @@ class Dice(Element):
         return f"Dice(value={self.value})"
 
 
-TYPE_MAP = {cls.__name__: cls for cls in (Text, At, AtAll, FingerGuessing, Dice)}
+class Face(Element):
+    def __init__(self, index: int, name: str | None = None) -> None:
+        self.index = index
+        self.name = name or lib.face_name_from_id(index)
+
+    @classmethod
+    def from_name(cls, name: str) -> Self:
+        index = lib.face_id_from_name(name)
+        if index is None:
+            raise ValueError("未知表情")
+        return cls(index, name)
+
+    def __str__(self) -> str:
+        return f"[表情: {self.name}]"
+
+    def __repr__(self) -> str:
+        return f"Face(index={self.index}, name={self.name})"
+
+
+TYPE_MAP = {cls.__name__: cls for cls in (Text, At, AtAll, FingerGuessing, Dice, Face)}

@@ -49,13 +49,20 @@ fn convert_message_chain(py: Python, chain: MessageChain) -> PyResult<Py<PyList>
     let res = PyList::empty(py);
     for e in chain {
         let data = match e {
-            RQElem::At(a) => {
-                py_dict!(py,
-                    "type" => "At",
-                    "target" => a.target,
-                    "display" => a.display
-                )
-            }
+            RQElem::At(a) => match a.target {
+                0 => {
+                    py_dict!(py,
+                        "type" => "AtAll"
+                    )
+                }
+                target => {
+                    py_dict!(py,
+                        "type" => "At",
+                        "target" => target,
+                        "display" => a.display
+                    )
+                }
+            },
             RQElem::Text(t) => {
                 py_dict!(py,
                     "type" => "Text",
@@ -77,6 +84,13 @@ fn convert_message_chain(py: Python, chain: MessageChain) -> PyResult<Py<PyList>
                 py_dict!(py,
                     "type" => "FingerGuessing",
                     "choice" => choice
+                )
+            }
+            RQElem::Face(f) => {
+                py_dict!(py,
+                "type" => "Face",
+                "index" => f.index,
+                "name" => f.name
                 )
             }
             RQElem::Other(_) => {
