@@ -1,10 +1,12 @@
-from graia.amnesia.message import Element
-from enum import Enum
 from dataclasses import dataclass
-from typing import Literal
-from typing_extensions import Self
+from enum import Enum
 from functools import total_ordering
+from typing import Literal
+
+from graia.amnesia.message import Element
 from graia.amnesia.message.element import Text as Text
+from typing_extensions import Self
+
 from .. import ichika as lib
 
 
