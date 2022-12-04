@@ -129,7 +129,7 @@ impl Client {
     /// # Python
     /// ```python
     /// def friend(self, uin: int) -> FriendSelector: ...
-    /// ```    
+    /// ```
     pub fn friend(&self, uin: i64) -> FriendSelector {
         FriendSelector {
             client: self.client.clone(),
@@ -194,7 +194,7 @@ impl Client {
     /// 参考 [`Friend`]。
     ///
     /// # Examples
-    /// ```python    
+    /// ```python
     /// for friend in await client.get_friends():
     ///     print(friend.nickname)
     /// ```
@@ -221,7 +221,7 @@ impl Client {
     /// 参考 [`Friend`]。
     ///
     /// # Examples
-    /// ```python    
+    /// ```python
     /// friend = await client.get_friend(12345678)
     /// if friend:
     ///     print(friend.nickname)

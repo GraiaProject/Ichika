@@ -26,7 +26,7 @@ impl PushElem for Element {
         match elem {
             Element::At(at) => PushElem::push_to(elem::At::from(at), vec),
             Element::Face(face) => PushElem::push_to(elem::Face::from(face), vec),
-            Element::Dice(dice) => PushElem::push_to(elem::Dice::from(dice), vec)
+            Element::Dice(dice) => PushElem::push_to(elem::Dice::from(dice), vec),
         }
     }
 }
@@ -206,7 +206,7 @@ pub struct Dice {
 #[pymethods]
 impl Dice {
     /// 构造新的骰子元素。
-    /// 
+    ///
     /// # Python
     /// ```python
     /// @overload

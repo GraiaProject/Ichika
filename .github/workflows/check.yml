@@ -21,7 +21,7 @@ jobs:
       with:
         name: nightly-linux-wheel-x64
         path: dist
-  
+
   sdist:
     runs-on: ubuntu-latest
     steps:
@@ -31,7 +31,7 @@ jobs:
         rust-toolchain: nightly
         manylinux: auto
         command: sdist
-        args: -o dist --find-interpreter
+        args: -o dist
     - name: Upload wheels
       uses: actions/upload-artifact@v2
       with:

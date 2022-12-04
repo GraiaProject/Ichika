@@ -2,7 +2,7 @@ use crate::py_dict;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 use ricq::client::event::EventWithClient;
-use ricq::msg::elem::{RQElem, FingerGuessing};
+use ricq::msg::elem::{FingerGuessing, RQElem};
 use ricq::msg::MessageChain;
 use ricq::structs as s;
 use ricq_core::command::profile_service as ps;
@@ -26,11 +26,6 @@ macro_rules! py_event {
         impl $name {
             pub fn __repr__(&self) -> String {
                 format!("<ichika.{:?}>", self.e)
-            }
-
-            #[getter]
-            pub fn __name__(&self) -> String {
-                stringify!($name).into()
             }
         }
     };
@@ -77,14 +72,16 @@ fn convert_message_chain(py: Python, chain: MessageChain) -> PyResult<Py<PyList>
                 let choice = match f {
                     FingerGuessing::Rock => "Rock",
                     FingerGuessing::Paper => "Paper",
-                    FingerGuessing::Scissors => "Scissors"
+                    FingerGuessing::Scissors => "Scissors",
                 };
                 py_dict!(py,
                     "type" => "FingerGuessing",
                     "choice" => choice
                 )
             }
-            RQElem::Other(_) => {continue;}
+            RQElem::Other(_) => {
+                continue;
+            }
             unhandled => {
                 py_dict!(py,
                     "type" => "Unknown",
@@ -107,12 +104,6 @@ pub struct Login {
 impl Login {
     pub fn __repr__(&self) -> String {
         format!("<ichika.Login {{ uin: {:?}}}>", self.uin)
-    }
-
-
-    #[getter]
-    pub fn __name__(&self) -> String {
-        "Login".into()
     }
 }
 
