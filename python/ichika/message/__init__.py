@@ -1,6 +1,8 @@
+from typing import Any
+
 from graia.amnesia.message import MessageChain
 from graia.amnesia.message.element import Element, Unknown
-from typing import Any
+
 from .elements import TYPE_MAP
 
 
