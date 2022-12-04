@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
 from functools import total_ordering
-from typing import Literal
+from typing import Any, Literal
 
 from graia.amnesia.message import Element
 from graia.amnesia.message.element import Text as Text
@@ -20,9 +20,6 @@ class At(Element):
 
 
 class AtAll(Element):
-    def __init__(self) -> None:
-        ...
-
     def __str__(self) -> str:
         return "@全体成员"
 
@@ -105,4 +102,40 @@ class Face(Element):
         return f"Face(index={self.index}, name={self.name})"
 
 
-TYPE_MAP = {cls.__name__: cls for cls in (Text, At, AtAll, FingerGuessing, Dice, Face)}
+@dataclass
+class LightApp(Element):
+    content: str
+
+    def __str__(self) -> str:
+        return "[小程序]"
+
+
+class Audio(Element):
+    ...
+
+
+class Image(Element):
+    ...
+
+
+class FlashImage(Element):
+    ...
+
+
+class Video(Element):
+    ...
+
+
+class MarketFace(Element):
+    def __init__(self, raw: Any) -> None:
+        self.raw = raw
+
+    @property
+    def name(self) -> str:
+        return self.raw.name
+
+
+TYPE_MAP = {
+    cls.__name__: cls
+    for cls in (Text, At, AtAll, FingerGuessing, Dice, Face, LightApp, Audio, Image, FlashImage, Video, MarketFace)
+}
