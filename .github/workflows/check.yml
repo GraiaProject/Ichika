@@ -15,9 +15,25 @@ jobs:
         rust-toolchain: nightly
         manylinux: auto
         command: build
-        args: --sdist -o dist --find-interpreter
+        args: -o dist --find-interpreter
     - name: Upload wheels
       uses: actions/upload-artifact@v2
       with:
-        name: nightly-wheels
+        name: nightly-linux-wheel-x64
+        path: dist
+  
+  sdist:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: PyO3/maturin-action@v1
+      with:
+        rust-toolchain: nightly
+        manylinux: auto
+        command: sdist
+        args: -o dist --find-interpreter
+    - name: Upload wheels
+      uses: actions/upload-artifact@v2
+      with:
+        name: nightly-sdist
         path: dist
