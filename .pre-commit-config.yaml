@@ -4,8 +4,6 @@ repos:
   hooks:
   - id: fmt
     args: ['--', '--verbose']
-  - id: check
-  - id: clippy
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v4.4.0
   hooks:
