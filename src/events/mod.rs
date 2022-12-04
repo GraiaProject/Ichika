@@ -1,3 +1,4 @@
+mod convert_msg;
 mod structs;
 use async_trait::async_trait;
 use pyo3::types::PyList;

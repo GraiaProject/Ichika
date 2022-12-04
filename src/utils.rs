@@ -40,7 +40,7 @@ where
 macro_rules! py_dict {
     ($py:expr, $($name:expr => $value:expr),*) => {
         {
-            let dict = PyDict::new($py);
+            let dict = pyo3::types::PyDict::new($py);
             $(
                 dict.set_item($name, $value).expect("Failed to set_item on dict");
             )*

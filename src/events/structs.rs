@@ -1,15 +1,13 @@
-use crate::py_dict;
+use crate::events::convert_msg::convert_message_chain;
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyList};
+use pyo3::types::PyList;
 use ricq::client::event::EventWithClient;
-use ricq::msg::elem::{FingerGuessing, RQElem};
-use ricq::msg::MessageChain;
 use ricq::structs as s;
 use ricq_core::command::profile_service as ps;
 use ricq_core::jce as js;
 macro_rules! py_event {
     ($name: ident => $inner: ty) => {
-        #[pyclass]
+        #[pyclass(module = "ichika.events#rs")]
         #[allow(dead_code)]
         #[derive(Debug)]
         pub struct $name {
@@ -25,7 +23,7 @@ macro_rules! py_event {
         #[pymethods]
         impl $name {
             pub fn __repr__(&self) -> String {
-                format!("<ichika.{:?}>", self.e)
+                format!("<ichika.events#rs.{:?}>", self.e)
             }
         }
     };
@@ -45,70 +43,7 @@ macro_rules! event_props {
     };
 }
 
-fn convert_message_chain(py: Python, chain: MessageChain) -> PyResult<Py<PyList>> {
-    let res = PyList::empty(py);
-    for e in chain {
-        let data = match e {
-            RQElem::At(a) => match a.target {
-                0 => {
-                    py_dict!(py,
-                        "type" => "AtAll"
-                    )
-                }
-                target => {
-                    py_dict!(py,
-                        "type" => "At",
-                        "target" => target,
-                        "display" => a.display
-                    )
-                }
-            },
-            RQElem::Text(t) => {
-                py_dict!(py,
-                    "type" => "Text",
-                    "text" => t.content
-                )
-            }
-            RQElem::Dice(d) => {
-                py_dict!(py,
-                    "type" => "Dice",
-                    "value" => d.value
-                )
-            }
-            RQElem::FingerGuessing(f) => {
-                let choice = match f {
-                    FingerGuessing::Rock => "Rock",
-                    FingerGuessing::Paper => "Paper",
-                    FingerGuessing::Scissors => "Scissors",
-                };
-                py_dict!(py,
-                    "type" => "FingerGuessing",
-                    "choice" => choice
-                )
-            }
-            RQElem::Face(f) => {
-                py_dict!(py,
-                "type" => "Face",
-                "index" => f.index,
-                "name" => f.name
-                )
-            }
-            RQElem::Other(_) => {
-                continue;
-            }
-            unhandled => {
-                py_dict!(py,
-                    "type" => "Unknown",
-                    "raw" => format!("{:?}", unhandled)
-                )
-            }
-        };
-        res.append(data)?
-    }
-    Ok(res.into_py(py))
-}
-
-#[pyclass]
+#[pyclass(module = "ichika.events#rs")]
 pub struct Login {
     #[pyo3(get)]
     uin: i64,
@@ -117,7 +52,7 @@ pub struct Login {
 #[pymethods]
 impl Login {
     pub fn __repr__(&self) -> String {
-        format!("<ichika.Login {{ uin: {:?}}}>", self.uin)
+        format!("<ichika.events#rs.Login {{ uin: {:?}}}>", self.uin)
     }
 }
 
