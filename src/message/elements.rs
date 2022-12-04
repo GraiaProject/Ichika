@@ -223,3 +223,16 @@ impl From<Dice> for elem::Dice {
         elem::Dice::new(value.value)
     }
 }
+
+#[pyfunction]
+pub fn face_name_from_id(id: i32) -> String {
+    ricq_core::msg::elem::Face::name(id).to_owned()
+}
+
+#[pyfunction]
+pub fn face_id_from_name(name: String) -> Option<i32> {
+    match ricq_core::msg::elem::Face::new_from_name(&name) {
+        Some(f) => Some(f.index),
+        None => None,
+    }
+}
