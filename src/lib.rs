@@ -34,5 +34,6 @@ pub fn ichika(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(message::elements::face_name_from_id, m)?)?;
     m.add_class::<login::Account>()?;
     m.add_class::<client::Client>()?;
+    m.add_class::<client::plumbing::PlumbingClient>()?;
     Ok(())
 }
