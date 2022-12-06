@@ -5,8 +5,6 @@ from typing import Callable, TypedDict
 
 from typing_extensions import Any
 
-from .stubs import _LoginMethodTransfer
-
 __Build_RustInfo = TypedDict(
     "_RustInfo",
     {
@@ -53,10 +51,12 @@ class Client(Any): ...
 class Account:
     event_callbacks: list[Callable[[Any], Any]]
     def __init__(self, uin: int, data_folder: str, protocol: str) -> None: ...  # TODO: Literal
-    async def login(self, method: _LoginMethodTransfer) -> Client: ...
+    async def login(self, method: dict[str, Any]) -> PlumbingClient: ...
 
 class PlumbingClient:
     async def keep_alive(self) -> None: ...
+    @property
+    def uin(self) -> int: ...
     @property
     def online(self) -> bool: ...
     @dataclass(frozen=True)
@@ -64,14 +64,14 @@ class PlumbingClient:
         nickname: str
         age: int
         gender: int
-    async def account_info(self) -> __AccountInfo: ...
+    async def get_account_info(self) -> __AccountInfo: ...
     @dataclass(frozen=True)
     class __OtherClientInfo:
         app_id: int
         instance_id: int
         sub_platform: str
         device_kind: str
-    async def other_clients(self) -> list[__OtherClientInfo]: ...
+    async def get_other_clients(self) -> list[__OtherClientInfo]: ...
 
 def face_id_from_name(name: str) -> int | None: ...
 def face_name_from_id(id: int) -> str: ...

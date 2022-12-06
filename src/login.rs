@@ -366,9 +366,9 @@ impl Account {
     pub fn login<'py>(
         self_t: PyRef<'py, Self>,
         py: Python<'py>,
-        method: String,
+        method: &'py PyAny,
     ) -> PyResult<&'py PyAny> {
-        match serde_json::from_str::<LoginMethod>(&method) {
+        match pythonize::depythonize::<LoginMethod>(&method) {
             Ok(method) => {
                 let protocol = self_t.protocol.clone();
                 let mut data_folder = self_t.data_folder.clone();
@@ -397,7 +397,10 @@ impl Account {
                     // 注册客户端，启动心跳。
                     after_login(&client).await;
                     save_token(&client, data_folder.clone()).await?;
-                    Ok(crate::client::Client::new(client, alive, data_folder).await)
+                    Ok(
+                        crate::client::plumbing::PlumbingClient::new(client, alive, data_folder)
+                            .await,
+                    )
                 })
             }
             Err(e) => {
