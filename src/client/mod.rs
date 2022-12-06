@@ -8,14 +8,15 @@ use anyhow::Result;
 use pyo3::{prelude::*, types::*};
 use tokio::task::JoinHandle;
 
-mod client_impl;
-
 pub mod account_info;
+mod client_impl;
 pub mod friend;
 pub mod friend_group;
 pub mod friend_list;
 pub mod group;
 pub mod message_receipt;
+mod plumbing;
+mod structs;
 
 use crate::{
     login::reconnect,
