@@ -1,14 +1,51 @@
+import datetime
 from types import ModuleType
-from typing import Callable
+from typing import Callable, TypedDict
 
 from typing_extensions import Any
 
 from .stubs import _LoginMethodTransfer
 
+__Build_RustInfo = TypedDict(
+    "_RustInfo",
+    {
+        "rustc": str,
+        "rustc-version": str,
+        "opt-level": str,
+        "debug": bool,
+        "jobs": int,
+    },
+)
+__Build_HostInfo = TypedDict("__Build_HostInfo", {"triple": str})
+__Build_TargetInfo = TypedDict(
+    "__Build_TargetInfo",
+    {
+        "arch": str,
+        "os": str,
+        "family": str,
+        "env": str,
+        "triple": str,
+        "endianness": str,
+        "pointer-width": str,
+        "profile": str,
+    },
+)
+__BuildInfo = TypedDict(
+    "_BuildInfo",
+    {
+        "build": __Build_RustInfo,
+        "info-time": datetime.datetime,
+        "dependencies": dict[str, str],
+        "features": list[str],
+        "host": __Build_HostInfo,
+        "target": __Build_TargetInfo,
+    },
+)
+
 def init_log(m: ModuleType, /) -> None: ...
 
-__version__: Any
-__build__: Any
+__version__: str
+__build__: __BuildInfo
 
 class Client(Any): ...
 
