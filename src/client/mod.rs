@@ -15,7 +15,7 @@ pub mod friend_group;
 pub mod friend_list;
 pub mod group;
 pub mod message_receipt;
-mod plumbing;
+pub mod plumbing;
 mod structs;
 
 use crate::{
