@@ -16,7 +16,11 @@ pub struct PlumbingClient {
 
 impl PlumbingClient {
     #[allow(dead_code)]
-    async fn new(client: Arc<ricq::Client>, alive: JoinHandle<()>, data_folder: PathBuf) -> Self {
+    pub async fn new(
+        client: Arc<ricq::Client>,
+        alive: JoinHandle<()>,
+        data_folder: PathBuf,
+    ) -> Self {
         let uin = client.uin().await;
         Self {
             client,
@@ -59,7 +63,7 @@ impl PlumbingClient {
             .load(std::sync::atomic::Ordering::Acquire)
     }
 
-    pub fn account_info<'py>(&self, py: Python<'py>) -> PyResult<&'py PyAny> {
+    pub fn get_account_info<'py>(&self, py: Python<'py>) -> PyResult<&'py PyAny> {
         let client = self.client.clone();
         py_future(py, async move {
             let info = &*client.account_info.read().await;
@@ -71,7 +75,7 @@ impl PlumbingClient {
         })
     }
 
-    pub fn other_clients<'py>(&self, py: Python<'py>) -> PyResult<&'py PyAny> {
+    pub fn get_other_clients<'py>(&self, py: Python<'py>) -> PyResult<&'py PyAny> {
         let client = self.client.clone();
         py_future(py, async move {
             let mut res: Vec<OtherClientInfo> = Vec::new();

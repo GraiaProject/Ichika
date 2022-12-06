@@ -718,6 +718,7 @@ dependencies = [
  "pyo3",
  "pyo3-asyncio",
  "pyo3-built",
+ "pythonize",
  "qrcode",
  "rand",
  "rand_chacha",
@@ -1320,6 +1321,16 @@ dependencies = [
  "proc-macro2 1.0.47",
  "quote 1.0.21",
  "syn 1.0.105",
+]
+
+[[package]]
+name = "pythonize"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0f7f0c136f5fbc01868185eef462800e49659eb23acca83b9e884367a006acb6"
+dependencies = [
+ "pyo3",
+ "serde",
 ]
 
 [[package]]
