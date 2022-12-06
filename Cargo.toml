@@ -42,6 +42,7 @@ qrcode = "0.12"
 image = "0.24"
 async-trait = "0.1.58"
 serde = "1.0"
+pythonize = "0.17.0"
 
 [package.metadata.maturin]
 python-source = "python"
