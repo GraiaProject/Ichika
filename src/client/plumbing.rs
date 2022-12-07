@@ -1,8 +1,13 @@
+use std::time::Duration;
 use std::{path::PathBuf, sync::Arc};
 
+use super::friend::FriendList;
+use super::utils::{CacheField, CacheTarget};
 use crate::client::structs::*;
 use crate::login::reconnect;
+use crate::py_intern;
 use crate::utils::{py_future, py_none};
+use anyhow::Result;
 use pyo3::prelude::*;
 use tokio::task::JoinHandle;
 #[pyclass]
@@ -12,6 +17,7 @@ pub struct PlumbingClient {
     #[pyo3(get)]
     uin: i64,
     data_folder: PathBuf,
+    friend_cache: CacheField<FriendList>,
 }
 
 impl PlumbingClient {
@@ -27,7 +33,18 @@ impl PlumbingClient {
             alive: Some(alive),
             uin,
             data_folder,
+            friend_cache: CacheField::new(Duration::from_secs(3600)),
         }
+    }
+}
+
+impl PlumbingClient {
+    async fn get_friend_list_raw(&self) -> Result<FriendList> {
+        self.friend_cache.clear().await;
+        self.friend_cache.get(self.client.clone()).await
+    }
+    async fn get_friend_list_cached(&self) -> Result<FriendList> {
+        self.friend_cache.get(self.client.clone()).await
     }
 }
 
@@ -66,9 +83,9 @@ impl PlumbingClient {
     pub fn get_account_info<'py>(&self, py: Python<'py>) -> PyResult<&'py PyAny> {
         let client = self.client.clone();
         py_future(py, async move {
-            let info = &*client.account_info.read().await;
+            let info = client.account_info.read().await;
             Ok(AccountInfo {
-                nickname: info.nickname.clone(),
+                nickname: py_intern!(&info.nickname),
                 age: info.age,
                 gender: info.gender,
             })

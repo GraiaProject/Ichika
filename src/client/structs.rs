@@ -1,22 +1,17 @@
-use pyo3::prelude::*;
+use pyo3::{prelude::*, types::*};
 
 #[pyclass(module = "ichika.client.structs#rs")]
 #[derive(Debug, Clone)]
 pub struct AccountInfo {
     #[pyo3(get)]
-    pub nickname: String,
+    pub nickname: Py<PyString>,
     #[pyo3(get)]
     pub age: u8,
     #[pyo3(get)]
     pub gender: u8,
 }
 
-#[pymethods]
-impl AccountInfo {
-    pub fn __repr__(&self) -> String {
-        format!("{:?}", self)
-    }
-}
+crate::repr!(AccountInfo);
 
 #[pyclass(module = "ichika.client.structs#rs")]
 #[derive(Debug, Clone)]
@@ -31,9 +26,4 @@ pub struct OtherClientInfo {
     pub device_kind: String,
 }
 
-#[pymethods]
-impl OtherClientInfo {
-    pub fn __repr__(&self) -> String {
-        format!("{:?}", self)
-    }
-}
+crate::repr!(OtherClientInfo);
