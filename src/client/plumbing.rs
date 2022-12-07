@@ -147,6 +147,14 @@ impl PlumbingClient {
             Ok(friend_list.find_friend(uin))
         })
     }
+
+    pub fn poke_friend_raw<'py>(&self, py: Python<'py>, uin: i64) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            client.friend_poke(uin).await?;
+            Ok(())
+        })
+    }
 }
 #[pymethods]
 impl PlumbingClient {
@@ -190,6 +198,19 @@ impl PlumbingClient {
                 .into_py(py);
                 Ok(tup)
             })
+        })
+    }
+
+    pub fn poke_member_raw<'py>(
+        &self,
+        py: Python<'py>,
+        group_uin: i64,
+        member_uin: i64,
+    ) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            client.group_poke(group_uin, member_uin).await?;
+            Ok(())
         })
     }
 }
