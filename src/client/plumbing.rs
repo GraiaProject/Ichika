@@ -2,12 +2,13 @@ use std::time::Duration;
 use std::{path::PathBuf, sync::Arc};
 
 use super::friend::FriendList;
+use super::group::Group;
+use super::structs::*;
 use super::utils::CacheField;
-use crate::client::structs::*;
 use crate::login::reconnect;
 use crate::py_intern;
 use crate::utils::{py_future, py_none};
-use pyo3::prelude::*;
+use pyo3::{prelude::*, types::*};
 use tokio::task::JoinHandle;
 #[pyclass]
 pub struct PlumbingClient {
@@ -84,17 +85,26 @@ impl PlumbingClient {
     pub fn get_other_clients<'py>(&self, py: Python<'py>) -> PyResult<&'py PyAny> {
         let client = self.client.clone();
         py_future(py, async move {
-            let mut res: Vec<OtherClientInfo> = Vec::new();
             let other_clients = &*client.online_clients.read().await;
-            for cl in other_clients.clone() {
-                res.push(OtherClientInfo {
-                    app_id: cl.app_id,
-                    instance_id: cl.instance_id,
-                    sub_platform: cl.sub_platform.clone(),
-                    device_kind: cl.device_kind.clone(),
-                });
-            }
-            Ok(res)
+            Python::with_gil(|py| {
+                let tup: PyObject = PyTuple::new(
+                    py,
+                    other_clients
+                        .iter()
+                        .map(|cl| {
+                            OtherClientInfo {
+                                app_id: cl.app_id,
+                                instance_id: cl.instance_id,
+                                sub_platform: cl.sub_platform.clone(),
+                                device_kind: cl.device_kind.clone(),
+                            }
+                            .into_py(py)
+                        })
+                        .collect::<Vec<PyObject>>(),
+                )
+                .into_py(py);
+                Ok(tup)
+            })
         })
     }
 }
@@ -135,6 +145,51 @@ impl PlumbingClient {
         py_future(py, async move {
             let friend_list = field.get(client).await?;
             Ok(friend_list.find_friend(uin))
+        })
+    }
+}
+#[pymethods]
+impl PlumbingClient {
+    pub fn find_group<'py>(&self, py: Python<'py>, group_uin: i64) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            if let Some(info) = client.get_group_info(group_uin).await? {
+                Ok(Some(Group::from(info)))
+            } else {
+                Ok(None)
+            }
+        })
+    }
+    pub fn find_groups<'py>(&self, py: Python<'py>, group_uins: Vec<i64>) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            let infos = client.get_group_infos(group_uins).await?;
+            let infos = infos.into_iter().map(|info| (info.code, info));
+            Ok(Python::with_gil(|py| -> PyResult<PyObject> {
+                let dict = PyDict::new(py);
+                for (key, info) in infos {
+                    dict.set_item(key, Group::from(info).into_py(py))?;
+                }
+                Ok(dict.into_py(py))
+            })?)
+        })
+    }
+    pub fn get_groups<'py>(&self, py: Python<'py>) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            let infos = client.get_group_list().await?;
+            Python::with_gil(|py| {
+                let tup: PyObject = PyTuple::new(
+                    py,
+                    infos
+                        .into_iter()
+                        .map(|info| Group::from(info))
+                        .map(|g| g.into_py(py))
+                        .collect::<Vec<PyObject>>(),
+                )
+                .into_py(py);
+                Ok(tup)
+            })
         })
     }
 }
