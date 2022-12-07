@@ -1,7 +1,7 @@
 import datetime
 from dataclasses import dataclass
 from types import ModuleType
-from typing import Callable, TypedDict
+from typing import Callable, Sequence, TypedDict, TypeVar
 
 from typing_extensions import Any
 
@@ -96,6 +96,24 @@ class FriendList:
     def friend_groups(self) -> tuple[FriendGroup, ...]: ...
     def find_friend_group(self, group_id: int) -> FriendGroup | None: ...
 
+@dataclass(frozen=True)
+class Group:
+    uin: int
+    name: str
+    memo: str
+    owner_uin: int
+    create_time: int
+    level: int
+    member_count: int
+    max_member_count: int
+    global_mute_timestamp: int
+    mute_timestamp: int
+    last_msg_seq: int
+
+_T = TypeVar("_T")
+
+VTuple = tuple[_T, ...]
+
 class PlumbingClient:
     async def keep_alive(self) -> None: ...
     @property
@@ -103,11 +121,14 @@ class PlumbingClient:
     @property
     def online(self) -> bool: ...
     async def get_account_info(self) -> __AccountInfo: ...
-    async def get_other_clients(self) -> list[__OtherClientInfo]: ...
+    async def get_other_clients(self) -> VTuple[__OtherClientInfo]: ...
     async def get_friend_list(self) -> FriendList: ...
     async def get_friend_list_raw(self) -> FriendList: ...
-    async def get_friends(self) -> tuple[Friend, ...]: ...
+    async def get_friends(self) -> VTuple[Friend]: ...
     async def find_friend(self, uin: int) -> Friend | None: ...
+    async def get_groups(self) -> VTuple[Group]: ...
+    async def find_group(self, group_uin: int) -> Group | None: ...
+    async def find_groups(self, group_uins: Sequence[int]) -> dict[int, Group]: ...
 
 # endregion: client
 
