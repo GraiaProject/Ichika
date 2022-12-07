@@ -76,6 +76,18 @@ macro_rules! py_str {
     };
 }
 
+#[macro_export]
+macro_rules! repr {
+    ($t: ty) => {
+        #[pymethods]
+        impl $t {
+            fn __repr__(&self) -> String {
+                format!("{:?}", self)
+            }
+        }
+    };
+}
+
 /// 将 [`tokio`] 的 Future 包装为 Python 的 Future。
 pub fn py_future<F, T>(py: Python, future: F) -> PyResult<&PyAny>
 where
