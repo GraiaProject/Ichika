@@ -5,6 +5,8 @@ from typing import Callable, TypedDict
 
 from typing_extensions import Any
 
+# region: build info
+
 __Build_RustInfo = TypedDict(
     "_RustInfo",
     {
@@ -41,10 +43,12 @@ __BuildInfo = TypedDict(
     },
 )
 
-def init_log(m: ModuleType, /) -> None: ...
-
 __version__: str
 __build__: __BuildInfo
+
+# endregion: build info
+
+def init_log(m: ModuleType, /) -> None: ...
 
 class Client(Any): ...
 
@@ -53,25 +57,59 @@ class Account:
     def __init__(self, uin: int, data_folder: str, protocol: str) -> None: ...  # TODO: Literal
     async def login(self, method: dict[str, Any]) -> PlumbingClient: ...
 
+# region: client
+@dataclass(frozen=True)
+class __AccountInfo:
+    nickname: str
+    age: int
+    gender: int
+
+@dataclass(frozen=True)
+class __OtherClientInfo:
+    app_id: int
+    instance_id: int
+    sub_platform: str
+    device_kind: str
+
+@dataclass(frozen=True)
+class Friend:
+    uin: int
+    nick: str
+    remark: str
+    face_id: int
+    group_id: int
+
+@dataclass(frozen=True)
+class FriendGroup:
+    group_id: int
+    name: str
+    total_count: int
+    online_count: int
+    seq_id: int
+
+@dataclass(frozen=True)
+class FriendList:
+    total_count: int
+    online_count: int
+    def friends(self) -> tuple[Friend, ...]: ...
+    def find_friend(self, uin: int) -> Friend | None: ...
+    def friend_groups(self) -> tuple[FriendGroup, ...]: ...
+    def find_friend_group(self, group_id: int) -> FriendGroup | None: ...
+
 class PlumbingClient:
     async def keep_alive(self) -> None: ...
     @property
     def uin(self) -> int: ...
     @property
     def online(self) -> bool: ...
-    @dataclass(frozen=True)
-    class __AccountInfo:
-        nickname: str
-        age: int
-        gender: int
     async def get_account_info(self) -> __AccountInfo: ...
-    @dataclass(frozen=True)
-    class __OtherClientInfo:
-        app_id: int
-        instance_id: int
-        sub_platform: str
-        device_kind: str
     async def get_other_clients(self) -> list[__OtherClientInfo]: ...
+    async def get_friend_list(self) -> FriendList: ...
+    async def get_friend_list_raw(self) -> FriendList: ...
+    async def get_friends(self) -> tuple[Friend, ...]: ...
+    async def find_friend(self, uin: int) -> Friend | None: ...
+
+# endregion: client
 
 def face_id_from_name(name: str) -> int | None: ...
 def face_name_from_id(id: int) -> str: ...
