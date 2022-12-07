@@ -10,7 +10,7 @@ use std::{collections::HashMap, sync::Arc};
 use super::utils::CacheTarget;
 #[pyclass(module = "ichika.client.structs.friend#rs")]
 #[derive(Debug, Clone)]
-struct Friend {
+pub struct Friend {
     #[pyo3(get)]
     uin: i64,
     #[pyo3(get)]
@@ -39,11 +39,11 @@ impl From<FriendInfo> for Friend {
 
 #[pyclass(module = "ichika.client.structs.friend#rs")]
 #[derive(Debug, Clone)]
-struct FriendGroup {
+pub struct FriendGroup {
     #[pyo3(get)]
     group_id: u8,
     #[pyo3(get)]
-    group_name: String,
+    name: String,
     #[pyo3(get)]
     total_count: i32,
     #[pyo3(get)]
@@ -58,7 +58,7 @@ impl From<FriendGroupInfo> for FriendGroup {
     fn from(info: FriendGroupInfo) -> Self {
         FriendGroup {
             group_id: info.group_id,
-            group_name: info.group_name,
+            name: info.group_name,
             total_count: info.friend_count,
             online_count: info.online_friend_count,
             seq_id: info.seq_id,
@@ -69,7 +69,7 @@ impl From<FriendGroupInfo> for FriendGroup {
 #[pyclass(module = "ichika.client.structs.friend#rs")]
 #[derive(Clone, Debug)]
 pub struct FriendList {
-    friends: Vec<Friend>,
+    entries: Vec<Friend>,
     friend_groups: HashMap<u8, FriendGroup>,
     #[pyo3(get)]
     total_count: i16,
@@ -79,22 +79,26 @@ pub struct FriendList {
 
 #[pymethods]
 impl FriendList {
-    fn iter_friends(slf: Py<Self>, py: Python) -> FriendIter {
-        FriendIter {
-            list: slf.clone_ref(py),
-            curr: 0,
-            end: slf.borrow(py).friends.len(),
-        }
+    pub fn friends(&self, py: Python) -> Py<pyo3::types::PyTuple> {
+        pyo3::types::PyTuple::new(
+            py,
+            self.entries
+                .clone()
+                .into_iter()
+                .map(|f| f.into_py(py))
+                .collect::<Vec<PyObject>>(),
+        )
+        .into_py(py)
     }
 
-    fn find_friend(&self, uin: i64) -> Option<Friend> {
-        self.friends
+    pub fn find_friend(&self, uin: i64) -> Option<Friend> {
+        self.entries
             .iter()
             .find(|friend| friend.uin == uin)
             .cloned()
     }
 
-    fn friend_groups(&self, py: Python) -> Py<pyo3::types::PyTuple> {
+    pub fn friend_groups(&self, py: Python) -> Py<pyo3::types::PyTuple> {
         pyo3::types::PyTuple::new(
             py,
             self.friend_groups
@@ -106,38 +110,10 @@ impl FriendList {
         .into_py(py)
     }
 
-    fn find_friend_group(&self, group_id: u8) -> Option<FriendGroup> {
+    pub fn find_friend_group(&self, group_id: u8) -> Option<FriendGroup> {
         self.friend_groups.get(&group_id).cloned()
     }
 }
-
-// region: FriendIter
-
-#[pyclass]
-struct FriendIter {
-    list: Py<FriendList>,
-    curr: usize,
-    end: usize,
-}
-
-#[pymethods]
-impl FriendIter {
-    fn __iter__(self_: PyRef<'_, Self>) -> PyRef<'_, Self> {
-        self_
-    }
-
-    fn __next__(&mut self, py: Python) -> Option<Friend> {
-        if self.curr < self.end {
-            let info = self.list.borrow(py).friends[self.curr].clone();
-            self.curr += 1;
-            Some(info)
-        } else {
-            None
-        }
-    }
-}
-
-// endregion: FriendIter
 
 impl CacheTarget for FriendList {
     type FetchFuture = impl Future<Output = Result<Self>>;
@@ -146,7 +122,7 @@ impl CacheTarget for FriendList {
         async move {
             let resp = client.get_friend_list().await?;
             let friend_list = FriendList {
-                friends: Vec::from_iter(resp.friends.into_iter().map(|f| Friend::from(f))),
+                entries: Vec::from_iter(resp.friends.into_iter().map(|f| Friend::from(f))),
                 friend_groups: HashMap::from_iter(
                     resp.friend_groups
                         .into_iter()

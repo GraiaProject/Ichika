@@ -2,12 +2,11 @@ use std::time::Duration;
 use std::{path::PathBuf, sync::Arc};
 
 use super::friend::FriendList;
-use super::utils::{CacheField, CacheTarget};
+use super::utils::CacheField;
 use crate::client::structs::*;
 use crate::login::reconnect;
 use crate::py_intern;
 use crate::utils::{py_future, py_none};
-use anyhow::Result;
 use pyo3::prelude::*;
 use tokio::task::JoinHandle;
 #[pyclass]
@@ -17,7 +16,7 @@ pub struct PlumbingClient {
     #[pyo3(get)]
     uin: i64,
     data_folder: PathBuf,
-    friend_cache: CacheField<FriendList>,
+    friend_cache: Arc<CacheField<FriendList>>,
 }
 
 impl PlumbingClient {
@@ -33,18 +32,8 @@ impl PlumbingClient {
             alive: Some(alive),
             uin,
             data_folder,
-            friend_cache: CacheField::new(Duration::from_secs(3600)),
+            friend_cache: Arc::new(CacheField::new(Duration::from_secs(3600))),
         }
-    }
-}
-
-impl PlumbingClient {
-    async fn get_friend_list_raw(&self) -> Result<FriendList> {
-        self.friend_cache.clear().await;
-        self.friend_cache.get(self.client.clone()).await
-    }
-    async fn get_friend_list_cached(&self) -> Result<FriendList> {
-        self.friend_cache.get(self.client.clone()).await
     }
 }
 
@@ -106,6 +95,46 @@ impl PlumbingClient {
                 });
             }
             Ok(res)
+        })
+    }
+}
+
+#[pymethods]
+impl PlumbingClient {
+    pub fn get_friend_list<'py>(&self, py: Python<'py>) -> PyResult<&'py PyAny> {
+        let field = self.friend_cache.clone();
+        let client = self.client.clone();
+        py_future(py, async move {
+            let friend_list = field.get(client).await?;
+            Ok(friend_list)
+        })
+    }
+
+    pub fn get_friend_list_raw<'py>(&self, py: Python<'py>) -> PyResult<&'py PyAny> {
+        let field = self.friend_cache.clone();
+        let client = self.client.clone();
+        py_future(py, async move {
+            field.clear().await;
+            let friend_list = field.get(client).await?;
+            Ok(friend_list)
+        })
+    }
+
+    pub fn get_friends<'py>(&self, py: Python<'py>) -> PyResult<&'py PyAny> {
+        let field = self.friend_cache.clone();
+        let client = self.client.clone();
+        py_future(py, async move {
+            let friend_list = field.get(client).await?;
+            Ok(Python::with_gil(|py| friend_list.friends(py)))
+        })
+    }
+
+    pub fn find_friend<'py>(&self, py: Python<'py>, uin: i64) -> PyResult<&'py PyAny> {
+        let field = self.friend_cache.clone();
+        let client = self.client.clone();
+        py_future(py, async move {
+            let friend_list = field.get(client).await?;
+            Ok(friend_list.find_friend(uin))
         })
     }
 }
