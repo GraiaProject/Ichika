@@ -1,4 +1,4 @@
-use crate::events::convert_msg::convert_message_chain;
+use crate::message::convert::convert_message_chain;
 use pyo3::prelude::*;
 use pyo3::types::PyList;
 use ricq::client::event::EventWithClient;
