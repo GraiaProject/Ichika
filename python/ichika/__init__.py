@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from typing import Any
 
-from . import ichika as lib
+from . import core
 
-lib.init_log(lib)
+core.init_log(core)
 
-__version__ = lib.__version__
-__build__ = lib.__build__
-Account = lib.Account
+__version__ = core.__version__
+__build__ = core.__build__
+Account = core.Account
 
 
 class LoginMethod:

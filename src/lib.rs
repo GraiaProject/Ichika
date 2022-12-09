@@ -24,7 +24,7 @@ pub mod build_info {
 
 #[pymodule]
 #[doc(hidden)]
-pub fn ichika(py: Python, m: &PyModule) -> PyResult<()> {
+pub fn core(py: Python, m: &PyModule) -> PyResult<()> {
     // 初始化
     m.add_function(wrap_pyfunction!(init_log, m)?)?;
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
