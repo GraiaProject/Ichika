@@ -1,4 +1,2 @@
-//! 消息链与消息元素。
-
-pub mod content;
+pub mod convert;
 pub mod elements;
