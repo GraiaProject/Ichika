@@ -7,7 +7,7 @@ from graia.amnesia.message import Element
 from graia.amnesia.message.element import Text as Text
 from typing_extensions import Self
 
-from .. import ichika as lib
+from .. import core
 
 
 @dataclass
@@ -86,11 +86,11 @@ class Dice(Element):
 class Face(Element):
     def __init__(self, index: int, name: str | None = None) -> None:
         self.index = index
-        self.name = name or lib.face_name_from_id(index)
+        self.name = name or core.face_name_from_id(index)
 
     @classmethod
     def from_name(cls, name: str) -> Self:
-        index = lib.face_id_from_name(name)
+        index = core.face_id_from_name(name)
         if index is None:
             raise ValueError("未知表情")
         return cls(index, name)
