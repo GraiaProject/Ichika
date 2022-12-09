@@ -14,7 +14,7 @@ include = [
 ]
 
 [lib]
-name = "ichika"
+name = "core"
 crate-type = ["cdylib"]
 
 [dependencies]
@@ -46,6 +46,7 @@ pythonize = "0.17.0"
 
 [package.metadata.maturin]
 python-source = "python"
+name = "ichika.core"
 
 [build-dependencies]
 built = { version = "0.5", features = ["chrono"] }
