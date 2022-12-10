@@ -4,6 +4,7 @@ from graia.amnesia.message import MessageChain
 from graia.amnesia.message.element import Element, Unknown
 
 from .elements import TYPE_MAP
+from .serializer import SERIALIZE_INV
 
 
 def deserialize_message(elements: list[dict[str, Any]]) -> MessageChain:
@@ -16,3 +17,11 @@ def deserialize_message(elements: list[dict[str, Any]]) -> MessageChain:
         else:
             elem_seq.append(cls(**e_data))
     return MessageChain(elem_seq)
+
+
+def serialize_message(chain: MessageChain) -> list[dict[str, Any]]:
+    res: list[dict[str, Any]] = []
+    for elem in chain:
+        if serializer := SERIALIZE_INV.get(elem.__class__):
+            res.append(serializer(elem))
+    return res

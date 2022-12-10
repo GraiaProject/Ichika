@@ -5,7 +5,7 @@ from graia.amnesia.message import Element, Text
 
 from .elements import At, AtAll, Dice, Face, FingerGuessing, MarketFace
 
-_serialize_inventory = {}
+SERIALIZE_INV: dict[type, Callable[[Any], dict[str, Any]]] = {}
 
 Elem_T = TypeVar("Elem_T", bound=Element)
 
@@ -20,7 +20,7 @@ def _serialize(
             res.setdefault("type", elem.__class__.__name__)
             return res
 
-        _serialize_inventory[elem_type] = wrapper
+        SERIALIZE_INV[elem_type] = wrapper
         return func
 
     return func_register
