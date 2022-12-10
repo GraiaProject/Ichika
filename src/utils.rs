@@ -9,31 +9,6 @@ pub fn py_none() -> PyObject {
     Python::with_gil(|py| py.None())
 }
 
-/// 将 Rust 定义的 Python 类实例化。
-pub fn py_obj<T>(obj: impl Into<PyClassInitializer<T>>) -> PyResult<Py<T>>
-where
-    T: pyo3::PyClass,
-{
-    Python::with_gil(|py| Py::new(py, obj))
-}
-
-// pub fn py_list<T, C, U>(list: impl IntoIterator<Item = T, IntoIter = U>) -> PyResult<Py<PyList>>
-// where
-//     T: Into<PyClassInitializer<C>>,
-//     C: pyo3::PyClass,
-//     U: ExactSizeIterator<Item = T>,
-// {
-//     Python::with_gil(|py| {
-//         Ok(PyList::new(
-//             py,
-//             list.into_iter()
-//                 .map(|item| PyCell::new(py, item))
-//                 .collect::<Result<Vec<_>, _>>()?,
-//         )
-//         .into())
-//     })
-// }
-
 /// 构造一个 Python 的 dict。
 #[macro_export]
 #[doc(hidden)]

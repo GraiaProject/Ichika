@@ -18,8 +18,7 @@ pub(crate) fn init(module: &PyModule) -> PyResult<()> {
             // 筛选不同包的日志级别
             tracing_subscriber::filter::Targets::new()
                 .with_target("ricq", Level::DEBUG)
-                .with_target("password_login", Level::DEBUG)
-                .with_target("ichika", Level::DEBUG),
+                .with_target("core", Level::DEBUG),
         )
         .init();
     // 注入 getframe

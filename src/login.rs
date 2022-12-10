@@ -28,8 +28,8 @@ use tokio_util::codec::{FramedRead, LinesCodec};
 
 /// 加载 `device.json`。
 async fn load_device_json(uin: i64, mut data_folder: PathBuf) -> Result<Device> {
-    use crate::device;
-
+    use rand::SeedableRng;
+    use rand_chacha::ChaCha8Rng;
     // 获取 `device.json` 的路径
     let device_json = {
         data_folder.push("device.json");
@@ -40,11 +40,11 @@ async fn load_device_json(uin: i64, mut data_folder: PathBuf) -> Result<Device> 
     let device = if device_json.exists() {
         // 尝试读取已有的 `device.json`
         let json = tokio::fs::read_to_string(device_json).await?;
-        device::from_json(&json, &device::random_from_uin(uin))?
+        serde_json::from_str::<Device>(json.as_str())?
     } else {
-        // 否则，生成一个新的 `device.json` 并保存到文件中
-        let device = device::random_from_uin(uin);
-        let json = device::to_json(&device)?;
+        // 否则，根据 QQ 号生成一个新的 `device.json` 并保存到文件中
+        let device = Device::random_with_rng(&mut ChaCha8Rng::seed_from_u64(uin as u64));
+        let json = serde_json::to_string::<Device>(&device)?;
         tokio::fs::write(device_json, json).await?;
         device
     };
