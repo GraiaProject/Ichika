@@ -27,3 +27,15 @@ pub struct OtherClientInfo {
 }
 
 crate::repr!(OtherClientInfo);
+
+#[pyclass(module = "ichika.client.structs#rs")]
+#[derive(Debug, Clone)]
+pub struct RawMessageReceipt {
+    #[pyo3(get)]
+    pub seqs: Py<PyTuple>,
+    #[pyo3(get)]
+    pub rands: Py<PyTuple>,
+    #[pyo3(get)]
+    pub time: i64,
+}
+crate::repr!(RawMessageReceipt);

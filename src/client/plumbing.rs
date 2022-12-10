@@ -6,6 +6,7 @@ use super::group::Group;
 use super::structs::*;
 use super::utils::CacheField;
 use crate::login::reconnect;
+use crate::message::convert::extract_message_chain;
 use crate::py_intern;
 use crate::utils::{py_future, py_none};
 use pyo3::{prelude::*, types::*};
@@ -211,6 +212,49 @@ impl PlumbingClient {
         py_future(py, async move {
             client.group_poke(group_uin, member_uin).await?;
             Ok(())
+        })
+    }
+}
+
+#[pymethods]
+impl PlumbingClient {
+    pub fn send_friend_message_raw<'py>(
+        &self,
+        py: Python<'py>,
+        uin: i64,
+        chain: &'py PyList,
+    ) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        let chain = extract_message_chain(chain)?;
+        py_future(py, async move {
+            // TODO: Audio
+            let ricq::structs::MessageReceipt { seqs, rands, time } =
+                client.send_friend_message(uin, chain).await?;
+            Ok(Python::with_gil(|py| RawMessageReceipt {
+                seqs: PyTuple::new(py, seqs).into_py(py),
+                rands: PyTuple::new(py, rands).into_py(py),
+                time,
+            }))
+        })
+    }
+
+    pub fn send_group_message_raw<'py>(
+        &self,
+        py: Python<'py>,
+        group_uin: i64,
+        chain: &'py PyList,
+    ) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        let chain = extract_message_chain(chain)?;
+        py_future(py, async move {
+            // TODO: Audio
+            let ricq::structs::MessageReceipt { seqs, rands, time } =
+                client.send_group_message(group_uin, chain).await?;
+            Ok(Python::with_gil(|py| RawMessageReceipt {
+                seqs: PyTuple::new(py, seqs).into_py(py),
+                rands: PyTuple::new(py, rands).into_py(py),
+                time,
+            }))
         })
     }
 }

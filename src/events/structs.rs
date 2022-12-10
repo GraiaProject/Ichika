@@ -69,7 +69,7 @@ py_event!(GroupMessage => s::GroupMessage);
 event_props!(
     self @ GroupMessage:
     sender => [i64] self.e.from_uin;
-    group_code => [i64] self.e.group_code;
+    group_uin => [i64] self.e.group_code;
     group_name => [String] self.e.group_name.clone();
     group_card => [String] self.e.group_card.clone();
 );
@@ -86,7 +86,7 @@ py_event!(GroupAudioMessage => s::GroupAudioMessage);
 event_props!(
     self @ GroupAudioMessage:
     sender => [i64] self.e.from_uin;
-    group_code => [i64] self.e.group_code;
+    group_uin => [i64] self.e.group_code;
     group_name => [String] self.e.group_name.clone();
     group_card => [String] self.e.group_card.clone();
 );
@@ -97,7 +97,7 @@ event_props!(
     self @ GroupMessageRecall:
     sender => [i64] self.e.author_uin;
     operator => [i64] self.e.operator_uin;
-    group_code => [i64] self.e.group_code;
+    group_uin => [i64] self.e.group_code;
 );
 
 py_event!(GroupRequest => ps::JoinGroupRequest);
