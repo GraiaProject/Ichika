@@ -4,7 +4,6 @@ use pyo3::prelude::*;
 use pyo3_built::pyo3_built;
 
 pub mod client;
-mod device;
 mod events;
 pub mod login;
 mod loguru;
