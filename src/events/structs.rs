@@ -138,3 +138,4 @@ py_event!(GroupTempMessage => s::GroupTempMessage);
 
 py_event!(KickedOffline => js::RequestPushForceOffline);
 py_event!(MSFOffline => js::RequestMSFForceOffline);
+py_event!(ClientDisconnect => ::ricq::client::event::DisconnectReason);

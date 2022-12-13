@@ -9,6 +9,7 @@ use anyhow::{anyhow, bail, Result};
 use bytes::Bytes;
 use futures_util::StreamExt;
 use pyo3::{exceptions::PyValueError, prelude::*, types::PyList};
+use pythonize::*;
 use ricq::{
     client::{Connector, DefaultConnector, NetworkStatus, Token},
     ext::{
@@ -27,25 +28,63 @@ use tokio::time::sleep;
 use tokio_util::codec::{FramedRead, LinesCodec};
 
 /// 加载 `device.json`。
-async fn load_device_json(uin: i64, mut data_folder: PathBuf) -> Result<Device> {
-    use rand::SeedableRng;
-    use rand_chacha::ChaCha8Rng;
-    // 获取 `device.json` 的路径
-    let device_json = {
-        data_folder.push("device.json");
-        data_folder
-    };
+async fn load_device_json(data_folder: PathBuf) -> Result<Device> {
+    let mut device_ricq_json = data_folder.clone();
+    device_ricq_json.push("ricq.device.json");
 
     // 解析设备信息
-    let device = if device_json.exists() {
-        // 尝试读取已有的 `device.json`
-        let json = tokio::fs::read_to_string(device_json).await?;
+    let device = if device_ricq_json.exists() {
+        // 尝试读取已有的 `ricq.device.json`
+        tracing::info!("发现 `ricq.device.json`, 读取");
+        let json = tokio::fs::read_to_string(device_ricq_json).await?;
         serde_json::from_str::<Device>(json.as_str())?
     } else {
-        // 否则，根据 QQ 号生成一个新的 `device.json` 并保存到文件中
-        let device = Device::random_with_rng(&mut ChaCha8Rng::seed_from_u64(uin as u64));
+        // 如果 `device.json` 存在那就尝试转换
+        let mut device_json = data_folder.clone();
+        device_json.push("device.json");
+        let mut device: Option<Device> = None;
+        if device_json.exists() {
+            tracing::info!("发现 `device.json`, 尝试转换");
+            let json = tokio::fs::read_to_string(device_json).await?;
+            match Python::with_gil(move |py| -> Result<Device, PythonizeError> {
+                let data = py.import("json")?.getattr("loads")?.call1((json,))?;
+                let device_dc = py
+                    .import("ichika.scripts.device.converter")?
+                    .getattr("convert")?
+                    .call1((data,))?;
+                let converted = py
+                    .import("dataclasses")?
+                    .getattr("asdict")?
+                    .call1((device_dc,))?;
+                depythonize(converted)
+            }) {
+                Ok(d) => {
+                    device = Some(d);
+                }
+                Err(err) => {
+                    tracing::error!("转换 `device.json` 发生错误: {}", err);
+                    tracing::info!("重新创建 `device.ricq.json`")
+                }
+            }
+        } else {
+            tracing::info!("未找到 `device.ricq.json`, 正在创建")
+        }
+        let device: Device = match device {
+            Some(device) => device,
+            None => Python::with_gil(|py| -> Result<Device, PythonizeError> {
+                let device_dc = py
+                    .import("ichika.scripts.device.generator")?
+                    .getattr("generate")?
+                    .call0()?;
+                let converted = py
+                    .import("dataclasses")?
+                    .getattr("asdict")?
+                    .call1((device_dc,))?;
+                depythonize(converted)
+            })?,
+        };
         let json = serde_json::to_string::<Device>(&device)?;
-        tokio::fs::write(device_json, json).await?;
+        tokio::fs::write(device_ricq_json, json).await?;
         device
     };
 
@@ -378,7 +417,7 @@ impl Account {
                     data_folder.push(uin.to_string());
                     tokio::fs::create_dir_all(&data_folder).await?;
 
-                    let device = load_device_json(uin, data_folder.clone()).await?;
+                    let device = load_device_json(data_folder.clone()).await?;
                     let (client, alive) = prepare_client(device, protocol, handler).await?;
 
                     match method {
