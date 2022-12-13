@@ -38,7 +38,8 @@ mk_convert!(
     DeleteFriend,
     MemberPermissionChange,
     KickedOffline,
-    MSFOffline
+    MSFOffline,
+    ClientDisconnect
 );
 
 pub struct PyHandler {
