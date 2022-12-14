@@ -1,8 +1,12 @@
-use super::elements::MarketFaceImpl;
+use super::elements::*;
 use crate::py_dict;
 use pyo3::{exceptions::PyValueError, prelude::*, types::*};
-use ricq::msg::{elem::RQElem, MessageChain};
+use ricq::msg::{
+    elem::{FlashImage, RQElem},
+    MessageChain,
+};
 use ricq_core::msg::elem::{At, Dice, Face, FingerGuessing, Text};
+
 pub fn convert_message_chain(py: Python, chain: MessageChain) -> PyResult<Py<PyList>> {
     let res = PyList::empty(py);
     for e in chain {
@@ -52,45 +56,42 @@ pub fn convert_message_chain(py: Python, chain: MessageChain) -> PyResult<Py<PyL
                 )
             }
             RQElem::MarketFace(m) => {
-                let f = MarketFaceImpl { face: m };
+                let f = SealedMarketFace { inner: m };
                 py_dict!(py,
                 "type" => "MarketFace",
                 "raw" => f.into_py(py)
                 )
             }
-            RQElem::FriendImage(i) => {
-                py_dict!(py,
-                    "type" => "Image",
-                    "url" => i.url(),
-                    "info" => (i.md5.clone(), i.size, i.width, i.height, i.image_type)
-                )
-            }
             RQElem::GroupImage(i) => {
                 py_dict!(py,
-                    "type" => "Image",
-                    "url" => i.url(),
-                    "info" => (i.md5.clone(), i.size, i.width, i.height, i.image_type)
+                "type" => "Image",
+                "url" => i.url(),
+                "raw" => (SealedGroupImage {inner: i}).into_py(py)
                 )
             }
-            RQElem::FlashImage(i) => {
-                use ricq_core::msg::elem::FlashImage;
-                match i {
-                    FlashImage::GroupImage(i) => {
-                        py_dict!(py,
-                            "type" => "FlashImage",
-                            "url" => i.url(),
-                            "info" => (i.md5.clone(), i.size, i.width, i.height, i.image_type)
-                        )
-                    }
-                    FlashImage::FriendImage(i) => {
-                        py_dict!(py,
-                            "type" => "FlashImage",
-                            "url" => i.url(),
-                            "info" => (i.md5.clone(), i.size, i.width, i.height, i.image_type)
-                        )
-                    }
-                }
+            RQElem::FriendImage(i) => {
+                py_dict!(py,
+                "type" => "Image",
+                "url" => i.url(),
+                "raw" => (SealedFriendImage {inner: i}).into_py(py)
+                )
             }
+            RQElem::FlashImage(i) => match i {
+                FlashImage::GroupImage(i) => {
+                    py_dict!(py,
+                    "type" => "FlashImage",
+                    "url" => i.url(),
+                    "raw" => (SealedGroupImage {inner: i}).into_py(py)
+                    )
+                }
+                FlashImage::FriendImage(i) => {
+                    py_dict!(py,
+                    "type" => "FlashImage",
+                    "url" => i.url(),
+                    "raw" => (SealedFriendImage {inner: i}).into_py(py)
+                    )
+                }
+            },
             RQElem::Other(_) => {
                 continue;
             }
@@ -143,12 +144,30 @@ pub fn extract_message_chain(list: &PyList) -> PyResult<MessageChain> {
             }
             "MarketFace" => {
                 if let Some(t) = elem_d.get_item("raw") {
-                    chain.push(t.extract::<MarketFaceImpl>()?.face)
+                    chain.push(t.extract::<SealedMarketFace>()?.inner)
                 }
             }
             "Face" => {
                 if let Some(t) = elem_d.get_item("index") {
                     chain.push(Face::new(t.extract::<i32>()?))
+                }
+            }
+            "Image" => {
+                if let Some(t) = elem_d.get_item("raw") {
+                    match t.extract::<SealedFriendImage>() {
+                        Ok(i) => chain.push(i.inner),
+                        Err(_) => chain.push(t.extract::<SealedGroupImage>()?.inner),
+                    }
+                }
+            }
+            "FlashImage" => {
+                if let Some(t) = elem_d.get_item("raw") {
+                    match t.extract::<SealedFriendImage>() {
+                        Ok(i) => chain.push(FlashImage::from(i.inner)),
+                        Err(_) => {
+                            chain.push(FlashImage::from(t.extract::<SealedGroupImage>()?.inner))
+                        }
+                    }
                 }
             }
             _ => {}

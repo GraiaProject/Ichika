@@ -3,7 +3,16 @@ from typing import Any, Callable, TypeVar
 
 from graia.amnesia.message import Element, Text
 
-from .elements import At, AtAll, Dice, Face, FingerGuessing, MarketFace
+from .elements import (
+    At,
+    AtAll,
+    Dice,
+    Face,
+    FingerGuessing,
+    FlashImage,
+    Image,
+    MarketFace,
+)
 
 SERIALIZE_INV: dict[type, Callable[[Any], dict[str, Any]]] = {}
 
@@ -33,3 +42,17 @@ _serialize(Dice)(lambda t: {"value": t.value})
 _serialize(FingerGuessing)(lambda t: {"choice": t.choice.name})
 _serialize(Face)(lambda t: {"index": t.index})
 _serialize(MarketFace)(lambda t: {"raw": t.raw})
+
+
+@_serialize(Image)
+def _(i: Image):
+    if i.raw is None:
+        raise ValueError
+    return {"raw": i.raw}
+
+
+@_serialize(FlashImage)
+def _(i: FlashImage):
+    if i.raw is None:
+        raise ValueError
+    return {"raw": i.raw}
