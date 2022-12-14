@@ -3,8 +3,8 @@ use std::{
     sync::Arc,
 };
 
-use crate::events::PyHandler;
 use crate::utils::{py_future, retry};
+use crate::{events::PyHandler, import_call};
 use anyhow::{anyhow, bail, Result};
 use bytes::Bytes;
 use futures_util::StreamExt;
@@ -45,17 +45,15 @@ async fn load_device_json(data_folder: PathBuf) -> Result<Device> {
         let mut device: Option<Device> = None;
         if device_json.exists() {
             tracing::info!("发现 `device.json`, 尝试转换");
-            let json = tokio::fs::read_to_string(device_json).await?;
+            let json_data = tokio::fs::read_to_string(device_json).await?;
             match Python::with_gil(move |py| -> Result<Device, PythonizeError> {
-                let data = py.import("json")?.getattr("loads")?.call1((json,))?;
-                let device_dc = py
-                    .import("ichika.scripts.device.converter")?
-                    .getattr("convert")?
-                    .call1((data,))?;
-                let converted = py
-                    .import("dataclasses")?
-                    .getattr("asdict")?
-                    .call1((device_dc,))?;
+                // data = json.loads(json_data)
+                let data = import_call!(py, "json" => "loads" => json_data)?;
+                // device_dc = ichika.scripts.device.converter.convert(data)
+                let device_dc =
+                    import_call!(py, "ichika.scripts.device.converter" => "convert" => data)?;
+                // converted = dataclasses.asdict(device_dc)
+                let converted = import_call!(py, "dataclasses" => "asdict" => device_dc)?;
                 depythonize(converted)
             }) {
                 Ok(d) => {
@@ -72,14 +70,9 @@ async fn load_device_json(data_folder: PathBuf) -> Result<Device> {
         let device: Device = match device {
             Some(device) => device,
             None => Python::with_gil(|py| -> Result<Device, PythonizeError> {
-                let device_dc = py
-                    .import("ichika.scripts.device.generator")?
-                    .getattr("generate")?
-                    .call0()?;
-                let converted = py
-                    .import("dataclasses")?
-                    .getattr("asdict")?
-                    .call1((device_dc,))?;
+                let device_dc =
+                    import_call!(py, "ichika.scripts.device.generator" => "generate" => @tuple ())?;
+                let converted = import_call!(py, "dataclasses" => "asdict" => device_dc)?;
                 depythonize(converted)
             })?,
         };

@@ -1,11 +1,17 @@
+from __future__ import annotations
+
+import base64
+import pathlib
 from dataclasses import dataclass
 from enum import Enum
 from functools import total_ordering
-from typing import Any, Literal
+from io import BytesIO
+from typing import Any, Generic, Literal
 
+import aiohttp
 from graia.amnesia.message import Element
 from graia.amnesia.message.element import Text as Text
-from typing_extensions import Self
+from typing_extensions import Self, TypeAlias, TypeGuard, TypeVar
 
 from .. import core
 
@@ -114,12 +120,84 @@ class Audio(Element):
     ...
 
 
-class Image(Element):
-    ...
+ImgInfo: TypeAlias = "tuple[bytes, int, int, int, int]"  # md5, size, width, height, type
+
+T_Image = TypeVar("T_Image", bound="None | ImgInfo")
 
 
-class FlashImage(Element):
-    ...
+class Image(Generic[T_Image], Element):
+    url: str
+    info: T_Image
+    _data_cache: bytes | None
+
+    def __init__(self, url: str, info: T_Image = None) -> None:
+        self.url = url
+        self._data_cache = None
+        self.info = info
+
+    @classmethod
+    def build(cls, data: bytes | BytesIO | pathlib.Path) -> Image[None]:
+        if isinstance(data, BytesIO):
+            data = data.read()
+        elif isinstance(data, pathlib.Path):
+            data = data.read_bytes()
+        img = Image(f"base64://{base64.urlsafe_b64encode(data)}")
+        img._data_cache = data
+        return img
+
+    def is_online_image(self) -> TypeGuard[Image[ImgInfo]]:
+        return self.info is not None
+
+    @property
+    def md5(self: Image[ImgInfo]) -> bytes:
+        return self.info[0]
+
+    @property
+    def size(self: Image[ImgInfo]) -> int:
+        return self.info[1]
+
+    @property
+    def width(self: Image[ImgInfo]) -> int:
+        return self.info[2]
+
+    @property
+    def height(self: Image[ImgInfo]) -> int:
+        return self.info[3]
+
+    @property
+    def image_type(self: Image[ImgInfo]) -> int:
+        return self.info[4]
+
+    async def get_bytes(self) -> bytes:
+        if self._data_cache is None:
+            if self.url.startswith("base64://"):
+                self._data_cache = base64.urlsafe_b64decode(self.url[8:])
+            else:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(self.url) as resp:
+                        self._data_cache = await resp.read()
+        return self._data_cache
+
+    @property
+    def as_flash(self) -> FlashImage[T_Image]:
+        img = FlashImage(self.url, self.info)
+        img._data_cache = self._data_cache
+        return img
+
+
+class FlashImage(Image[T_Image]):
+    @classmethod
+    def build(cls, data: bytes | BytesIO | pathlib.Path) -> FlashImage[None]:
+        return Image.build(data).as_flash
+
+    def is_online_image(self) -> TypeGuard[FlashImage[ImgInfo]]:
+        return self.info is not None
+
+    @property
+    def as_image(self) -> Image[T_Image]:
+        img = Image(self.url, self.info)
+        img._data_cache = self._data_cache
+        return img
 
 
 class Video(Element):

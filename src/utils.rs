@@ -35,7 +35,6 @@ macro_rules! kwargs {
 
 /// 创建 Python 字符串（有缓存）。
 #[macro_export]
-#[doc(hidden)]
 macro_rules! py_intern {
     ($s:expr) => {
         Python::with_gil(|py| ::pyo3::types::PyString::intern(py, $s).into_py(py))
@@ -44,7 +43,6 @@ macro_rules! py_intern {
 
 /// 创建 Python 字符串（无缓存）。
 #[macro_export]
-#[doc(hidden)]
 macro_rules! py_str {
     ($s:expr) => {
         Python::with_gil(|py| ::pyo3::types::PyString::new(py, $s).into_py(py))
@@ -60,6 +58,19 @@ macro_rules! repr {
                 format!("{:?}", self)
             }
         }
+    };
+}
+#[macro_export]
+macro_rules! import_call {
+    ($py: expr, $module: expr => $attr: expr => $arg: expr) => {
+        $py.import(::pyo3::intern!($py, $module))?
+            .getattr(::pyo3::intern!($py, $attr))?
+            .call1(($arg,))
+    };
+    ($py: expr, $module: expr => $attr: expr => @tuple $arg: expr) => {
+        $py.import(::pyo3::intern!($py, $module))?
+            .getattr(::pyo3::intern!($py, $attr))?
+            .call1($arg)
     };
 }
 
