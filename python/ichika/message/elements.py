@@ -6,14 +6,15 @@ from dataclasses import dataclass
 from enum import Enum
 from functools import total_ordering
 from io import BytesIO
-from typing import Any, Generic, Literal
+from typing import Any, Generic, Literal, Optional
 
 import aiohttp
 from graia.amnesia.message import Element
 from graia.amnesia.message.element import Text as Text
-from typing_extensions import Self, TypeAlias, TypeGuard, TypeVar
+from typing_extensions import Self, TypeGuard, TypeVar
 
 from .. import core
+from ._sealed import SealedImage, SealedMarketFace
 
 
 @dataclass
@@ -120,20 +121,18 @@ class Audio(Element):
     ...
 
 
-ImgInfo: TypeAlias = "tuple[bytes, int, int, int, int]"  # md5, size, width, height, type
-
-T_Image = TypeVar("T_Image", bound="None | ImgInfo")
+T_Image = TypeVar("T_Image", bound=Optional[SealedImage])
 
 
 class Image(Generic[T_Image], Element):
     url: str
-    info: T_Image
+    raw: T_Image
     _data_cache: bytes | None
 
-    def __init__(self, url: str, info: T_Image = None) -> None:
+    def __init__(self, url: str, raw: T_Image = None) -> None:
         self.url = url
         self._data_cache = None
-        self.info = info
+        self.raw = raw
 
     @classmethod
     def build(cls, data: bytes | BytesIO | pathlib.Path) -> Image[None]:
@@ -145,28 +144,28 @@ class Image(Generic[T_Image], Element):
         img._data_cache = data
         return img
 
-    def is_online_image(self) -> TypeGuard[Image[ImgInfo]]:
-        return self.info is not None
+    def is_online_image(self) -> TypeGuard[Image[SealedImage]]:
+        return self.raw is not None
 
     @property
-    def md5(self: Image[ImgInfo]) -> bytes:
-        return self.info[0]
+    def md5(self: Image[SealedImage]) -> bytes:
+        return self.raw.md5
 
     @property
-    def size(self: Image[ImgInfo]) -> int:
-        return self.info[1]
+    def size(self: Image[SealedImage]) -> int:
+        return self.raw.size
 
     @property
-    def width(self: Image[ImgInfo]) -> int:
-        return self.info[2]
+    def width(self: Image[SealedImage]) -> int:
+        return self.raw.width
 
     @property
-    def height(self: Image[ImgInfo]) -> int:
-        return self.info[3]
+    def height(self: Image[SealedImage]) -> int:
+        return self.raw.height
 
     @property
-    def image_type(self: Image[ImgInfo]) -> int:
-        return self.info[4]
+    def image_type(self: Image[SealedImage]) -> int:
+        return self.raw.image_type
 
     async def get_bytes(self) -> bytes:
         if self._data_cache is None:
@@ -180,7 +179,7 @@ class Image(Generic[T_Image], Element):
 
     @property
     def as_flash(self) -> FlashImage[T_Image]:
-        img = FlashImage(self.url, self.info)
+        img = FlashImage(self.url, self.raw)
         img._data_cache = self._data_cache
         return img
 
@@ -190,12 +189,12 @@ class FlashImage(Image[T_Image]):
     def build(cls, data: bytes | BytesIO | pathlib.Path) -> FlashImage[None]:
         return Image.build(data).as_flash
 
-    def is_online_image(self) -> TypeGuard[FlashImage[ImgInfo]]:
-        return self.info is not None
+    def is_online_image(self) -> TypeGuard[FlashImage[SealedImage]]:
+        return self.raw is not None
 
     @property
     def as_image(self) -> Image[T_Image]:
-        img = Image(self.url, self.info)
+        img = Image(self.url, self.raw)
         img._data_cache = self._data_cache
         return img
 
@@ -205,7 +204,7 @@ class Video(Element):
 
 
 class MarketFace(Element):
-    def __init__(self, raw: Any) -> None:
+    def __init__(self, raw: SealedMarketFace) -> None:
         self.raw = raw
 
     @property
@@ -215,5 +214,5 @@ class MarketFace(Element):
 
 TYPE_MAP = {
     cls.__name__: cls
-    for cls in (Text, At, AtAll, FingerGuessing, Dice, Face, LightApp, Audio, Image, FlashImage, Video, MarketFace)
+    for cls in (Text, At, AtAll, FingerGuessing, Dice, Face, LightApp, Audio, Image, FlashImage, MarketFace)
 }

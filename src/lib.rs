@@ -45,7 +45,7 @@ pub fn core(py: Python, m: &PyModule) -> PyResult<()> {
     );
     add_batch!(@cls m,
         login::Account,
-        client::plumbing::PlumbingClient
+        client::PlumbingClient
     );
     register_event_module(py, m)?;
     Ok(())
