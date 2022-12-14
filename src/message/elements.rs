@@ -1,7 +1,9 @@
 //! 消息元素。
 
-use pyo3::prelude::*;
+use pyo3::{prelude::*, types::PyBytes};
 use ricq::msg::elem::{FriendImage, GroupImage, MarketFace};
+
+use crate::props;
 
 #[pyfunction]
 pub fn face_name_from_id(id: i32) -> String {
@@ -39,50 +41,18 @@ impl SealedMarketFace {
 py_seal!(SealedGroupImage => GroupImage);
 py_seal!(SealedFriendImage => FriendImage);
 
-#[pymethods]
-impl SealedGroupImage {
-    #[getter]
-    fn md5(&self) -> Vec<u8> {
-        self.inner.md5.clone()
-    }
-    #[getter]
-    fn size(&self) -> u32 {
-        self.inner.size
-    }
-    #[getter]
-    fn width(&self) -> u32 {
-        self.inner.width
-    }
-    #[getter]
-    fn height(&self) -> u32 {
-        self.inner.height
-    }
-    #[getter]
-    fn image_type(&self) -> i32 {
-        self.inner.image_type
-    }
-}
+props!(self @ SealedGroupImage:
+    md5 => [Py<PyBytes>] Python::with_gil(|py| PyBytes::new(py, &self.inner.md5).into_py(py));
+    size => [u32] self.inner.size;
+    width => [u32] self.inner.width;
+    height => [u32] self.inner.height;
+    image_type => [i32] self.inner.image_type;
+);
 
-#[pymethods]
-impl SealedFriendImage {
-    #[getter]
-    fn md5(&self) -> Vec<u8> {
-        self.inner.md5.clone()
-    }
-    #[getter]
-    fn size(&self) -> u32 {
-        self.inner.size
-    }
-    #[getter]
-    fn width(&self) -> u32 {
-        self.inner.width
-    }
-    #[getter]
-    fn height(&self) -> u32 {
-        self.inner.height
-    }
-    #[getter]
-    fn image_type(&self) -> i32 {
-        self.inner.image_type
-    }
-}
+props!(self @ SealedFriendImage:
+    md5 => [Py<PyBytes>] Python::with_gil(|py| PyBytes::new(py, &self.inner.md5).into_py(py));
+    size => [u32] self.inner.size;
+    width => [u32] self.inner.width;
+    height => [u32] self.inner.height;
+    image_type => [i32] self.inner.image_type;
+);

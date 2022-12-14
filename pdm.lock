@@ -308,15 +308,6 @@ requires_python = ">=3.6"
 summary = "YAML parser and emitter for Python"
 
 [[package]]
-name = "qrcode"
-version = "7.3.1"
-requires_python = ">=3.6"
-summary = "QR Code image generator"
-dependencies = [
-    "colorama; platform_system == \"Windows\"",
-]
-
-[[package]]
 name = "regex"
 version = "2022.10.31"
 requires_python = ">=3.6"
@@ -387,7 +378,7 @@ summary = "Backport of pathlib-compatible object wrapper for zip files"
 
 [metadata]
 lock_version = "4.1"
-content_hash = "sha256:aee1c6650fa317fee6679b03b3fcb67c8a5395095b0daff2a61079fb473778ab"
+content_hash = "sha256:2a6ad26401e72e1bd883a7785abda4950e01437a99e7a37d5156d1fb053927dd"
 
 [metadata.files]
 "aiohttp 3.8.3" = [
@@ -829,9 +820,6 @@ content_hash = "sha256:aee1c6650fa317fee6679b03b3fcb67c8a5395095b0daff2a61079fb4
     {url = "https://files.pythonhosted.org/packages/f5/6f/b8b4515346af7c33d3b07cd8ca8ea0700ca72e8d7a750b2b87ac0268ca4e/PyYAML-6.0-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:055d937d65826939cb044fc8c9b08889e8c743fdc6a32b33e2390f66013e449b"},
     {url = "https://files.pythonhosted.org/packages/f8/54/799b059314b13e1063473f76e908f44106014d18f54b16c83a16edccd5ec/PyYAML-6.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:d4b0ba9512519522b118090257be113b9468d804b19d63c71dbcf4a48fa32358"},
     {url = "https://files.pythonhosted.org/packages/fc/48/531ecd926fe0a374346dd811bf1eda59a95583595bb80eadad511f3269b8/PyYAML-6.0-cp311-cp311-win32.whl", hash = "sha256:bfaef573a63ba8923503d27530362590ff4f576c626d86a9fed95822a8255fd7"},
-]
-"qrcode 7.3.1" = [
-    {url = "https://files.pythonhosted.org/packages/94/9f/31f33cdf3cf8f98e64c42582fb82f39ca718264df61957f28b0bbb09b134/qrcode-7.3.1.tar.gz", hash = "sha256:375a6ff240ca9bd41adc070428b5dfc1dcfbb0f2507f1ac848f6cded38956578"},
 ]
 "regex 2022.10.31" = [
     {url = "https://files.pythonhosted.org/packages/00/7e/ab5a54f60e36f4de0610850866b848839a7b02ad4f05755bce429fbc1a5a/regex-2022.10.31-cp310-cp310-musllinux_1_1_x86_64.whl", hash = "sha256:763b64853b0a8f4f9cfb41a76a4a85a9bcda7fdda5cb057016e7706fde928e66"},

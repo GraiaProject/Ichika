@@ -1,4 +1,5 @@
 use crate::message::convert::convert_message_chain;
+use crate::props;
 use pyo3::prelude::*;
 use pyo3::types::PyList;
 use ricq::client::event::EventWithClient;
@@ -29,20 +30,6 @@ macro_rules! py_event {
     };
 }
 
-macro_rules! event_props {
-    ($self_t: ident @ $cls: ident : $($name: ident => [$type: ty] $res: stmt);* ;) => {
-        #[pymethods]
-        impl $cls {
-            $(
-                #[getter]
-                pub fn $name(&$self_t) -> $type {
-                    $res
-                }
-            )*
-        }
-    };
-}
-
 #[pyclass(module = "ichika.events#rs")]
 pub struct Login {
     #[pyo3(get)]
@@ -66,7 +53,7 @@ impl From<i64> for Login {
 
 py_event!(GroupMessage => s::GroupMessage);
 
-event_props!(
+props!(
     self @ GroupMessage:
     sender => [i64] self.e.from_uin;
     group_uin => [i64] self.e.group_code;
@@ -83,7 +70,7 @@ impl GroupMessage {
 
 py_event!(GroupAudioMessage => s::GroupAudioMessage);
 
-event_props!(
+props!(
     self @ GroupAudioMessage:
     sender => [i64] self.e.from_uin;
     group_uin => [i64] self.e.group_code;
@@ -93,7 +80,7 @@ event_props!(
 
 py_event!(GroupMessageRecall => s::GroupMessageRecall);
 
-event_props!(
+props!(
     self @ GroupMessageRecall:
     sender => [i64] self.e.author_uin;
     operator => [i64] self.e.operator_uin;
@@ -113,7 +100,7 @@ py_event!(MemberPermissionChange => s::MemberPermissionChange);
 
 py_event!(FriendMessage => s::FriendMessage);
 
-event_props!(
+props!(
     self @ FriendMessage:
     target => [i64] self.e.target;
     sender => [i64] self.e.from_uin;

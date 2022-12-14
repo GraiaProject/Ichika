@@ -2,10 +2,17 @@ name: Release
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - master
 
 jobs:
   macos:
     runs-on: macos-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        target: [x64, aarch64, universal2]
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -15,8 +22,16 @@ jobs:
       - name: Install Rust Toolchain (Nightly)
         uses: dtolnay/rust-toolchain@nightly
 
+      - name: Build wheels - ${{ matrix.target }}
+        uses: PyO3/maturin-action@v1
+        if: ${{ matrix.target != 'universal2' }}
+        with:
+          target: ${{ matrix.target }}
+          args: --release --out dist
+
       - name: Build wheels - universal2
         uses: PyO3/maturin-action@v1
+        if: ${{ matrix.target == 'universal2' }}
         with:
           args: --release --universal2 --out dist
 
@@ -29,6 +44,7 @@ jobs:
   windows:
     runs-on: windows-latest
     strategy:
+      fail-fast: true
       matrix:
         target: [x64, x86, aarch64]
     steps:
@@ -55,6 +71,7 @@ jobs:
   linux:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: true
       matrix:
         target: [x64, x86, aarch64, armv7, armv7l, s390x, ppc64le, ppc64]
     steps:
@@ -123,6 +140,7 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     needs: [ macos, windows, linux, linux-musl, sdist ]
     steps:
       - uses: actions/download-artifact@v3
