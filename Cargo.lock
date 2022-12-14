@@ -704,7 +704,6 @@ dependencies = [
  "async-trait",
  "built",
  "bytes",
- "either",
  "futures-util",
  "hex",
  "image 0.24.5",
