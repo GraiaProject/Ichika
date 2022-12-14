@@ -11,7 +11,6 @@ jobs:
     name: Build MacOS
     runs-on: macos-latest
     strategy:
-      fail-fast: true
       matrix:
         target: [x64, aarch64, universal2]
     steps:
@@ -46,7 +45,6 @@ jobs:
     name: Build Windows
     runs-on: windows-latest
     strategy:
-      fail-fast: true
       matrix:
         target: [x64, x86, aarch64]
         include:
@@ -77,9 +75,8 @@ jobs:
     name: Build Linux (glibc)
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: true
       matrix:
-        target: [x64, x86, aarch64, armv7, armv7l, s390x, ppc64le, ppc64]
+        target: [x64, x86, aarch64, armv7, s390x, ppc64le, ppc64]
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v4
@@ -104,7 +101,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target: [x64, x86, aarch64, armv7, armv7l, ppc64le]
+        target: [x64, x86, aarch64, armv7, ppc64le]
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v4
@@ -116,7 +113,7 @@ jobs:
       with:
         rust-toolchain: nightly
         target: ${{ matrix.target }}
-        manylinux: musllinux
+        manylinux: musllinux_1_2
         args: --release --out dist
 
     - name: Upload wheels
