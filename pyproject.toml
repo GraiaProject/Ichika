@@ -25,6 +25,8 @@ dependencies = [
     "dacite>=1.6.0",
     "graia-amnesia>=0.7.0",
     "pre-commit>=2.20.0",
+    "qrcode>=7.3.1",
+    "aiohttp>=3.8.3",
 ]
 
 dynamic = ["version"]
@@ -60,3 +62,5 @@ dev = [
 line-length = 120
 [tool.isort]
 profile = "black"
+[tool.pyright]
+reportMissingModuleSource = false

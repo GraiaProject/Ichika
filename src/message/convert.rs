@@ -58,6 +58,39 @@ pub fn convert_message_chain(py: Python, chain: MessageChain) -> PyResult<Py<PyL
                 "raw" => f.into_py(py)
                 )
             }
+            RQElem::FriendImage(i) => {
+                py_dict!(py,
+                    "type" => "Image",
+                    "url" => i.url(),
+                    "info" => (i.md5.clone(), i.size, i.width, i.height, i.image_type)
+                )
+            }
+            RQElem::GroupImage(i) => {
+                py_dict!(py,
+                    "type" => "Image",
+                    "url" => i.url(),
+                    "info" => (i.md5.clone(), i.size, i.width, i.height, i.image_type)
+                )
+            }
+            RQElem::FlashImage(i) => {
+                use ricq_core::msg::elem::FlashImage;
+                match i {
+                    FlashImage::GroupImage(i) => {
+                        py_dict!(py,
+                            "type" => "FlashImage",
+                            "url" => i.url(),
+                            "info" => (i.md5.clone(), i.size, i.width, i.height, i.image_type)
+                        )
+                    }
+                    FlashImage::FriendImage(i) => {
+                        py_dict!(py,
+                            "type" => "FlashImage",
+                            "url" => i.url(),
+                            "info" => (i.md5.clone(), i.size, i.width, i.height, i.image_type)
+                        )
+                    }
+                }
+            }
             RQElem::Other(_) => {
                 continue;
             }

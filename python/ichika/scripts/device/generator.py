@@ -29,7 +29,9 @@ def get_imei(model: Model) -> str:
 
 
 def get_mac_addr(model: Model) -> str:
-    ...
+    if model.brand in data.addr:
+        return rng.choice(data.addr[model.brand]) + "".join(f":{t:02x}" for t in rng.randbytes(3))
+    return ":".join(f"{t:02x}" for t in rng.randbytes(6))
 
 
 def generate() -> RICQDevice:
