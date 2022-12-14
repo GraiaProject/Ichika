@@ -1,4 +1,4 @@
-name: Release
+name: Run CI
 
 on:
   workflow_dispatch:
@@ -8,6 +8,7 @@ on:
 
 jobs:
   macos:
+    name: Build MacOS
     runs-on: macos-latest
     strategy:
       fail-fast: true
@@ -42,17 +43,21 @@ jobs:
           path: dist
 
   windows:
+    name: Build Windows
     runs-on: windows-latest
     strategy:
       fail-fast: true
       matrix:
         target: [x64, x86, aarch64]
+        include:
+        - target: x86
+          py-arch: x86
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
           python-version: 3.9
-          architecture: x64
+          architecture: ${{ matrix.py-arch || 'x64' }}
       - name: Install Rust Toolchain (Nightly)
         uses: dtolnay/rust-toolchain@nightly
 
@@ -69,6 +74,7 @@ jobs:
           path: dist
 
   linux:
+    name: Build Linux (glibc)
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
@@ -94,6 +100,7 @@ jobs:
         path: dist
 
   linux-musl:
+    name: Build Linux (musl)
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -109,7 +116,7 @@ jobs:
       with:
         rust-toolchain: nightly
         target: ${{ matrix.target }}
-        manylinux: musllinux_1_2
+        manylinux: musllinux
         args: --release --out dist
 
     - name: Upload wheels
