@@ -5,6 +5,8 @@ from typing import Callable, Sequence, TypedDict, TypeVar
 
 from typing_extensions import Any
 
+from ..client import Client
+
 # region: build info
 
 __Build_RustInfo = TypedDict(
@@ -50,12 +52,10 @@ __build__: __BuildInfo
 
 def init_log(m: ModuleType, /) -> None: ...
 
-class Client(Any): ...
-
 class Account:
     event_callbacks: list[Callable[[Any], Any]]
     def __init__(self, uin: int, data_folder: str, protocol: str) -> None: ...  # TODO: Literal
-    async def login(self, method: dict[str, Any]) -> PlumbingClient: ...
+    async def login(self, method: dict[str, Any]) -> Client: ...
 
 # region: client
 

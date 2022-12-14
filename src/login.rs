@@ -429,10 +429,15 @@ impl Account {
                     // 注册客户端，启动心跳。
                     after_login(&client).await;
                     save_token(&client, data_folder.clone()).await?;
-                    Ok(
-                        crate::client::plumbing::PlumbingClient::new(client, alive, data_folder)
-                            .await,
-                    )
+                    let init = crate::client::ClientInitializer {
+                        uin: client.uin().await,
+                        client,
+                        alive: Arc::new(::std::sync::Mutex::new(Some(alive))),
+                        data_folder,
+                    };
+                    Python::with_gil(|py| {
+                        Ok(import_call!(py, "ichika.client" => "Client" => init)?.into_py(py))
+                    })
                 })
             }
             Err(e) => {
