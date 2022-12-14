@@ -60,6 +60,7 @@ macro_rules! repr {
         }
     };
 }
+
 #[macro_export]
 macro_rules! import_call {
     ($py: expr, $module: expr => $attr: expr => $arg: expr) => {
@@ -71,6 +72,21 @@ macro_rules! import_call {
         $py.import(::pyo3::intern!($py, $module))?
             .getattr(::pyo3::intern!($py, $attr))?
             .call1($arg)
+    };
+}
+
+#[macro_export]
+macro_rules! props {
+    ($self_t: ident @ $cls: ident : $($name: ident => [$type: ty] $res: stmt);* ;) => {
+        #[pymethods]
+        impl $cls {
+            $(
+                #[getter]
+                pub fn $name(&$self_t) -> $type {
+                    $res
+                }
+            )*
+        }
     };
 }
 
