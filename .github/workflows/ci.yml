@@ -64,10 +64,14 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: 3.9
+      - name: Install tomlkit to edit Cargo.toml
+        run: pip install tomlkit
+      - name: Bump version
+        if: ${{ github.event_name != 'workflow_dispatch' }}
+        run: python ./.github/dev-bumper.py ${{ github.sha }}
       - uses: PyO3/maturin-action@v1
         with:
           rust-toolchain: nightly
-          manylinux: auto
           command: sdist
           args: -o dist
       - name: Upload wheels
