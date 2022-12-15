@@ -1,9 +1,10 @@
+import os
 import sys
 from typing import Any
 
 import tomlkit
 
-sha, release, gh_env = sys.argv[1:]
+sha, release = sys.argv[1:]
 
 release = release == "true"
 if not release:
@@ -15,6 +16,6 @@ if not release:
     with open("./Cargo.toml", "w") as cargo_file:
         tomlkit.dump(doc, cargo_file)
 
-with open(gh_env, "a") as env:
+with open(os.environ["GITHUB_ENV"], "a") as env:
     env.write("BASE_BUILD='--release --out --dist'" if release else "BASE_BUILD='--out --dist'")
     env.write("\n")
