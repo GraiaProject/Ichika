@@ -14,7 +14,7 @@ jobs:
       matrix:
         target: [x64, aarch64, universal2]
     steps:
-      - uses: BlueGlassBlock/.github/workflows/build.yml@master
+      - uses: BlueGlassBlock/ichika/.github/workflows/build.yml@master
         with:
           os: macos
           target: ${{ matrix.target }}
@@ -30,7 +30,7 @@ jobs:
         - target: x86
           py-arch: x86
     steps:
-      - uses: BlueGlassBlock/.github/workflows/build.yml@master
+      - uses: BlueGlassBlock/ichika/.github/workflows/build.yml@master
         with:
           os: windows
           target: ${{ matrix.target }}
@@ -44,7 +44,7 @@ jobs:
       matrix:
         target: [x64, x86, aarch64, armv7, s390x, ppc64le, ppc64]
     steps:
-      - uses: BlueGlassBlock/.github/workflows/build.yml@master
+      - uses: BlueGlassBlock/ichika/.github/workflows/build.yml@master
         with:
           os: ubuntu
           target: ${{ matrix.target }}
@@ -58,7 +58,7 @@ jobs:
       matrix:
         target: [x64, x86, aarch64, armv7]
     steps:
-      - uses: BlueGlassBlock/.github/workflows/build.yml@master
+      - uses: BlueGlassBlock/ichika/.github/workflows/build.yml@master
         with:
           os: ubuntu
           target: ${{ matrix.target }}
