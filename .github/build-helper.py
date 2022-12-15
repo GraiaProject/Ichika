@@ -17,5 +17,5 @@ if not release:
         tomlkit.dump(doc, cargo_file)
 
 with open(os.environ["GITHUB_ENV"], "a") as env:
-    env.write("BASE_BUILD='--release --out --dist'" if release else "BASE_BUILD='--out --dist'")
+    env.write("BASE_BUILD='--release --out dist'" if release else "BASE_BUILD='--out dist'")
     env.write("\n")
