@@ -30,7 +30,7 @@ jobs:
       - name: Install tomlkit to edit Cargo.toml
         run: pip install tomlkit
       - name: Run build helper
-        run: python ./.github/dev-bumper.py ${{ github.sha }} ${{ inputs.release }} $GITHUB_ENV
+        run: python ./.github/dev-bumper.py ${{ github.sha }} ${{ inputs.release }}
 
       - name: Build wheels - ${{ inputs.target }}
         uses: PyO3/maturin-action@v1
