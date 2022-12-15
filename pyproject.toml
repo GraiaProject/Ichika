@@ -54,7 +54,8 @@ devel = {composite = ["ensure-pip", "install-deps", "install-rs-deps", "build-rs
 dev = [
     "black>=22.10.0",
     "isort>=5.10.1",
-    "maturin>=0.13,<0.14"
+    "maturin>=0.13,<0.14",
+    "tomlkit>=0.11.6",
 ]
 
 [tool.black]
