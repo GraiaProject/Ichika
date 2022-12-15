@@ -9,86 +9,78 @@ on:
 jobs:
   macos:
     name: Build MacOS
-    runs-on: macos-latest
     strategy:
       matrix:
         target: [x64, aarch64, universal2]
-    steps:
-      - uses: BlueGlassBlock/ichika/.github/workflows/build.yml@master
-        with:
-          os: macos
-          target: ${{ matrix.target }}
-          release: ${{ github.event_name == 'workflow_dispatch' }}
+    uses: BlueGlassBlock/ichika/.github/workflows/build.yml@master
+    with:
+      os: macos
+      target: ${{ matrix.target }}
+      release: ${{ github.event_name == 'workflow_dispatch' }}
 
   windows:
     name: Build Windows
-    runs-on: windows-latest
     strategy:
       matrix:
         target: [x64, x86, aarch64]
         include:
-        - target: x86
-          py-arch: x86
-    steps:
-      - uses: BlueGlassBlock/ichika/.github/workflows/build.yml@master
-        with:
-          os: windows
-          target: ${{ matrix.target }}
-          py-arch: ${{ matrix.py-arch || 'x64' }}
-          release: ${{ github.event_name == 'workflow_dispatch' }}
+          - target: x86
+            py-arch: x86
+    uses: BlueGlassBlock/ichika/.github/workflows/build.yml@master
+    with:
+      os: windows
+      target: ${{ matrix.target }}
+      py-arch: ${{ matrix.py-arch || 'x64' }}
+      release: ${{ github.event_name == 'workflow_dispatch' }}
 
   linux:
     name: Build Linux (glibc)
-    runs-on: ubuntu-latest
     strategy:
       matrix:
         target: [x64, x86, aarch64, armv7, s390x, ppc64le, ppc64]
-    steps:
-      - uses: BlueGlassBlock/ichika/.github/workflows/build.yml@master
-        with:
-          os: ubuntu
-          target: ${{ matrix.target }}
-          manylinux: auto
-          release: ${{ github.event_name == 'workflow_dispatch' }}
+    uses: BlueGlassBlock/ichika/.github/workflows/build.yml@master
+    with:
+      os: ubuntu
+      target: ${{ matrix.target }}
+      manylinux: auto
+      release: ${{ github.event_name == 'workflow_dispatch' }}
 
   linux-musl:
     name: Build Linux (musl)
-    runs-on: ubuntu-latest
     strategy:
       matrix:
         target: [x64, x86, aarch64, armv7]
-    steps:
-      - uses: BlueGlassBlock/ichika/.github/workflows/build.yml@master
-        with:
-          os: ubuntu
-          target: ${{ matrix.target }}
-          manylinux: musllinux_1_2
-          release: ${{ github.event_name == 'workflow_dispatch' }}
+    uses: BlueGlassBlock/ichika/.github/workflows/build.yml@master
+    with:
+      os: ubuntu
+      target: ${{ matrix.target }}
+      manylinux: musllinux_1_2
+      release: ${{ github.event_name == 'workflow_dispatch' }}
 
   sdist:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-python@v4
-      with:
-        python-version: 3.9
-    - uses: PyO3/maturin-action@v1
-      with:
-        rust-toolchain: nightly
-        manylinux: auto
-        command: sdist
-        args: -o dist
-    - name: Upload wheels
-      uses: actions/upload-artifact@v2
-      with:
-        name: wheels
-        path: dist
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+      - uses: PyO3/maturin-action@v1
+        with:
+          rust-toolchain: nightly
+          manylinux: auto
+          command: sdist
+          args: -o dist
+      - name: Upload wheels
+        uses: actions/upload-artifact@v2
+        with:
+          name: wheels
+          path: dist
 
   release:
     name: Release
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'workflow_dispatch' }}
-    needs: [ macos, windows, linux, linux-musl, sdist ]
+    needs: [macos, windows, linux, linux-musl, sdist]
     steps:
       - uses: actions/download-artifact@v3
         with:
