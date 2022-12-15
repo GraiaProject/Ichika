@@ -1,0 +1,66 @@
+on:
+  workflow_call:
+    inputs:
+      os:
+        required: true
+        type: string
+      target:
+        required: true
+        type: string
+      py-arch:
+        required: false
+        type: string
+      manylinux:
+        required: false
+        type: string
+      release:
+        required: true
+        type: boolean
+
+jobs:
+  build:
+    runs-on: ${{ inputs.os }}-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+          architecture: ${{ inputs.py-arch || 'x64' }}
+
+      - name: Set base build command
+        run: |
+          if ${{ inputs.release }} == true; then
+            echo "BASE_BUILD='--release --out dist" >> $GITHUB_ENV
+          else
+            echo "BASE_BUILD='--out dist" >> $GITHUB_ENV
+          fi
+
+      - name: Build wheels - ${{ matrix.target }}
+        uses: PyO3/maturin-action@v1
+        if: ${{ inputs.target != 'universal2' }}
+        with:
+          rust-toolchain: nightly
+          target: ${{ inputs.target }}
+          args: ${{ env.BASE_BUILD }}
+
+      - name: Build wheels - universal2
+        uses: PyO3/maturin-action@v1
+        if: ${{ inputs.target == 'universal2' }}
+        with:
+          rust-toolchain: nightly
+          args: ${{ env.BASE_BUILD }} --universal2
+
+      - name: Build wheels - manylinux
+        uses: PyO3/maturin-action@v1
+        if: ${{ inputs.manylinux }}
+        with:
+          rust-toolchain: nightly
+          target: ${{ inputs.target }}
+          manylinux: ${{ inputs.manylinux }}
+          args: ${{ env.BASE_BUILD }}
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels
+          path: dist
