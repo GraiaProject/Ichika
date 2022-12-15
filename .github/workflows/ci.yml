@@ -66,9 +66,8 @@ jobs:
           python-version: 3.9
       - name: Install tomlkit to edit Cargo.toml
         run: pip install tomlkit
-      - name: Bump version
-        if: ${{ github.event_name != 'workflow_dispatch' }}
-        run: python ./.github/dev-bumper.py ${{ github.sha }}
+      - name: Run build helper
+        run: python ./.github/dev-bumper.py ${{ github.sha }} ${{ github.event_name == 'workflow_dispatch' }} $GITHUB_ENV
       - uses: PyO3/maturin-action@v1
         with:
           rust-toolchain: nightly

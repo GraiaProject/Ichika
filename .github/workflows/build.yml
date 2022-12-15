@@ -29,16 +29,8 @@ jobs:
           architecture: ${{ inputs.py-arch || 'x64' }}
       - name: Install tomlkit to edit Cargo.toml
         run: pip install tomlkit
-      - name: Bump version
-        if: ${{ inputs.release == false }}
-        run: python ./.github/dev-bumper.py ${{ github.sha }}
-      - name: Set base build command
-        run: |
-          if ${{ inputs.release }}; then
-            echo "BASE_BUILD='--release --out dist" >> $GITHUB_ENV
-          else
-            echo "BASE_BUILD='--out dist" >> $GITHUB_ENV
-          fi
+      - name: Run build helper
+        run: python ./.github/dev-bumper.py ${{ github.sha }} ${{ inputs.release }} $GITHUB_ENV
 
       - name: Build wheels - ${{ inputs.target }}
         uses: PyO3/maturin-action@v1
