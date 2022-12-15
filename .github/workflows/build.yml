@@ -34,7 +34,7 @@ jobs:
 
       - name: Build wheels - ${{ inputs.target }}
         uses: PyO3/maturin-action@v1
-        if: ${{ inputs.target != 'universal2' and !inputs.manylinux }}
+        if: ${{ inputs.target != 'universal2' && !inputs.manylinux }}
         with:
           rust-toolchain: nightly
           target: ${{ inputs.target }}
