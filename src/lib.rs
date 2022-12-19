@@ -1,4 +1,5 @@
 #![feature(type_alias_impl_trait)]
+#![feature(try_blocks)]
 
 use pyo3::prelude::*;
 use pyo3_built::pyo3_built;

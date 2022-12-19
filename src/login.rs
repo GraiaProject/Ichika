@@ -102,7 +102,19 @@ async fn prepare_client(
     Ok((client, alive))
 }
 
-async fn try_token_login(client: &Client, mut data_folder: PathBuf) -> Result<bool> {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TokenWithProtocol {
+    #[serde(default = "String::new")]
+    protocol: String,
+    #[serde(flatten)]
+    token: Token,
+}
+
+async fn try_token_login(
+    client: &Client,
+    protocol: &Protocol,
+    mut data_folder: PathBuf,
+) -> Result<bool> {
     let token_path = {
         data_folder.push("token.json");
         data_folder
@@ -112,29 +124,37 @@ async fn try_token_login(client: &Client, mut data_folder: PathBuf) -> Result<bo
     }
     tracing::info!("发现上一次登录的 token，尝试使用 token 登录");
     let token = tokio::fs::read_to_string(&token_path).await?;
-    let token: Token = serde_json::from_str(&token)?;
-    match client.token_login(token).await {
-        Ok(login_resp) => {
-            if let LoginResponse::Success(LoginSuccess {
-                ref account_info, ..
-            }) = login_resp
-            {
-                tracing::info!("登录成功: {:?}", account_info);
-                return Ok(true);
+    let token: TokenWithProtocol = serde_json::from_str(&token)?;
+    if format!("{:?}", protocol) == token.protocol {
+        match client.token_login(token.token).await {
+            Ok(login_resp) => {
+                if let LoginResponse::Success(LoginSuccess {
+                    ref account_info, ..
+                }) = login_resp
+                {
+                    tracing::info!("登录成功: {:?}", account_info);
+                    return Ok(true);
+                }
+                tracing::error!("登录失败：{:?}", login_resp);
             }
-            bail!("登录失败，原因未知：{:?}", login_resp)
+            Err(e) => {
+                tracing::error!("token 登录失败：{:?}", e);
+            }
         }
-        Err(_) => {
-            tracing::info!("token 登录失败，将删除 token");
-            tokio::fs::remove_file(token_path).await?;
-            Ok(false)
-        }
+    } else {
+        tracing::info!("登录协议与 token 协议不一致！");
     }
+    tracing::info!("删除 token 重新登录...");
+    tokio::fs::remove_file(token_path).await?;
+    Ok(false)
 }
 
-async fn save_token(client: &Client, mut data_folder: PathBuf) -> Result<()> {
+async fn save_token(client: &Client, protocol: &Protocol, mut data_folder: PathBuf) -> Result<()> {
     let token = client.gen_token().await;
-    let token = serde_json::to_string(&token)?;
+    let token = serde_json::to_string(&TokenWithProtocol {
+        protocol: format!("{:?}", protocol),
+        token,
+    })?;
     let token_path = {
         data_folder.push("token.json");
         data_folder
@@ -411,16 +431,14 @@ impl Account {
                     tokio::fs::create_dir_all(&data_folder).await?;
 
                     let device = load_device_json(data_folder.clone()).await?;
-                    let (client, alive) = prepare_client(device, protocol, handler).await?;
+                    let (client, alive) = prepare_client(device, protocol.clone(), handler).await?;
 
-                    match method {
-                        LoginMethod::Password(p) => {
-                            if !try_token_login(&client, data_folder.clone()).await? {
+                    if !try_token_login(&client, &protocol, data_folder.clone()).await? {
+                        match method {
+                            LoginMethod::Password(p) => {
                                 password_login(&client, uin, p.password, p.md5, p.sms).await?;
                             }
-                        }
-                        LoginMethod::QRCode => {
-                            if !try_token_login(&client, data_folder.clone()).await? {
+                            LoginMethod::QRCode => {
                                 qrcode_login(&client, uin).await?;
                             }
                         }
@@ -428,7 +446,7 @@ impl Account {
 
                     // 注册客户端，启动心跳。
                     after_login(&client).await;
-                    save_token(&client, data_folder.clone()).await?;
+                    save_token(&client, &protocol, data_folder.clone()).await?;
                     let init = crate::client::ClientInitializer {
                         uin: client.uin().await,
                         client,
