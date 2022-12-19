@@ -79,4 +79,4 @@ def convert(source: dict) -> RICQDevice:
     params = make_defaults()
     source.setdefault("version", params["version"]).update(source.get("version", {}))
     params.update({camel_to_snake(k): source[k] for k in source})
-    return from_dict(RICQDevice, source, Config({str: string_hook, list[int]: list_int_hook}))
+    return from_dict(RICQDevice, params, Config({str: string_hook, list[int]: list_int_hook}))
