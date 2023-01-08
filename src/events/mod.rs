@@ -1,45 +1,72 @@
-mod structs;
 use async_trait::async_trait;
-use pyo3::types::PyList;
-use pyo3::{prelude::*, types::PyTuple};
-use ricq::client::handler::Handler;
-use ricq::client::handler::QEvent;
-pub use structs::*;
+use pyo3::{prelude::*, types::*};
 
-macro_rules! mk_convert {
-    ($($name: ident),*) => {
-        fn convert(e: QEvent, py: Python) -> Py<PyAny> {
-            match e{
-                $(QEvent::$name(inner) => $name::from(inner).into_py(py)),*
-            }
-        }
-    };
+use ricq::handler::{Handler, QEvent};
+
+pub mod converter;
+pub mod structs;
+use crate::repr;
+use structs::MessageSource;
+
+use self::structs::MemberInfo;
+
+#[pyclass]
+#[derive(Debug, Clone)]
+pub struct LoginEvent {
+    #[pyo3(get)]
+    uin: i64,
 }
 
-mk_convert!(
-    Login,
+#[pyclass]
+#[derive(Debug, Clone)]
+pub struct GroupMessage {
+    #[pyo3(get)]
+    source: MessageSource,
+    #[pyo3(get)]
+    content: Py<PyAny>, // PyMessageChain
+    #[pyo3(get)]
+    sender: MemberInfo,
+}
+
+#[pyclass]
+#[derive(Debug, Clone)]
+pub struct FriendMessage {
+    #[pyo3(get)]
+    source: MessageSource,
+    #[pyo3(get)]
+    content: Py<PyAny>, // PyMessageChain
+}
+
+#[pyclass]
+#[derive(Debug, Clone)]
+pub struct TempMessage {
+    #[pyo3(get)]
+    source: MessageSource,
+    #[pyo3(get)]
+    content: Py<PyAny>, // PyMessageChain
+    #[pyo3(get)]
+    sender: MemberInfo,
+}
+
+#[pyclass]
+#[derive(Debug, Clone)]
+pub struct UnknownEvent {
+    inner: QEvent,
+}
+
+#[pymethods]
+impl UnknownEvent {
+    fn inner_repr(&self) -> String {
+        format!("{:?}", self.inner)
+    }
+}
+
+repr!(
+    LoginEvent,
     GroupMessage,
-    GroupAudioMessage,
     FriendMessage,
-    FriendAudioMessage,
-    GroupTempMessage,
-    GroupRequest,
-    SelfInvited,
-    NewFriendRequest,
-    NewMember,
-    GroupMute,
-    FriendMessageRecall,
-    NewFriend,
-    GroupMessageRecall,
-    GroupLeave,
-    GroupDisband,
-    FriendPoke,
-    GroupNameUpdate,
-    DeleteFriend,
-    MemberPermissionChange,
-    KickedOffline,
-    MSFOffline,
-    ClientDisconnect
+    TempMessage,
+    UnknownEvent
 );
 
 pub struct PyHandler {
@@ -54,9 +81,17 @@ impl PyHandler {
 
 #[async_trait]
 impl Handler for PyHandler {
-    async fn handle(&self, e: QEvent) {
+    async fn handle(&self, event: QEvent) {
+        let event_repr = format!("{:?}", event);
+        let py_event = match self::converter::convert(event).await {
+            Ok(obj) => obj,
+            Err(e) => {
+                tracing::error!("转换事件 {} 时失败:", event_repr);
+                Python::with_gil(|py| e.print_and_set_sys_last_vars(py));
+                return;
+            }
+        };
         Python::with_gil(|py| {
-            let py_event = convert(e, py);
             let args: Py<PyTuple> = PyTuple::new(py, &[py_event]).into_py(py);
             for cb in self.callbacks.as_ref(py) {
                 match cb.call1(args.clone().as_ref(py)) {

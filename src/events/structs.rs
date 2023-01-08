@@ -1,128 +1,45 @@
-use crate::message::convert::convert_message_chain;
-use crate::props;
-use pyo3::prelude::*;
-use pyo3::types::PyList;
-use ricq::client::event::EventWithClient;
-use ricq::structs as s;
-use ricq_core::command::profile_service as ps;
-use ricq_core::jce as js;
-macro_rules! py_event {
-    ($name: ident => $inner: ty) => {
-        #[pyclass(module = "ichika.events#rs")]
-        #[allow(dead_code)]
-        #[derive(Debug)]
-        pub struct $name {
-            e: $inner,
-        }
+use pyo3::{prelude::*, types::PyTuple};
 
-        impl From<EventWithClient<$inner>> for $name {
-            fn from(value: EventWithClient<$inner>) -> Self {
-                Self { e: value.inner }
-            }
-        }
+use crate::repr;
 
-        #[pymethods]
-        impl $name {
-            pub fn __repr__(&self) -> String {
-                format!("<ichika.events#rs.{:?}>", self.e)
-            }
-        }
-    };
-}
-
-#[pyclass(module = "ichika.events#rs")]
-pub struct Login {
+#[pyclass]
+#[derive(Debug, Clone)]
+pub struct MessageSource {
     #[pyo3(get)]
-    uin: i64,
+    pub seqs: Py<PyTuple>,
+    #[pyo3(get)]
+    pub rands: Py<PyTuple>,
 }
 
-#[pymethods]
-impl Login {
-    pub fn __repr__(&self) -> String {
-        format!("<ichika.events#rs.Login {{ uin: {:?}}}>", self.uin)
+impl MessageSource {
+    pub fn new(py: Python<'_>, seqs: &[i32], rands: &[i32]) -> Self {
+        Self {
+            seqs: PyTuple::new(py, seqs).into_py(py),
+            rands: PyTuple::new(py, rands).into_py(py),
+        }
     }
 }
 
-impl From<i64> for Login {
-    fn from(value: i64) -> Self {
-        Self { uin: value }
-    }
+#[pyclass]
+#[derive(Debug, Clone)]
+pub struct GroupInfo {
+    #[pyo3(get)]
+    pub uin: i64,
+    #[pyo3(get)]
+    pub name: String,
 }
 
-// Group
-
-py_event!(GroupMessage => s::GroupMessage);
-
-props!(
-    self @ GroupMessage:
-    sender => [i64] self.e.from_uin;
-    group_uin => [i64] self.e.group_code;
-    group_name => [String] self.e.group_name.clone();
-    group_card => [String] self.e.group_card.clone();
-);
-
-#[pymethods]
-impl GroupMessage {
-    pub fn raw_elements<'py>(self_t: PyRef<'py, Self>, py: Python<'py>) -> PyResult<Py<PyList>> {
-        convert_message_chain(py, self_t.e.elements.clone())
-    }
+#[pyclass]
+#[derive(Debug, Clone)]
+pub struct MemberInfo {
+    #[pyo3(get)]
+    pub uin: i64,
+    #[pyo3(get)]
+    pub name: String,
+    #[pyo3(get)]
+    pub group: GroupInfo,
+    #[pyo3(get)]
+    pub permission: u8,
 }
 
-py_event!(GroupAudioMessage => s::GroupAudioMessage);
-
-props!(
-    self @ GroupAudioMessage:
-    sender => [i64] self.e.from_uin;
-    group_uin => [i64] self.e.group_code;
-    group_name => [String] self.e.group_name.clone();
-    group_card => [String] self.e.group_card.clone();
-);
-
-py_event!(GroupMessageRecall => s::GroupMessageRecall);
-
-props!(
-    self @ GroupMessageRecall:
-    sender => [i64] self.e.author_uin;
-    operator => [i64] self.e.operator_uin;
-    group_uin => [i64] self.e.group_code;
-);
-
-py_event!(GroupRequest => ps::JoinGroupRequest);
-py_event!(SelfInvited => ps::SelfInvited);
-py_event!(NewMember => s::NewMember);
-py_event!(GroupNameUpdate => s::GroupNameUpdate);
-py_event!(GroupMute => s::GroupMute);
-py_event!(GroupLeave => s::GroupLeave);
-py_event!(GroupDisband => s::GroupDisband);
-py_event!(MemberPermissionChange => s::MemberPermissionChange);
-
-// Friend
-
-py_event!(FriendMessage => s::FriendMessage);
-
-props!(
-    self @ FriendMessage:
-    target => [i64] self.e.target;
-    sender => [i64] self.e.from_uin;
-    sender_name => [String] self.e.from_nick.clone();
-);
-
-#[pymethods]
-impl FriendMessage {
-    pub fn raw_elements<'py>(self_t: PyRef<'py, Self>, py: Python<'py>) -> PyResult<Py<PyList>> {
-        convert_message_chain(py, self_t.e.elements.clone())
-    }
-}
-
-py_event!(FriendAudioMessage => s::FriendAudioMessage);
-py_event!(FriendPoke => s::FriendPoke);
-py_event!(FriendMessageRecall => s::FriendMessageRecall);
-py_event!(NewFriendRequest => ps::NewFriendRequest);
-py_event!(NewFriend => s::FriendInfo);
-py_event!(DeleteFriend => s::DeleteFriend);
-
-py_event!(GroupTempMessage => s::GroupTempMessage);
-
-py_event!(KickedOffline => js::RequestPushForceOffline);
-py_event!(MSFOffline => js::RequestMSFForceOffline);
-py_event!(ClientDisconnect => ::ricq::client::event::DisconnectReason);
+repr!(MessageSource, GroupInfo, MemberInfo);

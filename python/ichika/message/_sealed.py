@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 
-class SealedMarketFace:
+class SealedMarketFace:  # Rust Native
     name: str
 
 
-class SealedImage:
+class SealedImage:  # Rust Native
     md5: bytes
     size: int
     width: int
