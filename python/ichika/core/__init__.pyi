@@ -6,6 +6,7 @@ from typing import Callable, Sequence, TypedDict, TypeVar
 from typing_extensions import Any
 
 from ..client import Client
+from . import events as events
 
 # region: build info
 

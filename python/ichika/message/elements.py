@@ -183,6 +183,9 @@ class Image(Generic[T_Image], Element):
         img._data_cache = self._data_cache
         return img
 
+    def __str__(self) -> str:
+        return "[图片]"
+
 
 class FlashImage(Image[T_Image]):
     @classmethod
@@ -198,6 +201,9 @@ class FlashImage(Image[T_Image]):
         img._data_cache = self._data_cache
         return img
 
+    def __str__(self) -> str:
+        return "[闪照]"
+
 
 class Video(Element):
     ...
@@ -210,6 +216,9 @@ class MarketFace(Element):
     @property
     def name(self) -> str:
         return self.raw.name
+
+    def __str__(self) -> str:
+        return f"[商城表情:{self.name}]"
 
 
 TYPE_MAP = {

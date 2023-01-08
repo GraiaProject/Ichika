@@ -59,6 +59,9 @@ macro_rules! repr {
             }
         }
     };
+    ($($t:ty),*) => {
+        $(repr!($t);)*
+    }
 }
 
 #[macro_export]

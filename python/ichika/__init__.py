@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from . import core
+from . import core as core
 
 core.init_log(core)
 
