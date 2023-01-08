@@ -1,8 +1,10 @@
 #![feature(type_alias_impl_trait)]
 #![feature(try_blocks)]
+#![feature(concat_idents)]
 
 use pyo3::prelude::*;
 use pyo3_built::pyo3_built;
+use ricq::RQError;
 
 pub mod client;
 mod events;
@@ -55,33 +57,47 @@ pub fn core(py: Python, m: &PyModule) -> PyResult<()> {
 fn register_event_module(py: Python<'_>, parent: &PyModule) -> PyResult<()> {
     let m = PyModule::new(py, "ichika.core.events")?;
     add_batch!(@cls m,
-        crate::events::Login,
         crate::events::GroupMessage,
-        crate::events::GroupAudioMessage,
+        crate::events::TempMessage,
         crate::events::FriendMessage,
-        crate::events::FriendAudioMessage,
-        crate::events::GroupTempMessage,
-        crate::events::GroupRequest,
-        crate::events::SelfInvited,
-        crate::events::NewFriendRequest,
-        crate::events::NewMember,
-        crate::events::GroupMute,
-        crate::events::FriendMessageRecall,
-        crate::events::NewFriend,
-        crate::events::GroupMessageRecall,
-        crate::events::GroupLeave,
-        crate::events::GroupDisband,
-        crate::events::FriendPoke,
-        crate::events::GroupNameUpdate,
-        crate::events::DeleteFriend,
-        crate::events::MemberPermissionChange,
-        crate::events::KickedOffline,
-        crate::events::MSFOffline
+        crate::events::UnknownEvent
     );
     parent.add_submodule(m)?;
+    parent.add("events", m)?;
     // See https://github.com/PyO3/pyo3/issues/759
     py.import("sys")?
         .getattr("modules")?
         .set_item("ichika.core.events", m)?;
+    register_event_structs_module(py, m)?;
     Ok(())
+}
+
+fn register_event_structs_module(py: Python<'_>, parent: &PyModule) -> PyResult<()> {
+    let m = PyModule::new(py, "ichika.core.events.structs")?;
+    add_batch!(@cls m,
+        crate::events::structs::MessageSource,
+        crate::events::structs::MemberInfo,
+        crate::events::structs::GroupInfo
+    );
+    parent.add_submodule(m)?;
+    parent.add("structs", m)?;
+    // See https://github.com/PyO3/pyo3/issues/759
+    py.import("sys")?
+        .getattr("modules")?
+        .set_item("ichika.core.events.structs", m)?;
+    Ok(())
+}
+
+pub struct RICQError(RQError);
+
+impl From<RICQError> for PyErr {
+    fn from(error: RICQError) -> Self {
+        pyo3::exceptions::PyRuntimeError::new_err(format!("RICQError: {}", error.0.to_string()))
+    }
+}
+
+impl From<RQError> for RICQError {
+    fn from(other: RQError) -> Self {
+        Self(other)
+    }
 }

@@ -24,7 +24,6 @@ dependencies = [
     "creart-graia>=0.1.5",
     "dacite>=1.6.0",
     "graia-amnesia>=0.7.0",
-    "pre-commit>=2.20.0",
     "aiohttp>=3.8.3",
 ]
 
@@ -42,21 +41,6 @@ build-backend = "maturin"
 
 [tool.maturin]
 python-source = "python"
-
-[tool.pdm]
-[tool.pdm.scripts]
-ensure-pip = {shell = "pdm run python -m ensurepip"}
-install-deps = {shell = "pdm install --no-self"}
-install-rs-deps = {shell = "cargo update"}
-build-rs-devel = {shell = "pdm run maturin develop"}
-devel = {composite = ["ensure-pip", "install-deps", "install-rs-deps", "build-rs-devel"]}
-[tool.pdm.dev-dependencies]
-dev = [
-    "black>=22.10.0",
-    "isort>=5.10.1",
-    "maturin>=0.13,<0.14",
-    "tomlkit>=0.11.6",
-]
 
 [tool.black]
 line-length = 120
