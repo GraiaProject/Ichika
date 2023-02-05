@@ -197,10 +197,11 @@ async fn password_login(
                 if sms {
                     match sms_phone {
                         None => {
-                            resp = client.request_sms().await.expect("无法请求短信验证码");
+                            panic!("未绑定手机号，无法使用短信验证码登录");
                         }
                         Some(sms_phone) => {
                             // TODO: test
+                            client.request_sms().await.expect("无法请求短信验证码");
                             tracing::info!("已发送验证码到：{}", sms_phone);
                             let mut reader = FramedRead::new(tokio::io::stdin(), LinesCodec::new());
                             let sms_code = reader.next().await.transpose().unwrap().unwrap();
