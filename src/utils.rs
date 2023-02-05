@@ -125,3 +125,11 @@ where
         }
     }
 }
+
+pub fn as_py_datetime<'py>(py: &Python<'py>, time: i32) -> PyResult<&'py PyAny> {
+    // TODO: refactor using GILOnceCell
+    py.import("datetime")?
+        .getattr("datetime")?
+        .getattr("fromtimestamp")?
+        .call1((time,))
+}

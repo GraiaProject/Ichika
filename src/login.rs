@@ -191,11 +191,25 @@ async fn password_login(
             LoginResponse::DeviceLocked(LoginDeviceLocked {
                 ref verify_url,
                 ref message,
+                ref sms_phone,
                 ..
             }) => {
                 if sms {
-                    // resp = client.request_sms().await.expect("无法请求短信验证码");
-                    bail!("暂不支持短信登录")
+                    match sms_phone {
+                        None => {
+                            resp = client.request_sms().await.expect("无法请求短信验证码");
+                        }
+                        Some(sms_phone) => {
+                            // TODO: test
+                            tracing::info!("已发送验证码到：{}", sms_phone);
+                            let mut reader = FramedRead::new(tokio::io::stdin(), LinesCodec::new());
+                            let sms_code = reader.next().await.transpose().unwrap().unwrap();
+                            resp = client
+                                .submit_sms_code(&sms_code)
+                                .await
+                                .expect("无法提交短信验证码");
+                        }
+                    }
                 } else {
                     tracing::info!("设备锁: {}", message.as_deref().unwrap_or(""));
                     tracing::info!("验证 url: {}", verify_url.as_deref().unwrap_or(""));
