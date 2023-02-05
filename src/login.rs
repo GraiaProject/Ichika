@@ -201,7 +201,12 @@ async fn password_login(
                         }
                         Some(sms_phone) => {
                             // TODO: test
-                            client.request_sms().await.expect("无法请求短信验证码");
+                            let sms_phone = sms_phone.clone();
+                            resp = client.request_sms().await.expect("无法请求短信验证码");
+                            match resp {
+                                LoginResponse::DeviceLocked(..) => {}
+                                _ => continue,
+                            }
                             tracing::info!("已发送验证码到：{}", sms_phone);
                             let mut reader = FramedRead::new(tokio::io::stdin(), LinesCodec::new());
                             let sms_code = reader.next().await.transpose().unwrap().unwrap();
