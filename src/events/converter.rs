@@ -29,7 +29,7 @@ converter!(
     .map_err(RICQError)?;
     Python::with_gil(|py| {
     Ok(GroupMessage {
-        source: MessageSource::new(py, &msg.seqs, &msg.rands),
+        source: MessageSource::new(py, &msg.seqs, &msg.rands, msg.time),
         content: deserialize(py, msg.elements)?,
         sender: MemberInfo {
             uin: msg.from_uin,

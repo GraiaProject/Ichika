@@ -1,6 +1,6 @@
 use pyo3::{prelude::*, types::PyTuple};
 
-use crate::repr;
+use crate::{repr, utils::as_py_datetime};
 
 #[pyclass]
 #[derive(Debug, Clone)]
@@ -9,13 +9,18 @@ pub struct MessageSource {
     pub seqs: Py<PyTuple>,
     #[pyo3(get)]
     pub rands: Py<PyTuple>,
+    #[pyo3(get)]
+    pub time: Py<PyAny>,
 }
 
 impl MessageSource {
-    pub fn new(py: Python<'_>, seqs: &[i32], rands: &[i32]) -> Self {
+    pub fn new(py: Python<'_>, seqs: &[i32], rands: &[i32], time: i32) -> Self {
         Self {
             seqs: PyTuple::new(py, seqs).into_py(py),
             rands: PyTuple::new(py, rands).into_py(py),
+            time: as_py_datetime(&py, time)
+                .expect("Unable to convert time")
+                .into_py(py),
         }
     }
 }
