@@ -16,5 +16,4 @@ class LoginMethod:
 
     @staticmethod
     def Password(password: str, md5: bool = False, sms: bool = False) -> dict[str, Any]:
-
         return {"type": "Password", "password": password, "md5": md5, "sms": sms}
