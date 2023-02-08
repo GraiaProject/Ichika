@@ -1,7 +1,7 @@
 use pyo3::{prelude::*, types::*};
-
+use pyo3_repr::PyRepr;
 #[pyclass(module = "ichika.client.structs#rs")]
-#[derive(Debug, Clone)]
+#[derive(PyRepr, Clone)]
 pub struct AccountInfo {
     #[pyo3(get)]
     pub nickname: Py<PyString>,
@@ -11,10 +11,8 @@ pub struct AccountInfo {
     pub gender: u8,
 }
 
-crate::repr!(AccountInfo);
-
 #[pyclass(module = "ichika.client.structs#rs")]
-#[derive(Debug, Clone)]
+#[derive(PyRepr, Clone)]
 pub struct OtherClientInfo {
     #[pyo3(get)]
     pub app_id: i64,
@@ -26,10 +24,8 @@ pub struct OtherClientInfo {
     pub device_kind: String,
 }
 
-crate::repr!(OtherClientInfo);
-
 #[pyclass(module = "ichika.client.structs#rs")]
-#[derive(Debug, Clone)]
+#[derive(PyRepr, Clone)]
 pub struct RawMessageReceipt {
     #[pyo3(get)]
     pub seqs: Py<PyTuple>,
@@ -38,4 +34,3 @@ pub struct RawMessageReceipt {
     #[pyo3(get)]
     pub time: i64,
 }
-crate::repr!(RawMessageReceipt);

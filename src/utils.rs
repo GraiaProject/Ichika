@@ -50,21 +50,6 @@ macro_rules! py_str {
 }
 
 #[macro_export]
-macro_rules! repr {
-    ($t: ty) => {
-        #[pymethods]
-        impl $t {
-            fn __repr__(&self) -> String {
-                format!("{:?}", self)
-            }
-        }
-    };
-    ($($t:ty),*) => {
-        $(repr!($t);)*
-    }
-}
-
-#[macro_export]
 macro_rules! import_call {
     ($py: expr, $module: expr => $attr: expr => $arg: expr) => {
         $py.import(::pyo3::intern!($py, $module))?

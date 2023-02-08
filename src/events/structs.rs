@@ -1,9 +1,9 @@
 use pyo3::{prelude::*, types::PyTuple};
 
-use crate::{repr, utils::as_py_datetime};
-
+use crate::utils::as_py_datetime;
+use pyo3_repr::PyRepr;
 #[pyclass]
-#[derive(Debug, Clone)]
+#[derive(PyRepr, Clone)]
 pub struct MessageSource {
     #[pyo3(get)]
     pub seqs: Py<PyTuple>,
@@ -26,7 +26,7 @@ impl MessageSource {
 }
 
 #[pyclass]
-#[derive(Debug, Clone)]
+#[derive(PyRepr, Clone)]
 pub struct GroupInfo {
     #[pyo3(get)]
     pub uin: i64,
@@ -35,7 +35,7 @@ pub struct GroupInfo {
 }
 
 #[pyclass]
-#[derive(Debug, Clone)]
+#[derive(PyRepr, Clone)]
 pub struct MemberInfo {
     #[pyo3(get)]
     pub uin: i64,
@@ -46,5 +46,3 @@ pub struct MemberInfo {
     #[pyo3(get)]
     pub permission: u8,
 }
-
-repr!(MessageSource, GroupInfo, MemberInfo);
