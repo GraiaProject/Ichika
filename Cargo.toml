@@ -39,6 +39,7 @@ image = "0.24"
 async-trait = "0.1.58"
 serde = "1.0"
 pythonize = "0.17.0"
+pyo3-repr = { version = "0.1.0", path = "pyo3-repr" }
 
 [package.metadata.maturin]
 python-source = "python"

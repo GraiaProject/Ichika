@@ -1,0 +1,132 @@
+#![feature(let_chains)]
+extern crate proc_macro;
+
+use pm2::Ident;
+use proc_macro::TokenStream;
+use proc_macro2 as pm2;
+use quote::quote;
+use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Fields, FieldsNamed};
+
+#[proc_macro_derive(PyRepr, attributes(py_repr))]
+pub fn py_repr(input: TokenStream) -> TokenStream {
+    let ast = parse_macro_input!(input as DeriveInput);
+    match do_expand(&ast) {
+        Ok(token_stream) => token_stream.into(),
+        Err(e) => e.to_compile_error().into(),
+    }
+}
+
+type MacroResult = syn::Result<pm2::TokenStream>;
+
+fn do_expand(ast: &DeriveInput) -> MacroResult {
+    if !ast.generics.params.is_empty() {
+        return Err(syn::Error::new_spanned(
+            ast,
+            "Generics are not supported by PyRepr.",
+        ));
+    }
+    match &ast.data {
+        Data::Struct(structure) => impl_struct_repr(ast, structure),
+        Data::Enum(..) => todo!(),
+        _ => Err(syn::Error::new_spanned(
+            ast,
+            "Must define on a Struct, not Enum".to_string(),
+        )),
+    }
+}
+
+fn impl_struct_repr(ast: &DeriveInput, structure: &DataStruct) -> MacroResult {
+    let fields = &structure.fields;
+    match fields {
+        Fields::Named(named) => Ok(gen_impl_block(
+            &ast.ident,
+            gen_named_impl(ast.ident.to_string(), named)?,
+        )),
+        Fields::Unnamed(_) => todo!(),
+        Fields::Unit => unimplemented!(),
+    }
+}
+
+fn gen_impl_block(ident: &Ident, core_stream: pm2::TokenStream) -> pm2::TokenStream {
+    quote!(
+        impl ::std::fmt::Debug for #ident {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+                ::pyo3::marker::Python::with_gil(|py| {
+                    #core_stream
+                })
+            }
+        }
+
+        #[pymethods]
+        impl #ident {
+            fn __repr__(&self) -> String {
+                format!("{:?}", self)
+            }
+        }
+    )
+}
+
+fn is_py_ptr(ty: &syn::Type) -> bool {
+    match ty {
+        syn::Type::Path(pth) => {
+            if pth
+                .path
+                .segments
+                .iter()
+                .any(|seg| seg.ident == "Py" || seg.ident == "PyObject")
+            {
+                return true;
+            }
+            return false;
+        }
+        _ => false,
+    }
+}
+
+fn gen_named_impl(ident: String, fields: &FieldsNamed) -> MacroResult {
+    let mut core_stream = pm2::TokenStream::new();
+    core_stream.extend(quote!(
+        f.debug_struct(#ident)
+    ));
+    'field_iter: for f in fields.named.iter() {
+        let field_name_ident = f.ident.as_ref().unwrap();
+        let field_name_literal = field_name_ident.to_string();
+        let mut py_convert = is_py_ptr(&f.ty);
+        for attr in f.attrs.iter() {
+            if let Ok(syn::Meta::List(syn::MetaList { ref nested, .. })) = attr.parse_meta() {
+                for arg in nested.iter() {
+                    if let syn::NestedMeta::Meta(meta) = arg
+                    && let syn::Meta::Path(pth) = meta
+                    && let Some(ident) = pth.get_ident() {
+                        match ident.to_string().as_str() {
+                            "skip" => continue 'field_iter,
+                            "py" => {
+                                py_convert = true;
+                            }
+                            "debug" => {
+                                py_convert = false;
+                            }
+                            _ => return Err(syn::Error::new_spanned(arg, "Unexpected arg")),
+                        }
+                    }
+                    else{
+                        return Err(syn::Error::new_spanned(arg, "py_repr only supports bare ident as arg."))
+                    }
+                }
+            }
+        }
+        if py_convert {
+            core_stream.extend(quote!(
+                .field(#field_name_literal, self.#field_name_ident.as_ref(py))
+            ));
+        } else {
+            core_stream.extend(quote!(
+                .field(#field_name_literal, &self.#field_name_ident)
+            ));
+        }
+    }
+    core_stream.extend(quote!(
+        .finish()
+    ));
+    Ok(core_stream)
+}
