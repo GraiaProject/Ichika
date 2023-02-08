@@ -1,6 +1,7 @@
 use anyhow::Result;
 use futures_util::Future;
 use pyo3::prelude::*;
+use pyo3_repr::PyRepr;
 use ricq::{
     structs::{FriendGroupInfo, FriendInfo},
     Client,
@@ -9,7 +10,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use super::utils::CacheTarget;
 #[pyclass(module = "ichika.client.structs.friend#rs")]
-#[derive(Debug, Clone)]
+#[derive(PyRepr, Clone)]
 pub struct Friend {
     #[pyo3(get)]
     uin: i64,
@@ -22,8 +23,6 @@ pub struct Friend {
     #[pyo3(get)]
     group_id: u8,
 }
-
-crate::repr!(Friend);
 
 impl From<FriendInfo> for Friend {
     fn from(info: FriendInfo) -> Self {
@@ -38,7 +37,7 @@ impl From<FriendInfo> for Friend {
 }
 
 #[pyclass(module = "ichika.client.structs.friend#rs")]
-#[derive(Debug, Clone)]
+#[derive(PyRepr, Clone)]
 pub struct FriendGroup {
     #[pyo3(get)]
     group_id: u8,
@@ -51,8 +50,6 @@ pub struct FriendGroup {
     #[pyo3(get)]
     seq_id: u8,
 }
-
-crate::repr!(FriendGroup);
 
 impl From<FriendGroupInfo> for FriendGroup {
     fn from(info: FriendGroupInfo) -> Self {

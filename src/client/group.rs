@@ -1,8 +1,8 @@
 use pyo3::prelude::*;
+use pyo3_repr::PyRepr;
 use ricq::structs::GroupInfo;
-
 #[pyclass]
-#[derive(Debug, Clone)]
+#[derive(PyRepr, Clone)]
 pub struct Group {
     #[pyo3(get)]
     pub uin: i64,
@@ -30,8 +30,6 @@ pub struct Group {
     #[pyo3(get)]
     pub last_msg_seq: i64,
 }
-
-crate::repr!(Group);
 
 impl From<GroupInfo> for Group {
     fn from(info: GroupInfo) -> Self {

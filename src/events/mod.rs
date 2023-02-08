@@ -1,55 +1,55 @@
 use async_trait::async_trait;
 use pyo3::{prelude::*, types::*};
 
+use pyo3_repr::PyRepr;
 use ricq::handler::{Handler, QEvent};
 
 pub mod converter;
 pub mod structs;
-use crate::repr;
 use structs::MessageSource;
 
 use self::structs::MemberInfo;
 
 #[pyclass]
-#[derive(Debug, Clone)]
+#[derive(PyRepr, Clone)]
 pub struct LoginEvent {
     #[pyo3(get)]
     uin: i64,
 }
 
 #[pyclass]
-#[derive(Debug, Clone)]
+#[derive(PyRepr, Clone)]
 pub struct GroupMessage {
     #[pyo3(get)]
     source: MessageSource,
     #[pyo3(get)]
-    content: Py<PyAny>, // PyMessageChain
+    content: PyObject,
     #[pyo3(get)]
     sender: MemberInfo,
 }
 
 #[pyclass]
-#[derive(Debug, Clone)]
+#[derive(PyRepr, Clone)]
 pub struct FriendMessage {
     #[pyo3(get)]
     source: MessageSource,
     #[pyo3(get)]
-    content: Py<PyAny>, // PyMessageChain
+    content: PyObject, // PyMessageChain
 }
 
 #[pyclass]
-#[derive(Debug, Clone)]
+#[derive(PyRepr, Clone)]
 pub struct TempMessage {
     #[pyo3(get)]
     source: MessageSource,
     #[pyo3(get)]
-    content: Py<PyAny>, // PyMessageChain
+    content: PyObject, // PyMessageChain
     #[pyo3(get)]
     sender: MemberInfo,
 }
 
 #[pyclass]
-#[derive(Debug, Clone)]
+#[derive(PyRepr, Clone)]
 pub struct UnknownEvent {
     inner: QEvent,
 }
@@ -60,14 +60,6 @@ impl UnknownEvent {
         format!("{:?}", self.inner)
     }
 }
-
-repr!(
-    LoginEvent,
-    GroupMessage,
-    FriendMessage,
-    TempMessage,
-    UnknownEvent
-);
 
 pub struct PyHandler {
     callbacks: Py<PyList>,
