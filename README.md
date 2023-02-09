@@ -11,7 +11,7 @@
 [![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
 [![pdm-managed](https://img.shields.io/badge/pdm-managed-blueviolet)](https://pdm.fming.dev)
 
-[![CI](https://github.com/BlueGlassBlock/Ichika/actions/workflows/release.yml/badge.svg)](https://github.com/BlueGlassBlock/Ichika/actions/workflows/ci.yml)
+[![Run CI](https://github.com/BlueGlassBlock/Ichika/actions/workflows/ci.yml/badge.svg)](https://github.com/BlueGlassBlock/Ichika/actions/workflows/ci.yml)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/BlueGlassBlock/Ichika/master.svg)](https://results.pre-commit.ci/latest/github/BlueGlassBlock/Ichika/master)
 
 </div>
