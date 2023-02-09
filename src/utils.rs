@@ -111,10 +111,44 @@ where
     }
 }
 
-pub fn as_py_datetime<'py>(py: &Python<'py>, time: i32) -> PyResult<&'py PyAny> {
-    // TODO: refactor using GILOnceCell
-    py.import("datetime")?
-        .getattr("datetime")?
-        .getattr("fromtimestamp")?
-        .call1((time,))
+#[macro_export]
+macro_rules! static_py_fn {
+    ($name: ident, $cell_name: ident, $module: expr, [$($attr: expr),*]) => {
+        #[allow(non_upper_case_globals)]
+        static $cell_name: ::pyo3::once_cell::GILOnceCell<PyObject> = ::pyo3::once_cell::GILOnceCell::new();
+
+        pub fn $name <'py>(python: pyo3::marker::Python<'py>) -> &'py pyo3::PyAny {
+            $cell_name.get_or_init(python, || {
+                python
+                .import(::pyo3::intern!(python, $module)).expect(concat!("Unable to import module ", $module))
+                $(.getattr(::pyo3::intern!(python, $attr)).expect(concat!("Unable to get attribute ", $attr)))*
+                .into()
+                }
+            )
+            .as_ref(python)
+        }
+    };
 }
+
+#[macro_export]
+macro_rules! call_static_py {
+    ($pth: expr, $py: expr, ($($arg: expr),*)) => {
+        $pth($py).call1(
+            ($($arg),*)
+        )
+    };
+    ($pth: expr, $py: expr, ($($arg: expr),*) ! $reason: expr) => {
+        $pth($py).call1(
+            ($($arg,)*)
+        )
+        .expect($reason)
+        .into()
+    }
+}
+
+static_py_fn!(
+    datetime_from_ts,
+    __DT_CELL,
+    "datetime",
+    ["datetime", "fromtimestamp"]
+);

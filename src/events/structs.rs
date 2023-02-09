@@ -1,6 +1,6 @@
 use pyo3::{prelude::*, types::PyTuple};
 
-use crate::utils::as_py_datetime;
+use crate::{call_static_py, utils::datetime_from_ts};
 use pyo3_repr::PyRepr;
 #[pyclass]
 #[derive(PyRepr, Clone)]
@@ -18,9 +18,7 @@ impl MessageSource {
         Self {
             seqs: PyTuple::new(py, seqs).into_py(py),
             rands: PyTuple::new(py, rands).into_py(py),
-            time: as_py_datetime(&py, time)
-                .expect("Unable to convert time")
-                .into_py(py),
+            time: call_static_py!(datetime_from_ts, py, (time)! "Unable to convert time"),
         }
     }
 }
