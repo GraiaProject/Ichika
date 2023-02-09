@@ -196,8 +196,3 @@ pub fn extract_message_chain(list: &PyList) -> PyResult<MessageChain> {
     }
     Ok(chain)
 }
-
-#[pyfunction]
-pub fn preview_raw_chain(chain: &PyList) -> PyResult<String> {
-    Ok(format!("{:?}", extract_message_chain(chain)?))
-}

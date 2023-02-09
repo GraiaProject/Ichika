@@ -43,8 +43,7 @@ pub fn core(py: Python, m: &PyModule) -> PyResult<()> {
     add_batch!(@fun m,
         loguru::getframe,
         message::elements::face_id_from_name,
-        message::elements::face_name_from_id,
-        message::convert::preview_raw_chain
+        message::elements::face_name_from_id
     );
     add_batch!(@cls m,
         login::Account,

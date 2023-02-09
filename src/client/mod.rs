@@ -31,7 +31,7 @@ pub struct PlumbingClient {
 pub struct ClientInitializer {
     pub uin: i64,
     pub client: Arc<ricq::Client>,
-    pub alive: Arc<::std::sync::Mutex<Option<JoinHandle<()>>>>,
+    pub alive: Arc<std::sync::Mutex<Option<JoinHandle<()>>>>,
     pub data_folder: PathBuf,
 }
 
