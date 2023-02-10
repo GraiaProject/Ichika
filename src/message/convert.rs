@@ -1,6 +1,6 @@
 use super::elements::*;
-use crate::py_dict;
-use pyo3::{exceptions::PyValueError, once_cell::GILOnceCell, prelude::*, types::*};
+use crate::{py_dict, static_py_fn};
+use pyo3::{exceptions::PyValueError, prelude::*, types::*};
 use ricq::msg::{
     elem::{FlashImage, RQElem},
     MessageChain,
@@ -107,22 +107,16 @@ pub fn convert_message_chain(py: Python, chain: MessageChain) -> PyResult<Py<PyL
     Ok(res.into_py(py))
 }
 
-static PY_DESERIALIZE_FN_CELL: GILOnceCell<Py<PyAny>> = GILOnceCell::new();
+static_py_fn!(
+    py_deserialize,
+    __py_deserialize_cell,
+    "ichika.message",
+    ["deserialize_message"]
+);
 
-pub fn deserialize(py: Python, chain: MessageChain) -> PyResult<Py<PyAny>> // PyMessageChain
+pub fn deserialize(py: Python, chain: MessageChain) -> PyResult<PyObject> // PyMessageChain
 {
-    let py_fn: &PyAny;
-    match PY_DESERIALIZE_FN_CELL.get(py) {
-        None => {
-            py_fn = py
-                .import("ichika.message")?
-                .getattr("deserialize_message")?;
-            PY_DESERIALIZE_FN_CELL.set(py, py_fn.into_py(py)).unwrap();
-        }
-        Some(py_py_fn) => {
-            py_fn = py_py_fn.as_ref(py);
-        }
-    };
+    let py_fn: &PyAny = py_deserialize(py);
     Ok(py_fn
         .call1((convert_message_chain(py, chain)?,))?
         .into_py(py))

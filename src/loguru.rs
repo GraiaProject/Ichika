@@ -87,9 +87,8 @@ where
         };
         Python::with_gil(|py| {
             let level: Py<PyString> = level.into_py(py);
-            let message: Py<PyAny> = message.into_py(py);
-            let args = (level, message);
-            self.log_fn.call(py, args, None).unwrap();
+            let message: PyObject = message.into_py(py);
+            self.log_fn.call1(py, (level, message)).unwrap();
         });
     }
 }
