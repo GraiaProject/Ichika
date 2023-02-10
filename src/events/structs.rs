@@ -10,7 +10,7 @@ pub struct MessageSource {
     #[pyo3(get)]
     pub rands: Py<PyTuple>,
     #[pyo3(get)]
-    pub time: Py<PyAny>,
+    pub time: PyObject,
 }
 
 impl MessageSource {
