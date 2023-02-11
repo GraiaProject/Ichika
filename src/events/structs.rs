@@ -1,7 +1,9 @@
-use pyo3::{prelude::*, types::PyTuple};
-
-use crate::{call_static_py, utils::datetime_from_ts};
+use pyo3::prelude::*;
+use pyo3::types::PyTuple;
 use pyo3_repr::PyRepr;
+
+use crate::call_static_py;
+use crate::utils::datetime_from_ts;
 #[pyclass]
 #[derive(PyRepr, Clone)]
 pub struct MessageSource {
@@ -43,4 +45,13 @@ pub struct MemberInfo {
     pub group: GroupInfo,
     #[pyo3(get)]
     pub permission: u8,
+}
+
+#[pyclass]
+#[derive(PyRepr, Clone)]
+pub struct FriendInfo {
+    #[pyo3(get)]
+    pub uin: i64,
+    #[pyo3(get)]
+    pub nickname: String,
 }

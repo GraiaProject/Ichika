@@ -681,6 +681,7 @@ dependencies = [
  "bytes",
  "futures-util",
  "hex",
+ "ichika-macros",
  "image 0.24.5",
  "pyo3",
  "pyo3-asyncio",
@@ -698,6 +699,15 @@ dependencies = [
  "tokio-util",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "ichika-macros"
+version = "0.0.0"
+dependencies = [
+ "proc-macro2 1.0.51",
+ "quote 1.0.23",
+ "syn 1.0.107",
 ]
 
 [[package]]

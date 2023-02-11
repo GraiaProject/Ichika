@@ -1,6 +1,7 @@
 //! 消息元素。
 
-use pyo3::{prelude::*, types::PyBytes};
+use pyo3::prelude::*;
+use pyo3::types::PyBytes;
 use ricq::msg::elem::{FriendImage, GroupImage, MarketFace};
 
 use crate::props;
@@ -19,7 +20,7 @@ pub fn face_id_from_name(name: String) -> Option<i32> {
 }
 
 macro_rules! py_seal {
-    ($name: ident => $type: ty) => {
+    ($name:ident => $type:ty) => {
         #[pyclass(module = "ichika.message.elements#rs.inner")]
         #[derive(::pyo3_repr::PyRepr, Clone)]
         pub struct $name {

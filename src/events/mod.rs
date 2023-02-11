@@ -1,6 +1,6 @@
 use async_trait::async_trait;
-use pyo3::{prelude::*, types::*};
-
+use pyo3::prelude::*;
+use pyo3::types::*;
 use pyo3_repr::PyRepr;
 use ricq::handler::{Handler, QEvent};
 
@@ -8,7 +8,7 @@ pub mod converter;
 pub mod structs;
 use structs::MessageSource;
 
-use self::structs::MemberInfo;
+use self::structs::{FriendInfo, MemberInfo};
 
 #[pyclass]
 #[derive(PyRepr, Clone)]
@@ -35,6 +35,8 @@ pub struct FriendMessage {
     source: MessageSource,
     #[pyo3(get)]
     content: PyObject, // PyMessageChain
+    #[pyo3(get)]
+    sender: FriendInfo,
 }
 
 #[pyclass]
