@@ -1,31 +1,39 @@
-use std::{
-    path::{Path, PathBuf},
-    sync::Arc,
-};
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use std::time::Duration;
 
-use crate::utils::{py_future, retry};
-use crate::{events::PyHandler, import_call};
 use anyhow::{anyhow, bail, Result};
 use bytes::Bytes;
 use futures_util::StreamExt;
-use pyo3::{exceptions::PyValueError, prelude::*, types::PyList};
+use pyo3::exceptions::PyValueError;
+use pyo3::prelude::*;
+use pyo3::types::PyList;
 use pythonize::*;
+use ricq::client::{Connector, DefaultConnector, NetworkStatus, Token};
+use ricq::ext::common::after_login;
+use ricq::ext::reconnect::{fast_login, Credential};
+use ricq::version::get_version;
 use ricq::{
-    client::{Connector, DefaultConnector, NetworkStatus, Token},
-    ext::{
-        common::after_login,
-        reconnect::{fast_login, Credential},
-    },
-    version::get_version,
-    Client, Device, LoginDeviceLocked, LoginNeedCaptcha, LoginResponse, LoginSuccess,
-    LoginUnknownStatus, Protocol,
+    Client,
+    Device,
+    LoginDeviceLocked,
+    LoginNeedCaptcha,
+    LoginResponse,
+    LoginSuccess,
+    LoginUnknownStatus,
+    Protocol,
+    QRCodeConfirmed,
+    QRCodeImageFetch,
+    QRCodeState,
 };
-use ricq::{QRCodeConfirmed, QRCodeImageFetch, QRCodeState};
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
 use tokio::task::JoinHandle;
 use tokio::time::sleep;
 use tokio_util::codec::{FramedRead, LinesCodec};
+
+use crate::events::PyHandler;
+use crate::import_call;
+use crate::utils::{py_future, retry};
 
 /// 加载 `device.json`。
 async fn load_device_json(data_folder: PathBuf) -> Result<Device> {

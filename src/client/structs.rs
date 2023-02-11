@@ -1,4 +1,5 @@
-use pyo3::{prelude::*, types::*};
+use pyo3::prelude::*;
+use pyo3::types::*;
 use pyo3_repr::PyRepr;
 #[pyclass(module = "ichika.client.structs#rs")]
 #[derive(PyRepr, Clone)]

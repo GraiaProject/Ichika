@@ -51,12 +51,12 @@ macro_rules! py_str {
 
 #[macro_export]
 macro_rules! import_call {
-    ($py: expr, $module: expr => $attr: expr => $arg: expr) => {
+    ($py:expr, $module:expr => $attr:expr => $arg:expr) => {
         $py.import(::pyo3::intern!($py, $module))?
             .getattr(::pyo3::intern!($py, $attr))?
             .call1(($arg,))
     };
-    ($py: expr, $module: expr => $attr: expr => @tuple $arg: expr) => {
+    ($py:expr, $module:expr => $attr:expr => @tuple $arg:expr) => {
         $py.import(::pyo3::intern!($py, $module))?
             .getattr(::pyo3::intern!($py, $attr))?
             .call1($arg)

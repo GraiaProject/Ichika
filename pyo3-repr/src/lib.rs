@@ -27,10 +27,9 @@ fn do_expand(ast: &DeriveInput) -> MacroResult {
     }
     match &ast.data {
         Data::Struct(structure) => impl_struct_repr(ast, structure),
-        Data::Enum(..) => todo!(),
         _ => Err(syn::Error::new_spanned(
             ast,
-            "Must define on a Struct, not Enum".to_string(),
+            "Must define on a Struct".to_string(),
         )),
     }
 }

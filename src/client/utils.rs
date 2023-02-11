@@ -1,10 +1,12 @@
-use std::{ops::DerefMut, sync::Arc, time::Duration};
+use std::ops::DerefMut;
+use std::sync::Arc;
+use std::time::Duration;
 
 use anyhow::Result;
 use futures_util::Future;
-use tokio::{sync::Mutex, time::Instant};
-
 use ricq::client::Client;
+use tokio::sync::Mutex;
+use tokio::time::Instant;
 
 pub struct CacheField<T: CacheTarget> {
     last_updated_value: Mutex<(Option<T>, Instant)>,

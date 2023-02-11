@@ -1,0 +1,7 @@
+reorder_impl_items = true
+format_macro_matchers = true
+format_macro_bodies = true
+control_brace_style = "AlwaysSameLine"
+imports_granularity = "Module"
+group_imports = "StdExternalCrate"
+imports_layout = "HorizontalVertical"

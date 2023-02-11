@@ -1,9 +1,10 @@
-use crate::{message::convert::deserialize, RICQError};
 use pyo3::prelude::*;
 use ricq::handler::QEvent;
 
-use super::structs::{GroupInfo, MemberInfo, MessageSource};
-use super::{GroupMessage, LoginEvent, UnknownEvent};
+use super::structs::{FriendInfo, GroupInfo, MemberInfo, MessageSource};
+use super::{FriendMessage, GroupMessage, LoginEvent, UnknownEvent};
+use crate::message::convert::deserialize;
+use crate::RICQError;
 
 macro_rules! converter {
     ($($event_type: ident => [$event_cap: ident] $body: block);*) => {
@@ -42,4 +43,9 @@ converter!(
         },
     }
     .into_py(py))})
+};    FriendMessage => [event] {
+    Python::with_gil(|py| {
+        let msg = event.inner;
+    Ok(FriendMessage {source: MessageSource::new(py, &msg.seqs, &msg.rands, msg.time), content: deserialize(py, msg.elements)?,
+    sender: FriendInfo {uin: msg.from_uin, nickname: msg.from_nick}}.into_py(py))})
 });
