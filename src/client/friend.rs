@@ -1,12 +1,12 @@
+use std::collections::HashMap;
+use std::sync::Arc;
+
 use anyhow::Result;
 use futures_util::Future;
 use pyo3::prelude::*;
 use pyo3_repr::PyRepr;
-use ricq::{
-    structs::{FriendGroupInfo, FriendInfo},
-    Client,
-};
-use std::{collections::HashMap, sync::Arc};
+use ricq::structs::{FriendGroupInfo, FriendInfo};
+use ricq::Client;
 
 use super::utils::CacheTarget;
 #[pyclass(module = "ichika.client.structs.friend#rs")]

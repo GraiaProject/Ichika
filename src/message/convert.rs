@@ -1,11 +1,12 @@
+use pyo3::exceptions::PyValueError;
+use pyo3::prelude::*;
+use pyo3::types::*;
+use ricq::msg::elem::{FlashImage, RQElem};
+use ricq::msg::MessageChain;
+use ricq_core::msg::elem::{At, Dice, Face, FingerGuessing, Text};
+
 use super::elements::*;
 use crate::{py_dict, static_py_fn};
-use pyo3::{exceptions::PyValueError, prelude::*, types::*};
-use ricq::msg::{
-    elem::{FlashImage, RQElem},
-    MessageChain,
-};
-use ricq_core::msg::elem::{At, Dice, Face, FingerGuessing, Text};
 
 pub fn convert_message_chain(py: Python, chain: MessageChain) -> PyResult<Py<PyList>> {
     let res = PyList::empty(py);

@@ -2,19 +2,22 @@ mod friend;
 mod group;
 mod structs;
 mod utils;
+use std::path::PathBuf;
+use std::sync::Arc;
 use std::time::Duration;
-use std::{path::PathBuf, sync::Arc};
+
+use friend::FriendList;
+use group::Group;
+use pyo3::prelude::*;
+use pyo3::types::*;
+use structs::*;
+use tokio::task::JoinHandle;
+use utils::CacheField;
 
 use crate::login::reconnect;
 use crate::message::convert::extract_message_chain;
 use crate::py_intern;
 use crate::utils::{py_future, py_none};
-use friend::FriendList;
-use group::Group;
-use pyo3::{prelude::*, types::*};
-use structs::*;
-use tokio::task::JoinHandle;
-use utils::CacheField;
 #[pyclass(subclass)]
 pub struct PlumbingClient {
     client: Arc<ricq::client::Client>,
@@ -176,6 +179,7 @@ impl PlumbingClient {
             }
         })
     }
+
     pub fn find_groups<'py>(&self, py: Python<'py>, group_uins: Vec<i64>) -> PyResult<&'py PyAny> {
         let client = self.client.clone();
         py_future(py, async move {
@@ -190,6 +194,7 @@ impl PlumbingClient {
             })?)
         })
     }
+
     pub fn get_groups<'py>(&self, py: Python<'py>) -> PyResult<&'py PyAny> {
         let client = self.client.clone();
         py_future(py, async move {

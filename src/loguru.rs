@@ -1,10 +1,17 @@
 //! [`tracing`] 与 Python 的 Loguru 的桥接模块。
 
+use std::fmt::Write;
+use std::sync::Arc;
+
 use anyhow::{anyhow, Result};
-use pyo3::{intern, once_cell::GILOnceCell, prelude::*, types::*};
-use std::{fmt::Write, sync::Arc};
+use pyo3::intern;
+use pyo3::once_cell::GILOnceCell;
+use pyo3::prelude::*;
+use pyo3::types::*;
 use tracing::Level;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Layer};
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::Layer;
 
 use crate::py_dict;
 
