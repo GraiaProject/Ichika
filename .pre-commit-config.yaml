@@ -1,9 +1,15 @@
 repos:
-- repo: https://github.com/r0x0d/pre-commit-rust
-  rev: v1.0.1
+- repo: local
   hooks:
   - id: fmt
-    args: ['--', '--verbose']
+    language_version: nightly
+    name: Check for formatting with cargo fmt
+    description: Format files with cargo fmt.
+    entry: cargo fmt
+    language: rust
+    types: [rust]
+    files: \.rs$
+    args: ["--", "--verbose"]
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v4.4.0
   hooks:
