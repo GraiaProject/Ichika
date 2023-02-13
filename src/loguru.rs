@@ -136,24 +136,17 @@ impl tracing::field::Visit for LoguruVisiter {
     }
 }
 
-#[pyclass]
+#[pyclass(get_all)]
 #[derive(Clone)]
-#[doc(hidden)]
 pub struct FakePyFrame {
-    #[pyo3(get)]
     f_globals: Py<PyDict>,
-    #[pyo3(get)]
     f_code: Py<FakePyCode>,
-    #[pyo3(get)]
     f_lineno: u32,
 }
 
-#[pyclass]
-#[doc(hidden)]
+#[pyclass(get_all)]
 pub struct FakePyCode {
-    #[pyo3(get)]
     co_filename: Py<PyString>,
-    #[pyo3(get)]
     co_name: Py<PyString>,
 }
 

@@ -33,22 +33,6 @@ macro_rules! kwargs {
     };
 }
 
-/// 创建 Python 字符串（有缓存）。
-#[macro_export]
-macro_rules! py_intern {
-    ($s:expr) => {
-        Python::with_gil(|py| ::pyo3::types::PyString::intern(py, $s).into_py(py))
-    };
-}
-
-/// 创建 Python 字符串（无缓存）。
-#[macro_export]
-macro_rules! py_str {
-    ($s:expr) => {
-        Python::with_gil(|py| ::pyo3::types::PyString::new(py, $s).into_py(py))
-    };
-}
-
 #[macro_export]
 macro_rules! import_call {
     ($py:expr, $module:expr => $attr:expr => $arg:expr) => {

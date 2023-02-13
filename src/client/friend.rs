@@ -9,18 +9,13 @@ use ricq::structs::{FriendGroupInfo, FriendInfo};
 use ricq::Client;
 
 use super::utils::CacheTarget;
-#[pyclass(module = "ichika.client.structs.friend#rs")]
+#[pyclass(get_all, module = "ichika.client.structs.friend#rs")]
 #[derive(PyRepr, Clone)]
 pub struct Friend {
-    #[pyo3(get)]
     uin: i64,
-    #[pyo3(get)]
     nick: String,
-    #[pyo3(get)]
     remark: String,
-    #[pyo3(get)]
     face_id: i16,
-    #[pyo3(get)]
     group_id: u8,
 }
 
@@ -36,18 +31,13 @@ impl From<FriendInfo> for Friend {
     }
 }
 
-#[pyclass(module = "ichika.client.structs.friend#rs")]
+#[pyclass(get_all, module = "ichika.client.structs.friend#rs")]
 #[derive(PyRepr, Clone)]
 pub struct FriendGroup {
-    #[pyo3(get)]
     group_id: u8,
-    #[pyo3(get)]
     name: String,
-    #[pyo3(get)]
     total_count: i32,
-    #[pyo3(get)]
     online_count: i32,
-    #[pyo3(get)]
     seq_id: u8,
 }
 

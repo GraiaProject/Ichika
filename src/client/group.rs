@@ -1,33 +1,22 @@
 use pyo3::prelude::*;
 use pyo3_repr::PyRepr;
 use ricq::structs::GroupInfo;
-#[pyclass]
+#[pyclass(get_all)]
 #[derive(PyRepr, Clone)]
 pub struct Group {
-    #[pyo3(get)]
     pub uin: i64,
-    #[pyo3(get)]
     pub name: String,
-    #[pyo3(get)]
     pub memo: String,
-    #[pyo3(get)]
     pub owner_uin: i64,
-    #[pyo3(get)]
     pub create_time: u32,
-    #[pyo3(get)]
     pub level: u32,
-    #[pyo3(get)]
     pub member_count: u16,
-    #[pyo3(get)]
     pub max_member_count: u16,
     // 全群禁言时间
-    #[pyo3(get)]
     pub global_mute_timestamp: i64,
     // 自己被禁言时间
-    #[pyo3(get)]
     pub mute_timestamp: i64,
     // 最后一条信息的 SEQ,只有通过 GetGroupInfo 函数获取的 GroupInfo 才会有
-    #[pyo3(get)]
     pub last_msg_seq: i64,
 }
 

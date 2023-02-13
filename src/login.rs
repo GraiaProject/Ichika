@@ -422,7 +422,7 @@ pub struct Account {
 #[pymethods]
 impl Account {
     #[new]
-    #[args(protocol = "\"ipad\".to_string()")]
+    #[pyo3(signature = (uin, data_folder, protocol="ipad".to_string()))]
     fn new(py: Python, uin: i64, data_folder: PathBuf, mut protocol: String) -> PyResult<Self> {
         protocol.make_ascii_lowercase();
         let protocol = match protocol.as_str() {

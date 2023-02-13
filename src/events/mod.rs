@@ -10,43 +10,33 @@ use structs::MessageSource;
 
 use self::structs::{FriendInfo, MemberInfo};
 
-#[pyclass]
+#[pyclass(get_all)]
 #[derive(PyRepr, Clone)]
 pub struct LoginEvent {
-    #[pyo3(get)]
     uin: i64,
 }
 
-#[pyclass]
+#[pyclass(get_all)]
 #[derive(PyRepr, Clone)]
 pub struct GroupMessage {
-    #[pyo3(get)]
     source: MessageSource,
-    #[pyo3(get)]
-    content: PyObject,
-    #[pyo3(get)]
+    content: PyObject, // PyMessageChain
     sender: MemberInfo,
 }
 
-#[pyclass]
+#[pyclass(get_all)]
 #[derive(PyRepr, Clone)]
 pub struct FriendMessage {
-    #[pyo3(get)]
     source: MessageSource,
-    #[pyo3(get)]
     content: PyObject, // PyMessageChain
-    #[pyo3(get)]
     sender: FriendInfo,
 }
 
-#[pyclass]
+#[pyclass(get_all)]
 #[derive(PyRepr, Clone)]
 pub struct TempMessage {
-    #[pyo3(get)]
     source: MessageSource,
-    #[pyo3(get)]
     content: PyObject, // PyMessageChain
-    #[pyo3(get)]
     sender: MemberInfo,
 }
 
