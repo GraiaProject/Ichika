@@ -13,6 +13,8 @@ mod loguru;
 pub mod message;
 mod utils;
 
+type PyRet = PyResult<PyObject>;
+
 #[pyfunction]
 pub fn init_log(module: &PyModule) -> PyResult<()> {
     // 设置日志输出

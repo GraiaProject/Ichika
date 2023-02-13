@@ -4,14 +4,11 @@ use pyo3_repr::PyRepr;
 
 use crate::call_static_py;
 use crate::utils::datetime_from_ts;
-#[pyclass]
+#[pyclass(get_all)]
 #[derive(PyRepr, Clone)]
 pub struct MessageSource {
-    #[pyo3(get)]
     pub seqs: Py<PyTuple>,
-    #[pyo3(get)]
     pub rands: Py<PyTuple>,
-    #[pyo3(get)]
     pub time: PyObject,
 }
 
@@ -25,33 +22,25 @@ impl MessageSource {
     }
 }
 
-#[pyclass]
+#[pyclass(get_all)]
 #[derive(PyRepr, Clone)]
 pub struct GroupInfo {
-    #[pyo3(get)]
     pub uin: i64,
-    #[pyo3(get)]
     pub name: String,
 }
 
-#[pyclass]
+#[pyclass(get_all)]
 #[derive(PyRepr, Clone)]
 pub struct MemberInfo {
-    #[pyo3(get)]
     pub uin: i64,
-    #[pyo3(get)]
     pub name: String,
-    #[pyo3(get)]
     pub group: GroupInfo,
-    #[pyo3(get)]
     pub permission: u8,
 }
 
-#[pyclass]
+#[pyclass(get_all)]
 #[derive(PyRepr, Clone)]
 pub struct FriendInfo {
-    #[pyo3(get)]
     pub uin: i64,
-    #[pyo3(get)]
     pub nickname: String,
 }

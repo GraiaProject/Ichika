@@ -16,7 +16,6 @@ use utils::CacheField;
 
 use crate::login::reconnect;
 use crate::message::convert::extract_message_chain;
-use crate::py_intern;
 use crate::utils::{py_future, py_none};
 #[pyclass(subclass)]
 pub struct PlumbingClient {
@@ -86,7 +85,7 @@ impl PlumbingClient {
         py_future(py, async move {
             let info = client.account_info.read().await;
             Ok(AccountInfo {
-                nickname: py_intern!(&info.nickname),
+                nickname: info.nickname.clone(),
                 age: info.age,
                 gender: info.gender,
             })

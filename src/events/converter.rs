@@ -1,37 +1,53 @@
 use pyo3::prelude::*;
+use ricq::client::event as rce;
 use ricq::handler::QEvent;
 
 use super::structs::{FriendInfo, GroupInfo, MemberInfo, MessageSource};
 use super::{FriendMessage, GroupMessage, LoginEvent, UnknownEvent};
 use crate::message::convert::deserialize;
-use crate::RICQError;
+use crate::{PyRet, RICQError};
 
-macro_rules! converter {
-    ($($event_type: ident => [$event_cap: ident] $body: block);*) => {
-        pub async fn convert(event: QEvent) -> PyResult<PyObject> {
-            match event {
-                $(QEvent::$event_type(e) => {let $event_cap = e; $body },)*
-                unknown => Ok(Python::with_gil(|py|{UnknownEvent { inner: unknown }.into_py(py)}))
-            }
-        }
-    };
+pub async fn convert(event: QEvent) -> PyRet {
+    match event {
+        QEvent::Login(event) => handle_login(event).await,
+        QEvent::GroupMessage(event) => handle_group_message(event).await,
+        QEvent::FriendMessage(event) => handle_friend_message(event).await,
+        unknown => Ok(Python::with_gil(|py| {
+            UnknownEvent { inner: unknown }.into_py(py)
+        })),
+    }
 }
 
-converter!(
-    Login => [uin] {
-        Ok(Python::with_gil(|py| LoginEvent {uin}.into_py(py)))
-    };
-    GroupMessage => [event] {
+fn obj<F, R, T>(f: F) -> PyResult<T>
+where
+    F: for<'py> FnOnce(Python<'py>) -> R,
+    R: IntoPy<T>,
+{
+    Python::with_gil(|py| Ok(f(py).into_py(py)))
+}
+
+fn py_try<F, R>(f: F) -> PyResult<R>
+where
+    F: for<'py> FnOnce(Python<'py>) -> PyResult<R>,
+{
+    Python::with_gil(|py| f(py))
+}
+
+async fn handle_login(uin: i64) -> PyRet {
+    obj(|py| LoginEvent { uin }.into_py(py))
+}
+
+async fn handle_group_message(event: rce::GroupMessageEvent) -> PyRet {
     let msg = event.inner;
     let client = event.client;
     let sender_info = client
-    .get_group_member_info(msg.group_code, msg.from_uin)
-    .await
-    .map_err(RICQError)?;
-    Python::with_gil(|py| {
-    Ok(GroupMessage {
+        .get_group_member_info(msg.group_code, msg.from_uin)
+        .await
+        .map_err(RICQError)?;
+    let content = py_try(|py| deserialize(py, msg.elements))?;
+    obj(|py| GroupMessage {
         source: MessageSource::new(py, &msg.seqs, &msg.rands, msg.time),
-        content: deserialize(py, msg.elements)?,
+        content,
         sender: MemberInfo {
             uin: msg.from_uin,
             name: sender_info.card_name,
@@ -41,11 +57,18 @@ converter!(
             },
             permission: sender_info.permission as u8,
         },
-    }
-    .into_py(py))})
-};    FriendMessage => [event] {
-    Python::with_gil(|py| {
-        let msg = event.inner;
-    Ok(FriendMessage {source: MessageSource::new(py, &msg.seqs, &msg.rands, msg.time), content: deserialize(py, msg.elements)?,
-    sender: FriendInfo {uin: msg.from_uin, nickname: msg.from_nick}}.into_py(py))})
-});
+    })
+}
+
+async fn handle_friend_message(event: rce::FriendMessageEvent) -> PyRet {
+    let msg = event.inner;
+    let content = py_try(|py| deserialize(py, msg.elements))?;
+    obj(|py| FriendMessage {
+        source: MessageSource::new(py, &msg.seqs, &msg.rands, msg.time),
+        content,
+        sender: FriendInfo {
+            uin: msg.from_uin,
+            nickname: msg.from_nick,
+        },
+    })
+}
