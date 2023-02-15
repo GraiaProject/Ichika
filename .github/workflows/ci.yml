@@ -3,95 +3,179 @@ name: Run CI
 on:
   workflow_dispatch:
   push:
-    branches:
-      - master
+  pull_request:
+
+env:
+  RELEASE: ${{ github.event_name == 'workflow_dispatch' }}
 
 jobs:
-  macos:
-    name: Build MacOS
-    strategy:
-      matrix:
-        target: [x64, aarch64, universal2]
-    uses: BlueGlassBlock/ichika/.github/workflows/build.yml@master
-    with:
-      os: macos
-      target: ${{ matrix.target }}
-      release: ${{ github.event_name == 'workflow_dispatch' }}
-
-  windows:
-    name: Build Windows
-    strategy:
-      matrix:
-        target: [x64, x86, aarch64]
-        include:
-          - target: x86
-            py-arch: x86
-    uses: BlueGlassBlock/ichika/.github/workflows/build.yml@master
-    with:
-      os: windows
-      target: ${{ matrix.target }}
-      py-arch: ${{ matrix.py-arch || 'x64' }}
-      release: ${{ github.event_name == 'workflow_dispatch' }}
-
-  linux:
-    name: Build Linux (glibc)
-    strategy:
-      matrix:
-        target: [x64, x86, aarch64, armv7, s390x, ppc64le, ppc64]
-    uses: BlueGlassBlock/ichika/.github/workflows/build.yml@master
-    with:
-      os: ubuntu
-      target: ${{ matrix.target }}
-      manylinux: auto
-      release: ${{ github.event_name == 'workflow_dispatch' }}
-
-  linux-musl:
-    name: Build Linux (musl)
-    strategy:
-      matrix:
-        target: [x64, x86, aarch64, armv7]
-    uses: BlueGlassBlock/ichika/.github/workflows/build.yml@master
-    with:
-      os: ubuntu
-      target: ${{ matrix.target }}
-      manylinux: musllinux_1_2
-      release: ${{ github.event_name == 'workflow_dispatch' }}
-
-  sdist:
+  lint-python:
+    name: Lint Python
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.8
+          cache: pip
+          cache-dependency-path: |
+            .github/lint-requirements.txt
+      - name: Install Python Linting Tools
+        run: pip install -r .github/lint-requirements.txt
+      - name: Run Black
+        run: black --check --color -v ./python
+      - name: Run ISort
+        run: isort --check --color -v ./python
+
+  lint-rust:
+    name: Lint Rust
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install latest nightly
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: nightly
+            override: true
+            components: rustfmt, clippy
+
+      - name: Run cargo fmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+      - name: Run cargo clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: -- -D warnings
+
+  build-matrix:
+    name: Create Build Matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.configure.outputs.matrix }}
+    steps:
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+      - name: Install Actions Toolkit
+        run: |
+          pip install actions_toolkit
+      - name: Configure Build Matrix
+        id: configure
+        run: |
+          from actions_toolkit import core
+          from os import environ as env
+
+          includes = []
+          mapping = {
+            "macos": ["x64", "aarch64", "universal2"],
+            "windows": ["x64", "x86", "aarch64"],
+            "linux-musl": ["x64", "x86", "aarch64", "armv7"],
+            "linux": ["x64", "x86", "aarch64", "armv7", "s390x", "ppc64", "ppc64le"]
+          }
+
+          for os, targets in mapping.items():
+            for target in targets:
+              job = {
+                "name": f"{os}-{target}",
+                "os": ("ubuntu" if "linux" in os else os) + "-latest",
+                "target": target,
+                "build_cmd": "build",
+                "build_args": ["--out", "dist"],
+              }
+
+              if os == "windows" and target == "x86":
+                job["py_arch"] = "x86"
+
+              if "linux" in os:
+                job["manylinux"] = "musllinux_1_2" if "musl" in os else "auto"
+
+              if env["RELEASE"] == "true":
+                job["build_args"].append("--release")
+
+              if target == "universal2":
+                job["target"] = "aarch64"
+                job["build_args"].append("--universal2")
+
+              job["build_args"] = " ".join(job["build_args"])
+              includes.append(job)
+              core.info(f"Job: {job}")
+
+          includes.append(
+            {
+              "name": "source",
+              "os": "ubuntu-latest",
+              "build_cmd": "sdist",
+              "build_args": "--out dist",
+            }
+          )
+          core.info(f"Job: {includes[-1]}")
+
+          core.set_output("matrix", {"include": includes})
+        shell: python
+
+  build:
+    name: Build
+    needs: [build-matrix]
+    strategy:
+      fail-fast: true
+      matrix: ${{ fromJSON( needs.build-matrix.outputs.matrix ) }}
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: 3.9
+          python-version: 3.8
+          architecture: ${{ matrix.py_arch || 'x64' }}
+
       - name: Install tomlkit to edit Cargo.toml
         run: pip install tomlkit
-      - name: Run build helper
-        run: python ./.github/build-helper.py ${{ github.sha }} ${{ github.event_name == 'workflow_dispatch' }}
-      - uses: PyO3/maturin-action@v1
+
+      - name: Bump Dev Version
+        if: ${{ env.RELEASE != true }}
+        run: |
+          from os import environ as env
+          import tomlkit
+          with open("./Cargo.toml") as cargo_file:
+            doc = tomlkit.load(cargo_file)
+            doc["package"]["version"] = doc["package"]["version"] + "-dev." + env["GITHUB_SHA"][:7]
+          with open("./Cargo.toml", "w") as cargo_file:
+            tomlkit.dump(doc, cargo_file)
+        shell: python
+
+      - name: Build Wheel
+        uses: PyO3/maturin-action@v1
         with:
           rust-toolchain: nightly
-          command: sdist
-          args: -o dist
-      - name: Upload wheels
-        uses: actions/upload-artifact@v2
+          command: ${{ matrix.build_cmd }}
+          target: ${{ matrix.target }}
+          manylinux: ${{ matrix.manylinux }}
+          args: ${{ matrix.build_args }}
+
+      - name: Upload wheels - Packed
+        uses: actions/upload-artifact@v3
         with:
           name: wheels
+          path: dist
+
+      - name: Upload wheels - Unpacked
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.name }}
           path: dist
 
   release:
     name: Release
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'workflow_dispatch' }}
-    needs: [macos, windows, linux, linux-musl, sdist]
+    needs: [build]
     steps:
       - uses: actions/download-artifact@v3
         with:
           name: wheels
+          path: dist
       - name: Publish to PyPI
-        env:
-          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
-        uses: PyO3/maturin-action@v1
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          command: upload
-          args: --skip-existing *
+          password: ${{ secrets.PYPI_TOKEN }}

@@ -1,17 +1,26 @@
 ci:
-  skip: [fmt]
+  skip: [fmt, clippy]
 repos:
 - repo: local
   hooks:
   - id: fmt
-    language_version: nightly
-    name: Check for formatting with cargo fmt
+    name: Run cargo fmt.
     description: Format files with cargo fmt.
     entry: cargo fmt
-    language: rust
+    language: system
+    pass_filenames: false
     types: [rust]
     files: \.rs$
-    args: ["--", "--verbose"]
+    args: ["--all", "--", "--check"]
+  - id: clippy
+    name: Run cargo clippy.
+    description: Checks a package to catch common mistakes and improve your Rust code.
+    entry: cargo clippy
+    language: system
+    pass_filenames: false
+    types: [rust]
+    files: \.rs$
+    args: ["--", "-D", "warnings"]
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v4.4.0
   hooks:
