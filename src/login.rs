@@ -447,7 +447,7 @@ impl Account {
         py: Python<'py>,
         method: &'py PyAny,
     ) -> PyResult<&'py PyAny> {
-        match pythonize::depythonize::<LoginMethod>(&method) {
+        match pythonize::depythonize::<LoginMethod>(method) {
             Ok(method) => {
                 let protocol = self_t.protocol.clone();
                 let mut data_folder = self_t.data_folder.clone();

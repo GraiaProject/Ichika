@@ -90,8 +90,8 @@ impl FriendList {
             py,
             self.friend_groups
                 .clone()
-                .into_iter()
-                .map(|(_, g)| g.into_py(py))
+                .into_values()
+                .map(|g| g.into_py(py))
                 .collect::<Vec<PyObject>>(),
         )
         .into_py(py)
@@ -109,7 +109,7 @@ impl CacheTarget for FriendList {
         async move {
             let resp = client.get_friend_list().await?;
             let friend_list = FriendList {
-                entries: Vec::from_iter(resp.friends.into_iter().map(|f| Friend::from(f))),
+                entries: Vec::from_iter(resp.friends.into_iter().map(Friend::from)),
                 friend_groups: HashMap::from_iter(
                     resp.friend_groups
                         .into_iter()

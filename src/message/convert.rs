@@ -129,7 +129,7 @@ pub fn extract_message_chain(list: &PyList) -> PyResult<MessageChain> {
         let elem_d: &PyDict = elem_d.downcast()?;
         match elem_d
             .get_item("type")
-            .ok_or(PyValueError::new_err("Missing `type`!"))?
+            .ok_or_else(|| PyValueError::new_err("Missing `type`!"))?
             .extract::<&str>()?
         {
             "AtAll" => chain.push(At::new(0)),

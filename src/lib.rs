@@ -93,7 +93,7 @@ pub struct RICQError(RQError);
 
 impl From<RICQError> for PyErr {
     fn from(error: RICQError) -> Self {
-        pyo3::exceptions::PyRuntimeError::new_err(format!("RICQError: {}", error.0.to_string()))
+        pyo3::exceptions::PyRuntimeError::new_err(format!("RICQError: {}", error.0))
     }
 }
 
