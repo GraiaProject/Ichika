@@ -47,7 +47,7 @@ python-source = "python"
 name = "ichika.core"
 
 [build-dependencies]
-built = { version = "0.5", features = ["chrono"] }
+built = { version = "0.6", features = ["chrono"] }
 
 [profile.release]
 lto = true
