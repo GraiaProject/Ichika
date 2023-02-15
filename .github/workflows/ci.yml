@@ -13,6 +13,7 @@ jobs:
     name: Lint Python
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
           python-version: 3.8
@@ -30,7 +31,8 @@ jobs:
     name: Lint Rust
     runs-on: ubuntu-latest
     steps:
-      - name: Install latest nightly
+      - uses: actions/checkout@v3
+      - name: Install Rust nightly
         uses: actions-rs/toolchain@v1
         with:
             toolchain: nightly
@@ -117,7 +119,7 @@ jobs:
 
   build:
     name: Build
-    needs: [build-matrix]
+    needs: [build-matrix, lint-python, lint-rust]
     strategy:
       fail-fast: true
       matrix: ${{ fromJSON( needs.build-matrix.outputs.matrix ) }}
