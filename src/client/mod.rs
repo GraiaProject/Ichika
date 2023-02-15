@@ -203,7 +203,7 @@ impl PlumbingClient {
                     py,
                     infos
                         .into_iter()
-                        .map(|info| Group::from(info))
+                        .map(Group::from)
                         .map(|g| g.into_py(py))
                         .collect::<Vec<PyObject>>(),
                 )

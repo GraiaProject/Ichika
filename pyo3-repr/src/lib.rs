@@ -66,20 +66,17 @@ fn gen_impl_block(ident: &Ident, core_stream: pm2::TokenStream) -> pm2::TokenStr
 }
 
 fn is_py_ptr(ty: &syn::Type) -> bool {
-    match ty {
-        syn::Type::Path(pth) => {
-            if pth
-                .path
-                .segments
-                .iter()
-                .any(|seg| seg.ident == "Py" || seg.ident == "PyObject")
-            {
-                return true;
-            }
-            return false;
+    if let syn::Type::Path(pth) = ty {
+        if pth
+            .path
+            .segments
+            .iter()
+            .any(|seg| seg.ident == "Py" || seg.ident == "PyObject")
+        {
+            return true;
         }
-        _ => false,
     }
+    false
 }
 
 fn gen_named_impl(ident: String, fields: &FieldsNamed) -> MacroResult {
