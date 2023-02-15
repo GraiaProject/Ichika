@@ -485,9 +485,7 @@ impl Account {
                     })
                 })
             }
-            Err(e) => {
-                return Err(PyValueError::new_err(format!("{:?}", e)));
-            }
+            Err(e) => Err(PyValueError::new_err(format!("{:?}", e))),
         }
     }
 }
