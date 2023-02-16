@@ -9,7 +9,7 @@ use ricq::structs::{FriendGroupInfo, FriendInfo};
 use ricq::Client;
 
 use super::utils::CacheTarget;
-#[pyclass(get_all, module = "ichika.client.structs.friend#rs")]
+#[pyclass(get_all)]
 #[derive(PyRepr, Clone)]
 pub struct Friend {
     uin: i64,
@@ -31,7 +31,7 @@ impl From<FriendInfo> for Friend {
     }
 }
 
-#[pyclass(get_all, module = "ichika.client.structs.friend#rs")]
+#[pyclass(get_all)]
 #[derive(PyRepr, Clone)]
 pub struct FriendGroup {
     group_id: u8,
@@ -53,7 +53,7 @@ impl From<FriendGroupInfo> for FriendGroup {
     }
 }
 
-#[pyclass(module = "ichika.client.structs.friend#rs")]
+#[pyclass]
 #[derive(Clone, Debug)]
 pub struct FriendList {
     entries: Vec<Friend>,
