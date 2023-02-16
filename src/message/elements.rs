@@ -21,7 +21,7 @@ pub fn face_id_from_name(name: String) -> Option<i32> {
 
 macro_rules! py_seal {
     ($name:ident => $type:ty) => {
-        #[pyclass(module = "ichika.message.elements#rs.inner")]
+        #[::pyo3::pyclass]
         #[derive(::pyo3_repr::PyRepr, Clone)]
         pub struct $name {
             pub inner: $type,
