@@ -123,71 +123,74 @@ pub fn deserialize(py: Python, chain: MessageChain) -> PyResult<PyObject> // PyM
         .into_py(py))
 }
 
+pub fn parse_element_dict(chain: &mut MessageChain, ident: &str, store: &PyDict) -> PyResult<()> {
+    match ident {
+        "AtAll" => chain.push(At::new(0)),
+        "At" => {
+            if let Some(t) = store.get_item("target") {
+                chain.push(At::new(t.extract::<i64>()?))
+            }
+        }
+        "Text" => {
+            if let Some(t) = store.get_item("text") {
+                chain.push(Text::new(t.extract::<String>()?))
+            }
+        }
+        "Dice" => {
+            if let Some(t) = store.get_item("value") {
+                chain.push(Dice::new(t.extract::<i32>()?))
+            }
+        }
+        "FingerGuessing" => {
+            if let Some(t) = store.get_item("choice") {
+                chain.push(match t.extract::<&str>()? {
+                    "Rock" => FingerGuessing::Rock,
+                    "Paper" => FingerGuessing::Paper,
+                    "Scissors" => FingerGuessing::Scissors,
+                    _ => return Ok(()),
+                })
+            }
+        }
+        "MarketFace" => {
+            if let Some(t) = store.get_item("raw") {
+                chain.push(t.extract::<SealedMarketFace>()?.inner)
+            }
+        }
+        "Face" => {
+            if let Some(t) = store.get_item("index") {
+                chain.push(Face::new(t.extract::<i32>()?))
+            }
+        }
+        "Image" => {
+            if let Some(t) = store.get_item("raw") {
+                match t.extract::<SealedFriendImage>() {
+                    Ok(i) => chain.push(i.inner),
+                    Err(_) => chain.push(t.extract::<SealedGroupImage>()?.inner),
+                }
+            }
+        }
+        "FlashImage" => {
+            if let Some(t) = store.get_item("raw") {
+                match t.extract::<SealedFriendImage>() {
+                    Ok(i) => chain.push(FlashImage::from(i.inner)),
+                    Err(_) => chain.push(FlashImage::from(t.extract::<SealedGroupImage>()?.inner)),
+                }
+            }
+        }
+        _ => {}
+    }
+    Ok(())
+}
+
 pub fn extract_message_chain(list: &PyList) -> PyResult<MessageChain> {
     let mut chain: MessageChain = MessageChain::new(Vec::new());
     for elem_d in list {
         let elem_d: &PyDict = elem_d.downcast()?;
-        match elem_d
+        let name = elem_d
             .get_item("type")
             .ok_or_else(|| PyValueError::new_err("Missing `type`!"))?
-            .extract::<&str>()?
-        {
-            "AtAll" => chain.push(At::new(0)),
-            "At" => {
-                if let Some(t) = elem_d.get_item("target") {
-                    chain.push(At::new(t.extract::<i64>()?))
-                }
-            }
-            "Text" => {
-                if let Some(t) = elem_d.get_item("text") {
-                    chain.push(Text::new(t.extract::<String>()?))
-                }
-            }
-            "Dice" => {
-                if let Some(t) = elem_d.get_item("value") {
-                    chain.push(Dice::new(t.extract::<i32>()?))
-                }
-            }
-            "FingerGuessing" => {
-                if let Some(t) = elem_d.get_item("choice") {
-                    chain.push(match t.extract::<&str>()? {
-                        "Rock" => FingerGuessing::Rock,
-                        "Paper" => FingerGuessing::Paper,
-                        "Scissors" => FingerGuessing::Scissors,
-                        _ => continue,
-                    })
-                }
-            }
-            "MarketFace" => {
-                if let Some(t) = elem_d.get_item("raw") {
-                    chain.push(t.extract::<SealedMarketFace>()?.inner)
-                }
-            }
-            "Face" => {
-                if let Some(t) = elem_d.get_item("index") {
-                    chain.push(Face::new(t.extract::<i32>()?))
-                }
-            }
-            "Image" => {
-                if let Some(t) = elem_d.get_item("raw") {
-                    match t.extract::<SealedFriendImage>() {
-                        Ok(i) => chain.push(i.inner),
-                        Err(_) => chain.push(t.extract::<SealedGroupImage>()?.inner),
-                    }
-                }
-            }
-            "FlashImage" => {
-                if let Some(t) = elem_d.get_item("raw") {
-                    match t.extract::<SealedFriendImage>() {
-                        Ok(i) => chain.push(FlashImage::from(i.inner)),
-                        Err(_) => {
-                            chain.push(FlashImage::from(t.extract::<SealedGroupImage>()?.inner))
-                        }
-                    }
-                }
-            }
-            _ => {}
-        }
+            .extract::<&str>()?;
+        parse_element_dict(&mut chain, name, elem_d)?;
     }
     Ok(chain)
 }

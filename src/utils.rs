@@ -15,7 +15,7 @@ pub fn py_none() -> PyObject {
 macro_rules! py_dict {
     ($py:expr, $($name:expr => $value:expr),*) => {
         {
-            let dict = pyo3::types::PyDict::new($py);
+            let dict = ::pyo3::types::PyDict::new($py);
             $(
                 dict.set_item($name, $value).expect("Failed to set_item on dict");
             )*
@@ -50,7 +50,7 @@ macro_rules! import_call {
 #[macro_export]
 macro_rules! props {
     ($self_t: ident @ $cls: ident : $($name: ident => [$type: ty] $res: stmt);* ;) => {
-        #[pymethods]
+        #[::pyo3::pymethods]
         impl $cls {
             $(
                 #[getter]
@@ -101,7 +101,7 @@ macro_rules! static_py_fn {
         #[allow(non_upper_case_globals)]
         static $cell_name: ::pyo3::once_cell::GILOnceCell<PyObject> = ::pyo3::once_cell::GILOnceCell::new();
 
-        pub fn $name(python: pyo3::marker::Python<'_>) -> &pyo3::PyAny {
+        pub fn $name(python: ::pyo3::marker::Python<'_>) -> &pyo3::PyAny {
             $cell_name.get_or_init(python, || {
                 python
                 .import(::pyo3::intern!(python, $module)).expect(concat!("Unable to import module ", $module))
