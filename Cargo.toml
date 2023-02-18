@@ -21,7 +21,7 @@ crate-type = ["cdylib"]
 pyo3 = { version = "0.18", features = ["extension-module", "anyhow", "abi3", "abi3-py38", "multiple-pymethods", "nightly"] }
 pyo3-asyncio = { version = "0.18", features = ["tokio-runtime"] }
 pyo3-built = "0.4"
-ricq = "0.1.17"
+ricq = "0.1.19"
 ricq-core = "0.1"
 tokio = { version = "1", features = ["rt", "fs", "io-std"] }
 tokio-util = { version = "0.7", features = ["codec"] }
