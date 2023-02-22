@@ -1,7 +1,7 @@
 import hashlib
-import random as rng
 import string
 import uuid
+from random import Random
 
 from . import Model, OSVersion, RICQDevice, data
 
@@ -22,19 +22,19 @@ def luhn(code: str) -> int:
     return tot * 9 % 10
 
 
-def get_imei(model: Model) -> str:
+def get_imei(rng: Random, model: Model) -> str:
     snr = str(rng.randrange(100000, 1000000))
     sp = luhn(model.tac + model.fac + snr)
     return model.tac + model.fac + snr + str(sp)
 
 
-def get_mac_addr(model: Model) -> str:
+def get_mac_addr(rng: Random, model: Model) -> str:
     if model.brand in data.addr:
         return rng.choice(data.addr[model.brand]) + "".join(f":{t:02x}" for t in rng.randbytes(3))
     return ":".join(f"{t:02x}" for t in rng.randbytes(6))
 
 
-def generate() -> RICQDevice:
+def generate(rng: Random = Random(hash(""))) -> RICQDevice:
     model = rng.choice(data.models)
     os_version: OSVersion = rng.choice(model.os_versions) if model.os_versions else rng.choice(data.os_versions)
     return RICQDevice(
@@ -50,7 +50,7 @@ def generate() -> RICQDevice:
         base_band="",
         finger_print=gen_finger_print(model, os_version),
         boot_id=str(uuid.uuid4()),
-        imei=get_imei(model),
+        imei=get_imei(rng, model),
         version=os_version,
         sim_info="T-Mobile",
         os_type="android",
@@ -59,7 +59,7 @@ def generate() -> RICQDevice:
         imsi_md5=list(hashlib.md5(rng.randbytes(16)).digest()),
         ip_address=[10, 0, 1, 3],
         apn="wifi",
-        mac_address=get_mac_addr(model),
+        mac_address=get_mac_addr(rng, model),
         android_id="".join(f"{t:02x}" for t in rng.randbytes(8)),
         vendor_name=model.brand.lower(),
         vendor_os_name="unknown",

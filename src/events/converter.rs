@@ -5,8 +5,9 @@ use ricq::RQError;
 
 use super::structs::{FriendInfo, GroupInfo, MemberInfo, MessageSource};
 use super::{FriendMessage, GroupMessage, LoginEvent, TempMessage, UnknownEvent};
+use crate::exc::MapPyErr;
 use crate::message::convert::deserialize;
-use crate::{PyRet, RICQError};
+use crate::PyRet;
 
 pub async fn convert(event: QEvent) -> PyRet {
     match event {
@@ -45,7 +46,7 @@ async fn handle_group_message(event: rce::GroupMessageEvent) -> PyRet {
     let sender_info = client
         .get_group_member_info(msg.group_code, msg.from_uin)
         .await
-        .map_err(RICQError)?;
+        .py_res()?;
     let content = py_try(|py| deserialize(py, msg.elements))?;
     obj(|py| GroupMessage {
         source: MessageSource::new(py, &msg.seqs, &msg.rands, msg.time),
@@ -82,12 +83,13 @@ async fn handle_temp_message(event: rce::GroupTempMessageEvent) -> PyRet {
     let group_info = client
         .get_group_info(msg.group_code)
         .await
-        .map_err(RICQError)?
-        .ok_or(RICQError(RQError::UnsuccessfulRetCode(-1)))?;
+        .transpose()
+        .unwrap_or_else(|| Err(RQError::UnsuccessfulRetCode(-1)))
+        .py_res()?;
     let sender_info = client
         .get_group_member_info(msg.group_code, msg.from_uin)
         .await
-        .map_err(RICQError)?;
+        .py_res()?;
     obj(|py| TempMessage {
         source: MessageSource::new(py, &msg.seqs, &msg.rands, msg.time),
         content,
