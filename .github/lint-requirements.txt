@@ -1,2 +1,0 @@
-black==23.1.0
-isort[colors]==5.12.0
