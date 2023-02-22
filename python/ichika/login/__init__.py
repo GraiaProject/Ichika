@@ -16,11 +16,10 @@ from typing import (
     overload,
 )
 
-from loguru import logger as log
-
 import ichika.core as _core
 from ichika.client import Client
 from ichika.login.qrcode_render import Dense1x2, QRCodeRenderer
+from loguru import logger as log
 
 
 class Protocol(str, Enum):
