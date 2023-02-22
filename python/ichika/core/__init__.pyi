@@ -6,6 +6,12 @@ from typing import Callable, Sequence, TypedDict, TypeVar
 from typing_extensions import Any
 
 from ..client import Client
+from ..login import (
+    BaseLoginCredentialStore,
+    PasswordLoginCallbacks,
+    Protocol,
+    QRCodeLoginCallbacks,
+)
 from . import events as events
 
 # region: build info
@@ -51,12 +57,22 @@ __build__: __BuildInfo
 
 # endregion: build info
 
-def init_log(m: ModuleType, /) -> None: ...
-
-class Account:
-    event_callbacks: list[Callable[[Any], Any]]
-    def __init__(self, uin: int, data_folder: str, protocol: str) -> None: ...  # TODO: Literal
-    async def login(self, method: dict[str, Any]) -> Client: ...
+async def password_login(
+    uin: int,
+    credential: str | bytes,
+    use_sms: bool,
+    protocol: Protocol,
+    store: BaseLoginCredentialStore,
+    event_callbacks: list[Callable],
+    login_callbacks: PasswordLoginCallbacks,
+) -> Client: ...
+async def qrcode_login(
+    uin: int,
+    protocol: Protocol,
+    store: BaseLoginCredentialStore,
+    event_callbacks: list[Callable],
+    login_callbacks: QRCodeLoginCallbacks,
+) -> Client: ...
 
 # region: client
 

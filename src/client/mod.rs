@@ -2,7 +2,6 @@ mod friend;
 mod group;
 mod structs;
 mod utils;
-use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -14,7 +13,7 @@ use structs::*;
 use tokio::task::JoinHandle;
 use utils::CacheField;
 
-use crate::login::reconnect;
+use crate::login::{reconnect, TokenRW};
 use crate::message::convert::extract_message_chain;
 use crate::utils::{py_future, py_none};
 #[pyclass(subclass)]
@@ -23,7 +22,7 @@ pub struct PlumbingClient {
     alive: Option<JoinHandle<()>>,
     #[pyo3(get)]
     uin: i64,
-    data_folder: PathBuf,
+    token_rw: TokenRW,
     friend_cache: Arc<CacheField<FriendList>>,
 }
 
@@ -34,7 +33,7 @@ pub struct ClientInitializer {
     pub uin: i64,
     pub client: Arc<ricq::Client>,
     pub alive: Arc<std::sync::Mutex<Option<JoinHandle<()>>>>,
-    pub data_folder: PathBuf,
+    pub token_rw: TokenRW,
 }
 
 #[pymethods]
@@ -45,14 +44,14 @@ impl PlumbingClient {
             client: init.client,
             alive: init.alive.lock().unwrap().take(),
             uin: init.uin,
-            data_folder: init.data_folder,
+            token_rw: init.token_rw,
             friend_cache: Arc::new(CacheField::new(Duration::from_secs(3600))),
         }
     }
 
     pub fn keep_alive<'py>(&mut self, py: Python<'py>) -> PyResult<&'py PyAny> {
         let client = self.client.clone();
-        let data_folder = self.data_folder.clone();
+        let token_rw = self.token_rw.clone();
         let alive = self.alive.take();
         let uin = self.uin;
         py_future(py, async move {
@@ -61,7 +60,7 @@ impl PlumbingClient {
                     alive.await?;
 
                     // 断线重连
-                    if let Some(handle) = reconnect(&client, &data_folder).await? {
+                    if let Some(handle) = reconnect(&client, &token_rw).await? {
                         alive = handle;
                     } else {
                         break;
