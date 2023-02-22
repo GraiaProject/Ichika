@@ -27,7 +27,7 @@ jobs:
       - name: Run Black
         run: black --check --color -v ./python
       - name: Run ISort
-        run: isort --check --color -v ./python
+        uses: isort/isort-action@master
 
   lint-rust:
     name: Lint Rust
