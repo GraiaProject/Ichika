@@ -72,13 +72,13 @@ where
 }
 
 /// 自动重试直到得到 `Ok(..)`。
-pub async fn retry<F, T, D>(
+pub async fn py_retry<F, T, D>(
     mut max_count: usize,
     mut f: impl FnMut() -> F,
-    mut on_retry: impl FnMut(anyhow::Error, usize) -> D,
-) -> Result<T>
+    mut on_retry: impl FnMut(PyErr, usize) -> D,
+) -> PyResult<T>
 where
-    F: Future<Output = Result<T>>,
+    F: Future<Output = PyResult<T>>,
     D: Future<Output = ()>,
 {
     loop {
@@ -136,3 +136,5 @@ static_py_fn!(
     "datetime",
     ["datetime", "fromtimestamp"]
 );
+
+static_py_fn!(partial, __PARTIAL_CELL, "functools", ["partial"]);

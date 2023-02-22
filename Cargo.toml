@@ -23,7 +23,7 @@ pyo3-asyncio = { version = "0.18", features = ["tokio-runtime"] }
 pyo3-built = "0.4"
 ricq = "0.1.19"
 ricq-core = "0.1"
-tokio = { version = "1", features = ["rt", "fs", "io-std"] }
+tokio = { version = "1", features = ["rt"] }
 tokio-util = { version = "0.7", features = ["codec"] }
 tokio-stream = "0.1"
 futures-util = "0.3"

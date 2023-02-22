@@ -1,20 +1,13 @@
-use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::Duration;
 
-use anyhow::{anyhow, bail, Result};
-use bytes::Bytes;
-use futures_util::StreamExt;
-use pyo3::exceptions::PyValueError;
+use pyo3::exceptions::*;
 use pyo3::prelude::*;
-use pyo3::types::PyList;
-use pythonize::*;
-use ricq::client::{Connector, DefaultConnector, NetworkStatus, Token};
+use pyo3::types::*;
+use pythonize::depythonize;
+use ricq::client::{Client, Connector, DefaultConnector, NetworkStatus, Token};
 use ricq::ext::common::after_login;
-use ricq::ext::reconnect::{fast_login, Credential};
 use ricq::version::get_version;
 use ricq::{
-    Client,
     Device,
     LoginDeviceLocked,
     LoginNeedCaptcha,
@@ -22,87 +15,28 @@ use ricq::{
     LoginSuccess,
     LoginUnknownStatus,
     Protocol,
-    QRCodeConfirmed,
-    QRCodeImageFetch,
     QRCodeState,
 };
-use serde::{Deserialize, Serialize};
 use tokio::task::JoinHandle;
-use tokio::time::sleep;
-use tokio_util::codec::{FramedRead, LinesCodec};
 
 use crate::events::PyHandler;
-use crate::import_call;
-use crate::utils::{py_future, retry};
+use crate::exc::MapPyErr;
+use crate::utils::{partial, py_future};
+use crate::{exc, import_call, PyRet};
 
-/// 加载 `device.json`。
-async fn load_device_json(data_folder: PathBuf) -> Result<Device> {
-    let mut device_ricq_json = data_folder.clone();
-    device_ricq_json.push("ricq.device.json");
-
-    // 解析设备信息
-    let device = if device_ricq_json.exists() {
-        // 尝试读取已有的 `ricq.device.json`
-        tracing::info!("发现 `ricq.device.json`, 读取");
-        let json = tokio::fs::read_to_string(device_ricq_json).await?;
-        serde_json::from_str::<Device>(json.as_str())?
-    } else {
-        // 如果 `device.json` 存在那就尝试转换
-        let mut device_json = data_folder.clone();
-        device_json.push("device.json");
-        let mut device: Option<Device> = None;
-        if device_json.exists() {
-            tracing::info!("发现 `device.json`, 尝试转换");
-            let json_data = tokio::fs::read_to_string(device_json).await?;
-            match Python::with_gil(move |py| -> Result<Device, PythonizeError> {
-                // data = json.loads(json_data)
-                let data = import_call!(py, "json" => "loads" => json_data)?;
-                // device_dc = ichika.scripts.device.converter.convert(data)
-                let device_dc =
-                    import_call!(py, "ichika.scripts.device.converter" => "convert" => data)?;
-                // converted = dataclasses.asdict(device_dc)
-                let converted = import_call!(py, "dataclasses" => "asdict" => device_dc)?;
-                depythonize(converted)
-            }) {
-                Ok(d) => {
-                    device = Some(d);
-                }
-                Err(err) => {
-                    tracing::error!("转换 `device.json` 发生错误: {}", err);
-                    tracing::info!("重新创建 `device.ricq.json`")
-                }
-            }
-        } else {
-            tracing::info!("未找到 `device.ricq.json`, 正在创建")
-        }
-        let device: Device = match device {
-            Some(device) => device,
-            None => Python::with_gil(|py| -> Result<Device, PythonizeError> {
-                let device_dc =
-                    import_call!(py, "ichika.scripts.device.generator" => "generate" => @tuple ())?;
-                let converted = import_call!(py, "dataclasses" => "asdict" => device_dc)?;
-                depythonize(converted)
-            })?,
-        };
-        let json = serde_json::to_string::<Device>(&device)?;
-        tokio::fs::write(device_ricq_json, json).await?;
-        device
-    };
-
-    Ok(device)
-}
-
-/// 创建客户端，准备登录。
 async fn prepare_client(
     device: Device,
     protocol: Protocol,
     handler: PyHandler,
-) -> Result<(Arc<Client>, JoinHandle<()>)> {
+) -> PyResult<(Arc<Client>, JoinHandle<()>)> {
     let client = Arc::new(Client::new(device, get_version(protocol), handler));
     let alive = tokio::spawn({
         let client = client.clone();
         // 连接最快的服务器
-        let stream = DefaultConnector.connect(&client).await?;
+        let stream = DefaultConnector
+            .connect(&client)
+            .await
+            .map_err(|e| PyIOError::new_err(e.to_string()))?;
         async move { client.start(stream).await }
     });
 
@@ -110,155 +44,134 @@ async fn prepare_client(
     Ok((client, alive))
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TokenWithProtocol {
-    #[serde(default = "String::new")]
-    protocol: String,
-    #[serde(flatten)]
-    token: Token,
+#[derive(FromPyObject)]
+pub enum PasswordCredential {
+    #[pyo3(transparent, annotation = "str")]
+    String(Py<PyString>),
+    #[pyo3(transparent, annotation = "bytes")]
+    MD5(Py<PyBytes>),
 }
 
-async fn try_token_login(
-    client: &Client,
-    protocol: &Protocol,
-    mut data_folder: PathBuf,
-) -> Result<bool> {
-    let token_path = {
-        data_folder.push("token.json");
-        data_folder
-    };
-    if !token_path.exists() {
-        return Ok(false);
+fn protocol_from_str(protocol: &str) -> PyResult<Protocol> {
+    match protocol {
+        "IPad" => Ok(Protocol::IPad),
+        "AndroidPhone" => Ok(Protocol::AndroidPhone),
+        "AndroidWatch" => Ok(Protocol::AndroidWatch),
+        "MacOS" => Ok(Protocol::MacOS),
+        "QiDian" => Ok(Protocol::QiDian),
+        _ => Err(exc::LoginError::new_err("未知协议")),
     }
-    tracing::info!("发现上一次登录的 token，尝试使用 token 登录");
-    let token = tokio::fs::read_to_string(&token_path).await?;
-    let token: TokenWithProtocol = serde_json::from_str(&token)?;
-    if format!("{:?}", protocol) == token.protocol {
-        match client.token_login(token.token).await {
-            Ok(login_resp) => {
-                if let LoginResponse::Success(LoginSuccess {
-                    ref account_info, ..
-                }) = login_resp
-                {
-                    tracing::info!("登录成功: {:?}", account_info);
-                    return Ok(true);
-                }
-                tracing::error!("登录失败：{:?}", login_resp);
+}
+
+#[derive(Debug, Clone)]
+pub struct TokenRW {
+    get_token: PyObject,
+    write_token: PyObject,
+}
+
+impl TokenRW {
+    fn get(&self) -> PyResult<Option<Token>> {
+        Python::with_gil(|py| {
+            let mut token: Option<Token> = None;
+            let py_token = self.get_token.as_ref(py).call0()?;
+            if !py_token.is_none() {
+                token = serde_json::from_slice(
+                    py_token
+                        .downcast::<PyBytes>()
+                        .map_err(|e| {
+                            PyTypeError::new_err(format!("token 类型不是 bytes: {:?}", e))
+                        })?
+                        .as_bytes(),
+                )
+                .map_err(|e| {
+                    exc::LoginError::new_err(format!("无法转换 token 为 RICQ Token: {:?}", e))
+                })?;
             }
-            Err(e) => {
-                tracing::error!("token 登录失败：{:?}", e);
-            }
-        }
-    } else {
-        tracing::info!("登录协议与 token 协议不一致！");
+            Ok(token)
+        })
     }
-    tracing::info!("删除 token 重新登录...");
-    tokio::fs::remove_file(token_path).await?;
-    Ok(false)
-}
 
-async fn save_token(client: &Client, protocol: &Protocol, mut data_folder: PathBuf) -> Result<()> {
-    let token = client.gen_token().await;
-    let token = serde_json::to_string(&TokenWithProtocol {
-        protocol: format!("{:?}", protocol),
-        token,
-    })?;
-    let token_path = {
-        data_folder.push("token.json");
-        data_folder
-    };
-    tokio::fs::write(token_path, token).await?;
-    Ok(())
-}
+    async fn set(&self, client: &Client) -> PyResult<()> {
+        let token = client.gen_token().await;
+        let token = serde_json::to_vec::<Token>(&token)
+            .map_err(|e| exc::RICQError::new_err(format!("{:?}", e)))?;
+        Python::with_gil(|py| self.write_token.call1(py, (PyBytes::new(py, &token),))).map(|_| ())
+    }
 
-async fn password_login(
-    client: &Client,
-    uin: i64,
-    password: String,
-    md5: bool,
-    sms: bool,
-) -> Result<()> {
-    tracing::info!("使用密码登录，uin={}", uin);
-
-    let mut resp = if !md5 {
-        client.password_login(uin, &password).await?
-    } else {
-        client
-            .password_md5_login(uin, &hex::decode(password)?)
-            .await?
-    };
-
-    loop {
-        match resp {
-            LoginResponse::Success(LoginSuccess {
-                ref account_info, ..
-            }) => {
-                tracing::info!("登录成功: {:?}", account_info);
-                break;
-            }
-            LoginResponse::DeviceLocked(LoginDeviceLocked {
-                ref verify_url,
-                ref message,
-                ref sms_phone,
-                ..
-            }) => {
-                if sms {
-                    match sms_phone {
-                        None => {
-                            panic!("未绑定手机号，无法使用短信验证码登录");
-                        }
-                        Some(sms_phone) => {
-                            // TODO: test
-                            let sms_phone = sms_phone.clone();
-                            resp = client.request_sms().await.expect("无法请求短信验证码");
-                            if !matches!(resp, LoginResponse::DeviceLocked(_)) {
-                                continue;
-                            }
-                            tracing::info!("已发送验证码到：{}, 请输入验证码:", sms_phone);
-                            let mut reader = FramedRead::new(tokio::io::stdin(), LinesCodec::new());
-                            let sms_code = reader.next().await.transpose().unwrap().unwrap();
-                            resp = client
-                                .submit_sms_code(&sms_code)
-                                .await
-                                .expect("无法提交短信验证码");
-                        }
+    async fn try_login(&self, client: &Client) -> PyResult<bool> {
+        let token = self.get()?;
+        if let Some(token) = token {
+            match client.token_login(token).await {
+                Ok(login_resp) => {
+                    if let LoginResponse::Success(LoginSuccess {
+                        ref account_info, ..
+                    }) = login_resp
+                    {
+                        tracing::info!("登录成功: {:?}", account_info);
+                        return Ok(true);
                     }
-                } else {
-                    tracing::info!("设备锁: {}", message.as_deref().unwrap_or(""));
-                    tracing::info!("验证 url: {}", verify_url.as_deref().unwrap_or(""));
-                    bail!("手机打开 url，处理完成后重启程序")
+                    tracing::error!("登录失败：{:?}", login_resp);
+                }
+                Err(e) => {
+                    tracing::error!("token 登录失败：{:?}", e);
                 }
             }
-            LoginResponse::NeedCaptcha(LoginNeedCaptcha { ref verify_url, .. }) => {
-                tracing::info!("滑块 url: {}", verify_url.as_deref().unwrap_or("")); // TODO: 接入 TxCaptchaHelper
-                tracing::info!("请输入 ticket:");
-                let mut reader = FramedRead::new(tokio::io::stdin(), LinesCodec::new());
-                let ticket = reader.next().await.transpose().unwrap().unwrap();
-                resp = client.submit_ticket(&ticket).await?;
-            }
-            LoginResponse::DeviceLockLogin { .. } => {
-                resp = client.device_lock_login().await?;
-            }
-            LoginResponse::AccountFrozen => bail!("账号被冻结"),
-            LoginResponse::TooManySMSRequest => bail!("短信请求过于频繁"),
-            LoginResponse::UnknownStatus(LoginUnknownStatus {
-                ref status,
-                ref tlv_map,
-                ref message,
-            }) => {
-                bail!("登陆失败，原因未知：{}, {}, {:?}", status, message, tlv_map);
-            }
+        } else {
+            tracing::info!("未能找到已有 token，重新登录");
         }
+        Ok(false)
     }
-
-    Ok(())
 }
 
-pub(crate) async fn reconnect(
+fn parse_login_args<'py>(
+    py: Python<'py>,
+    uin: i64,
+    protocol: &'py PyAny,
+    store: &'py PyAny,
+    event_callbacks: &'py PyList,
+) -> PyResult<(Protocol, PyHandler, Device, TokenRW)> {
+    let handler = PyHandler::new(event_callbacks.into_py(py));
+
+    let get_token = partial(py).call1((store.getattr("get_token")?, uin, protocol))?;
+    let write_token = partial(py).call1((store.getattr("write_token")?, uin, protocol))?;
+
+    let device = store.getattr("get_device")?.call1((uin, protocol))?; // JSON
+    let device: Device = depythonize(device)
+        .map_err(|e| exc::LoginError::new_err(format!("无法解析传入的 Device: {:?}", e)))?;
+
+    // Extract Protocol
+    let protocol = protocol.getattr("value")?.extract::<String>()?;
+    let protocol = protocol_from_str(&protocol)?;
+
+    Ok((
+        protocol,
+        handler,
+        device,
+        TokenRW {
+            get_token: get_token.into_py(py),
+            write_token: write_token.into_py(py),
+        },
+    ))
+}
+
+fn call_state(
+    py: Python<'_>,
+    getter: &PyObject,
+    name: &str,
+    args: impl IntoPy<Py<PyTuple>>,
+) -> PyRet {
+    let handler = getter.as_ref(py).call1((name,))?;
+    if handler.is_none() {
+        return Ok(py.None()); // return None
+    }
+    Ok(handler.call1(args)?.into_py(py))
+}
+
+pub async fn reconnect(
     client: &Arc<Client>,
-    data_folder: &Path,
-) -> Result<Option<JoinHandle<()>>> {
-    retry(
+    token_rw: &TokenRW,
+) -> PyResult<Option<JoinHandle<()>>> {
+    crate::utils::py_retry(
         10,
         || async {
             // 如果不是网络原因掉线，不重连（服务端强制下线/被踢下线/用户手动停止）
@@ -280,25 +193,10 @@ pub(crate) async fn reconnect(
             tokio::task::yield_now().await; // 等一下，确保连上了
 
             // 启动接收后，再发送登录请求，否则报错 NetworkError
-            let token_path = data_folder.join("token.json");
-            if !token_path.exists() {
-                tracing::error!("重连失败：未找到上次登录的 token");
+            if !token_rw.try_login(client).await? {
+                client.stop(NetworkStatus::NetworkOffline);
                 return Ok(None);
             }
-            let token = tokio::fs::read_to_string(token_path).await?;
-            let token = match serde_json::from_str(&token) {
-                Ok(token) => token,
-                Err(err) => {
-                    tracing::error!("重连失败：无法解析上次登录的 token，{}", err);
-                    return Ok(None);
-                }
-            };
-            fast_login(client, &Credential::Token(token))
-                .await
-                .map_err(|e| {
-                    client.stop(NetworkStatus::NetworkOffline);
-                    e
-                })?;
 
             after_login(client).await;
 
@@ -306,186 +204,294 @@ pub(crate) async fn reconnect(
             Ok(Some(alive))
         },
         |e, c| async move {
-            let backtrace = e.backtrace();
             tracing::error!("客户端重连失败，原因：{}，剩余尝试 {} 次", e, c);
-            tracing::debug!("backtrace: {}", backtrace);
         },
     )
     .await
 }
 
-pub(super) fn print_qrcode(qrcode: &Bytes) -> Result<String> {
-    let qrcode = image::load_from_memory(qrcode)?.to_luma8();
-    let mut qrcode = rqrr::PreparedImage::prepare(qrcode);
-    let grids = qrcode.detect_grids();
-    if grids.len() != 1 {
-        return Err(anyhow!("无法识别二维码"));
-    }
-    let (_, content) = grids[0].decode()?;
-    let qrcode = qrcode::QrCode::new(content)?;
-    let qrcode = qrcode.render::<qrcode::render::unicode::Dense1x2>().build();
-    Ok(qrcode)
-}
-
-pub(super) async fn qrcode_login(client: &Client, uin: i64) -> Result<()> {
-    tracing::info!("使用二维码登录，uin={}", uin);
-
-    let mut resp = client.fetch_qrcode().await?;
-
-    let mut image_sig = Bytes::new();
-    loop {
-        match resp {
-            QRCodeState::ImageFetch(QRCodeImageFetch {
-                ref image_data,
-                ref sig,
-            }) => {
-                let qr = print_qrcode(image_data)?;
-                tracing::info!("请扫描二维码: \n{}", qr);
-                image_sig = sig.clone();
+async fn password_login_process(
+    client: &Client,
+    uin: i64,
+    credential: PasswordCredential,
+    sms: bool,
+    handle_getter: PyObject,
+) -> PyResult<()> {
+    async fn origin_login(
+        uin: i64,
+        client: &Client,
+        credential: &PasswordCredential,
+    ) -> ricq::RQResult<LoginResponse> {
+        match credential {
+            PasswordCredential::String(str) => {
+                client
+                    .password_login(uin, &Python::with_gil(|py| str.as_ref(py).to_string()))
+                    .await
             }
-            QRCodeState::WaitingForScan => {
-                tracing::debug!("等待二维码扫描")
-            }
-            QRCodeState::WaitingForConfirm => {
-                tracing::debug!("二维码已扫描，等待确认")
-            }
-            QRCodeState::Timeout => {
-                tracing::info!("二维码已超时，重新获取");
-                if let QRCodeState::ImageFetch(QRCodeImageFetch {
-                    ref image_data,
-                    ref sig,
-                }) = client.fetch_qrcode().await.expect("failed to fetch qrcode")
-                {
-                    let qr = print_qrcode(image_data)?;
-                    tracing::info!("请扫描二维码: \n{}", qr);
-                    image_sig = sig.clone();
-                }
-            }
-            QRCodeState::Confirmed(QRCodeConfirmed {
-                ref tmp_pwd,
-                ref tmp_no_pic_sig,
-                ref tgt_qr,
-                ..
-            }) => {
-                tracing::info!("二维码已确认");
-                let mut login_resp = client.qrcode_login(tmp_pwd, tmp_no_pic_sig, tgt_qr).await?;
-                if let LoginResponse::DeviceLockLogin { .. } = login_resp {
-                    login_resp = client.device_lock_login().await?;
-                }
-                if let LoginResponse::Success(LoginSuccess {
-                    ref account_info, ..
-                }) = login_resp
-                {
-                    tracing::info!("登录成功: {:?}", account_info);
-                    let real_uin = client.uin().await;
-                    if real_uin != uin {
-                        bail!("预期登录账号 {}，但实际登陆账号为 {}", uin, real_uin);
-                    }
-                    break;
-                }
-                bail!("登录失败，原因未知：{:?}", login_resp)
-            }
-            QRCodeState::Canceled => {
-                bail!("二维码已取消")
+            PasswordCredential::MD5(bytes) => {
+                client
+                    .password_md5_login(
+                        uin,
+                        &Python::with_gil(|py| bytes.as_ref(py).as_bytes().to_owned()),
+                    )
+                    .await
             }
         }
-        sleep(Duration::from_secs(5)).await;
-        resp = client.query_qrcode_result(&image_sig).await?;
+    }
+    async fn handle_device_lock(
+        data: &LoginDeviceLocked,
+        uin: i64,
+        client: &Client,
+        credential: &PasswordCredential,
+        handle_getter: PyObject,
+        sms: bool,
+    ) -> PyResult<LoginResponse> {
+        let sms_phone = data.sms_phone.as_ref();
+        let message = data
+            .message
+            .as_ref()
+            .map_or_else(|| "请解锁设备锁进行验证", |msg| msg.as_str());
+        let verify_url = data.verify_url.as_ref().map_or(
+            Err(exc::RICQError::new_err("无法获取验证地址")),
+            |url| Ok(url.to_owned()),
+        )?;
+        if let Some(sms_phone) = sms_phone
+            && sms
+            && let Ok(rsp) = client.request_sms().await {
+                if !matches!(rsp, LoginResponse::DeviceLocked(_)) {
+                    return Ok(rsp);
+                }
+
+                let sms_code = Python::with_gil(|py| -> PyResult<Option<String>>{
+                    let res = call_state(py, &handle_getter, "RequestSMS", (message,sms_phone))?;
+                    let res = res.as_ref(py);
+                    if !res.is_none() {
+                        return Ok(Some(res.extract::<String>()?));
+                    }
+                    Ok(None)
+                })?;
+
+                if let Some(sms_code) = sms_code {
+                    return client
+                    .submit_sms_code(&sms_code)
+                    .await
+                    .py_res();
+                }
+            }
+        Python::with_gil(|py| {
+            call_state(py, &handle_getter, "DeviceLocked", (message, verify_url))
+        })?;
+        origin_login(uin, client, credential).await.py_res()
+    }
+
+    let mut resp: LoginResponse = origin_login(uin, client, &credential).await.py_res()?;
+
+    loop {
+        match resp {
+            LoginResponse::Success(LoginSuccess { .. }) => {
+                Python::with_gil(|py| call_state(py, &handle_getter, "Success", ()))?;
+                break;
+            }
+            LoginResponse::DeviceLocked(data) => {
+                resp =
+                    handle_device_lock(&data, uin, client, &credential, handle_getter.clone(), sms)
+                        .await?;
+            }
+            LoginResponse::NeedCaptcha(LoginNeedCaptcha { ref verify_url, .. }) => {
+                let verify_url = verify_url.as_ref().map_or(
+                    Err(exc::RICQError::new_err("无法获取验证地址")),
+                    |url| Ok(url.to_owned()),
+                )?;
+                Python::with_gil(|py| {
+                    call_state(py, &handle_getter, "NeedCaptcha", (verify_url,))
+                })?;
+                resp = origin_login(uin, client, &credential).await.py_res()?;
+            }
+            LoginResponse::DeviceLockLogin { .. } => {
+                Python::with_gil(|py| call_state(py, &handle_getter, "DeviceLockLogin", ()))?;
+                resp = client.device_lock_login().await.py_res()?;
+            }
+            LoginResponse::AccountFrozen => {
+                Python::with_gil(|py| call_state(py, &handle_getter, "AccountFrozen", ()))?;
+                break;
+            }
+            LoginResponse::TooManySMSRequest => {
+                Python::with_gil(|py| call_state(py, &handle_getter, "TooManySMSRequest", ()))?;
+                break;
+            }
+            LoginResponse::UnknownStatus(LoginUnknownStatus {
+                ref status,
+                ref message,
+                ..
+            }) => {
+                let (status, message) = (status.to_owned(), message.to_owned());
+                Python::with_gil(|py| {
+                    call_state(py, &handle_getter, "UnknownStatus", (message, status))
+                })?;
+                break;
+            }
+        }
     }
 
     Ok(())
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(tag = "type")]
-enum LoginMethod {
-    Password(Password),
-    QRCode,
+async fn post_login(client: Arc<Client>, alive: JoinHandle<()>, token_rw: TokenRW) -> PyRet {
+    after_login(&client).await;
+    token_rw.set(&client).await?;
+    let init = crate::client::ClientInitializer {
+        uin: client.uin().await,
+        client,
+        alive: Arc::new(std::sync::Mutex::new(Some(alive))),
+        token_rw,
+    };
+    Python::with_gil(|py| Ok(import_call!(py, "ichika.client" => "Client" => init)?.into_py(py)))
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct Password {
-    password: String,
-    md5: bool,
-    sms: bool,
-}
-
-#[pyclass]
-pub struct Account {
-    protocol: Protocol,
+#[pyfunction]
+#[allow(clippy::too_many_arguments)]
+pub fn password_login<'py>(
+    py: Python<'py>,
     uin: i64,
-    data_folder: PathBuf,
-    #[pyo3(get)]
-    event_callbacks: Py<PyList>,
+    credential: PasswordCredential,
+    use_sms: bool,
+    protocol: &'py PyAny,
+    store: &'py PyAny,
+    event_callbacks: &'py PyList, // List[Callable[...]]
+    login_callbacks: PyObject,    // PasswordLoginCallbacks
+) -> PyResult<&'py PyAny> {
+    let (protocol, handler, device, token_rw) =
+        parse_login_args(py, uin, protocol, store, event_callbacks)?;
+    py_future(py, async move {
+        let (client, alive) = prepare_client(device, protocol.clone(), handler).await?;
+        if !token_rw.try_login(&client).await? {
+            password_login_process(
+                &client,
+                uin,
+                credential,
+                use_sms,
+                Python::with_gil(|py| login_callbacks.getattr(py, "get_handle"))?,
+            )
+            .await?;
+        }
+
+        Ok(post_login(client, alive, token_rw).await?)
+    })
 }
 
-#[pymethods]
-impl Account {
-    #[new]
-    #[pyo3(signature = (uin, data_folder, protocol="ipad".to_string()))]
-    fn new(py: Python, uin: i64, data_folder: PathBuf, mut protocol: String) -> PyResult<Self> {
-        protocol.make_ascii_lowercase();
-        let protocol = match protocol.as_str() {
-            "ipad" => Protocol::IPad,
-            "android" | "android_phone" => Protocol::AndroidPhone,
-            "watch" | "android_watch" => Protocol::AndroidWatch,
-            "mac" | "macos" => Protocol::MacOS,
-            "qidian" => Protocol::QiDian,
-            _ => Err(anyhow!("不支持的协议"))?,
-        };
-        let cbs = PyList::empty(py).into_py(py);
-        Ok(Self {
-            protocol,
-            uin,
-            data_folder,
-            event_callbacks: cbs,
-        })
+fn parse_qrcode(qrcode: &bytes::Bytes) -> PyResult<Vec<Vec<bool>>> {
+    let qrcode = image::load_from_memory(qrcode)
+        .map_err(|e| PyValueError::new_err(format!("加载二维码图像出现错误: {:?}", e)))?
+        .to_luma8();
+    let mut qrcode = rqrr::PreparedImage::prepare(qrcode);
+    let grids = qrcode.detect_grids();
+    if grids.len() != 1 {
+        return Err(PyValueError::new_err(format!(
+            "无法识别二维码, 发现 {} 个二维码",
+            grids.len()
+        )));
     }
+    let (_, content) = grids[0]
+        .decode()
+        .map_err(|e| PyValueError::new_err(format!("解码二维码出现错误: {:?}", e)))?;
+    let qrcode = qrcode::QrCode::new(content)
+        .map_err(|e| PyValueError::new_err(format!("生成二维码数据出现错误: {:?}", e)))?;
 
-    pub fn login<'py>(
-        self_t: PyRef<'py, Self>,
-        py: Python<'py>,
-        method: &'py PyAny,
-    ) -> PyResult<&'py PyAny> {
-        match pythonize::depythonize::<LoginMethod>(method) {
-            Ok(method) => {
-                let protocol = self_t.protocol.clone();
-                let mut data_folder = self_t.data_folder.clone();
-                let uin = self_t.uin;
-                let handler = PyHandler::new(self_t.event_callbacks.clone_ref(py));
-                py_future(py, async move {
-                    data_folder.push(uin.to_string());
-                    tokio::fs::create_dir_all(&data_folder).await?;
-
-                    let device = load_device_json(data_folder.clone()).await?;
-                    let (client, alive) = prepare_client(device, protocol.clone(), handler).await?;
-
-                    if !try_token_login(&client, &protocol, data_folder.clone()).await? {
-                        match method {
-                            LoginMethod::Password(p) => {
-                                password_login(&client, uin, p.password, p.md5, p.sms).await?;
-                            }
-                            LoginMethod::QRCode => {
-                                qrcode_login(&client, uin).await?;
-                            }
-                        }
-                    }
-
-                    // 注册客户端，启动心跳。
-                    after_login(&client).await;
-                    save_token(&client, &protocol, data_folder.clone()).await?;
-                    let init = crate::client::ClientInitializer {
-                        uin: client.uin().await,
-                        client,
-                        alive: Arc::new(::std::sync::Mutex::new(Some(alive))),
-                        data_folder,
-                    };
-                    Python::with_gil(|py| {
-                        Ok(import_call!(py, "ichika.client" => "Client" => init)?.into_py(py))
-                    })
+    let width = qrcode.width();
+    Ok(qrcode
+        .into_colors()
+        .chunks(width)
+        .map(|chunk| {
+            chunk
+                .iter()
+                .map(|c| match c {
+                    qrcode::Color::Light => true,
+                    qrcode::Color::Dark => false,
                 })
+                .collect()
+        })
+        .collect())
+}
+
+async fn qrcode_login_process(
+    client: &Client,
+    decl_uin: i64,
+    handle_getter: PyObject,
+) -> PyResult<()> {
+    let mut resp = client.fetch_qrcode().await.py_res()?;
+    let mut image_sig = bytes::Bytes::new();
+
+    loop {
+        use tokio::time::{sleep_until, Duration, Instant};
+        let st_time = Instant::now();
+        match resp {
+            QRCodeState::WaitingForScan => {
+                Python::with_gil(|py| call_state(py, &handle_getter, "WaitingForScan", ()))?;
             }
-            Err(e) => Err(PyValueError::new_err(format!("{:?}", e))),
+            QRCodeState::WaitingForConfirm => {
+                Python::with_gil(|py| call_state(py, &handle_getter, "WaitingForConfirm", ()))?;
+            }
+            QRCodeState::Canceled => {
+                Python::with_gil(|py| call_state(py, &handle_getter, "Canceled", ()))?;
+                resp = client.fetch_qrcode().await.py_res()?;
+                continue;
+            }
+            QRCodeState::Timeout => {
+                Python::with_gil(|py| call_state(py, &handle_getter, "Timeout", ()))?;
+                resp = client.fetch_qrcode().await.py_res()?;
+                continue;
+            }
+            QRCodeState::ImageFetch(ricq::QRCodeImageFetch {
+                ref sig,
+                ref image_data,
+            }) => {
+                image_sig = sig.clone();
+                let qrcode_data = parse_qrcode(image_data)?;
+                Python::with_gil(|py| {
+                    call_state(py, &handle_getter, "DisplayQRCode", (qrcode_data,))
+                })?;
+            }
+            QRCodeState::Confirmed(ricq::QRCodeConfirmed { uin, .. }) => {
+                if uin == decl_uin {
+                    Python::with_gil(|py| call_state(py, &handle_getter, "Success", (uin,)))?;
+                    break;
+                }
+                Python::with_gil(|py| {
+                    call_state(py, &handle_getter, "UINMismatch", (decl_uin, uin))
+                })?;
+                resp = client.fetch_qrcode().await.py_res()?;
+                continue;
+            }
         }
+        sleep_until(st_time + Duration::new(5, 0)).await;
+        resp = client.query_qrcode_result(&image_sig).await.py_res()?;
     }
+    Ok(())
+}
+
+#[pyfunction]
+#[allow(unused)]
+pub fn qrcode_login<'py>(
+    py: Python<'py>,
+    uin: i64,
+    protocol: &'py PyAny,
+    store: &'py PyAny,
+    event_callbacks: &'py PyList, // List[Callable[...]]
+    login_callbacks: PyObject,    // QRCodeLoginCallbacks
+) -> PyResult<&'py PyAny> {
+    let (protocol, handler, device, token_rw) =
+        parse_login_args(py, uin, protocol, store, event_callbacks)?;
+    py_future(py, async move {
+        let (client, alive) = prepare_client(device, protocol.clone(), handler).await?;
+        if !token_rw.try_login(&client).await? {
+            qrcode_login_process(
+                &client,
+                uin,
+                Python::with_gil(|py| login_callbacks.getattr(py, "get_handle"))?,
+            )
+            .await?;
+        }
+
+        Ok(post_login(client, alive, token_rw).await?)
+    })
 }

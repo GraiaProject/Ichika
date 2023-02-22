@@ -3,11 +3,12 @@
 use std::fmt::Write;
 use std::sync::Arc;
 
-use anyhow::{anyhow, Result};
+use pyo3::exceptions::PyRuntimeError;
 use pyo3::intern;
 use pyo3::once_cell::GILOnceCell;
 use pyo3::prelude::*;
 use pyo3::types::*;
+use pyo3_repr::PyRepr;
 use tracing::Level;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -43,7 +44,7 @@ pub(crate) struct LoguruLayer {
 
 impl LoguruLayer {
     /// 创建一个新的 LoguruLayer 对象。
-    pub(crate) fn new() -> Result<Self, PyErr> {
+    pub(crate) fn new() -> PyResult<Self> {
         let log_fn = Python::with_gil(|py| -> PyResult<PyObject> {
             let loguru = py.import("loguru")?;
             let logger = loguru.getattr("logger")?;
@@ -137,7 +138,7 @@ impl tracing::field::Visit for LoguruVisiter {
 }
 
 #[pyclass(get_all)]
-#[derive(Clone)]
+#[derive(PyRepr, Clone)]
 pub struct FakePyFrame {
     f_globals: Py<PyDict>,
     f_code: Py<FakePyCode>,
@@ -145,13 +146,14 @@ pub struct FakePyFrame {
 }
 
 #[pyclass(get_all)]
+#[derive(PyRepr, Clone)]
 pub struct FakePyCode {
     co_filename: Py<PyString>,
     co_name: Py<PyString>,
 }
 
 impl FakePyFrame {
-    fn new(name: &str, file_path: &str, function: &str, line: u32) -> Result<FakePyFrame> {
+    fn new(name: &str, file_path: &str, function: &str, line: u32) -> PyResult<FakePyFrame> {
         let f_globals = Python::with_gil(|py| {
             let name: Py<PyString> = name.into_py(py);
             py_dict!(py, "__name__" => name).into()
@@ -202,7 +204,7 @@ pub fn getframe(py: Python, depth: usize) -> PyResult<FakePyFrame> {
                     .map(|f| Ok(f.clone()))
                     .unwrap_or_else(|| FakePyFrame::new("<unknown>", "", "", 0))
             })
-            .map_err(|e| anyhow!("{}", e));
+            .map_err(|e| PyRuntimeError::new_err(format!("Unable to create Rust frame: {:?}", e)));
         frame??
     })
 }

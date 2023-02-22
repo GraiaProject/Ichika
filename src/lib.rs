@@ -1,26 +1,19 @@
 #![feature(type_alias_impl_trait)]
 #![feature(try_blocks)]
 #![feature(concat_idents)]
-
+#![feature(let_chains)]
+#![feature(async_closure)]
 use pyo3::prelude::*;
 use pyo3_built::pyo3_built;
-use ricq::RQError;
 
 pub mod client;
 mod events;
+pub(crate) mod exc;
 pub mod login;
 mod loguru;
 pub mod message;
 mod utils;
-
 type PyRet = PyResult<PyObject>;
-
-#[pyfunction]
-pub fn init_log(module: &PyModule) -> PyResult<()> {
-    // 设置日志输出
-    loguru::init(module)?;
-    Ok(())
-}
 
 pub mod build_info {
     include!(concat!(env!("OUT_DIR"), "/build-info.rs"));
@@ -38,20 +31,20 @@ macro_rules! add_batch {
 #[pymodule]
 #[doc(hidden)]
 pub fn core(py: Python, m: &PyModule) -> PyResult<()> {
-    // 初始化
-    m.add_function(wrap_pyfunction!(init_log, m)?)?;
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     m.add("__build__", pyo3_built!(py, build_info))?;
     add_batch!(@fun m,
         loguru::getframe,
         message::elements::face_id_from_name,
-        message::elements::face_name_from_id
+        message::elements::face_name_from_id,
+        login::password_login,
+        login::qrcode_login
     );
     add_batch!(@cls m,
-        login::Account,
         client::PlumbingClient
     );
     register_event_module(py, m)?;
+    loguru::init(m)?;
     Ok(())
 }
 
@@ -87,18 +80,4 @@ fn register_event_structs_module(py: Python<'_>, parent: &PyModule) -> PyResult<
         .getattr("modules")?
         .set_item("ichika.core.events.structs", m)?;
     Ok(())
-}
-
-pub struct RICQError(RQError);
-
-impl From<RICQError> for PyErr {
-    fn from(error: RICQError) -> Self {
-        pyo3::exceptions::PyRuntimeError::new_err(format!("RICQError: {}", error.0))
-    }
-}
-
-impl From<RQError> for RICQError {
-    fn from(other: RQError) -> Self {
-        Self(other)
-    }
 }
