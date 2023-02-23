@@ -7,6 +7,7 @@ use super::structs::{FriendInfo, GroupInfo, MemberInfo, MessageSource};
 use super::{FriendMessage, GroupMessage, LoginEvent, TempMessage, UnknownEvent};
 use crate::exc::MapPyErr;
 use crate::message::convert::deserialize;
+use crate::utils::{py_try, py_use};
 use crate::PyRet;
 
 pub async fn convert(event: QEvent) -> PyRet {
@@ -15,9 +16,7 @@ pub async fn convert(event: QEvent) -> PyRet {
         QEvent::GroupMessage(event) => handle_group_message(event).await,
         QEvent::FriendMessage(event) => handle_friend_message(event).await,
         QEvent::GroupTempMessage(event) => handle_temp_message(event).await,
-        unknown => Ok(Python::with_gil(|py| {
-            UnknownEvent { inner: unknown }.into_py(py)
-        })),
+        unknown => obj(|_| UnknownEvent { inner: unknown }),
     }
 }
 
@@ -26,14 +25,7 @@ where
     F: for<'py> FnOnce(Python<'py>) -> R,
     R: IntoPy<T>,
 {
-    Python::with_gil(|py| Ok(f(py).into_py(py)))
-}
-
-fn py_try<F, R>(f: F) -> PyResult<R>
-where
-    F: for<'py> FnOnce(Python<'py>) -> PyResult<R>,
-{
-    Python::with_gil(|py| f(py))
+    py_use(|py| Ok(f(py).into_py(py)))
 }
 
 async fn handle_login(uin: i64) -> PyRet {

@@ -131,4 +131,3 @@ async def login_qrcode(
     callbacks: QRCodeLoginCallbacks = QRCodeLoginCallbacks.default(),
 ) -> Client:
     return await _core.qrcode_login(uin, protocol, store, event_callbacks, callbacks)
-    # TODO: support poll interval

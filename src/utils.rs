@@ -95,6 +95,20 @@ where
     }
 }
 
+pub fn py_try<F, R>(f: F) -> PyResult<R>
+where
+    F: for<'py> FnOnce(Python<'py>) -> PyResult<R>,
+{
+    Python::with_gil(f)
+}
+
+pub fn py_use<F, R>(f: F) -> R
+where
+    F: for<'py> FnOnce(Python<'py>) -> R,
+{
+    Python::with_gil(f)
+}
+
 #[macro_export]
 macro_rules! static_py_fn {
     ($name: ident, $cell_name: ident, $module: expr, [$($attr: expr),*]) => {
