@@ -2,7 +2,6 @@ import datetime
 from dataclasses import dataclass
 from types import ModuleType
 from typing import Callable, Sequence, TypedDict, TypeVar
-
 from typing_extensions import Any
 
 from ..client import Client
@@ -143,6 +142,7 @@ class RawMessageReceipt:
 class PlumbingClient:
     # [impl 1]
     async def keep_alive(self) -> None: ...
+    async def stop(self) -> None: ...
     @property
     def uin(self) -> int: ...
     @property
