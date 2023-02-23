@@ -21,7 +21,7 @@ use tokio::task::JoinHandle;
 
 use crate::events::PyHandler;
 use crate::exc::MapPyErr;
-use crate::utils::{partial, py_future};
+use crate::utils::{partial, py_future, py_try, py_use};
 use crate::{exc, import_call, PyRet};
 
 async fn prepare_client(
@@ -71,7 +71,7 @@ pub struct TokenRW {
 
 impl TokenRW {
     fn get(&self) -> PyResult<Option<Token>> {
-        Python::with_gil(|py| {
+        py_try(|py| {
             let mut token: Option<Token> = None;
             let py_token = self.get_token.as_ref(py).call0()?;
             if !py_token.is_none() {
@@ -95,7 +95,8 @@ impl TokenRW {
         let token = client.gen_token().await;
         let token = serde_json::to_vec::<Token>(&token)
             .map_err(|e| exc::RICQError::new_err(format!("{:?}", e)))?;
-        Python::with_gil(|py| self.write_token.call1(py, (PyBytes::new(py, &token),))).map(|_| ())
+        py_try(|py| self.write_token.call1(py, (PyBytes::new(py, &token),)))?;
+        Ok(())
     }
 
     async fn try_login(&self, client: &Client) -> PyResult<bool> {
@@ -225,15 +226,12 @@ async fn password_login_process(
         match credential {
             PasswordCredential::String(str) => {
                 client
-                    .password_login(uin, &Python::with_gil(|py| str.as_ref(py).to_string()))
+                    .password_login(uin, &py_use(|py| str.as_ref(py).to_string()))
                     .await
             }
             PasswordCredential::MD5(bytes) => {
                 client
-                    .password_md5_login(
-                        uin,
-                        &Python::with_gil(|py| bytes.as_ref(py).as_bytes().to_owned()),
-                    )
+                    .password_md5_login(uin, &py_use(|py| bytes.as_ref(py).as_bytes().to_owned()))
                     .await
             }
         }
@@ -262,7 +260,7 @@ async fn password_login_process(
                     return Ok(rsp);
                 }
 
-                let sms_code = Python::with_gil(|py| -> PyResult<Option<String>>{
+                let sms_code = py_try(|py| {
                     let res = call_state(py, &handle_getter, "RequestSMS", (message,sms_phone))?;
                     let res = res.as_ref(py);
                     if !res.is_none() {
@@ -278,9 +276,7 @@ async fn password_login_process(
                     .py_res();
                 }
             }
-        Python::with_gil(|py| {
-            call_state(py, &handle_getter, "DeviceLocked", (message, verify_url))
-        })?;
+        py_try(|py| call_state(py, &handle_getter, "DeviceLocked", (message, verify_url)))?;
         origin_login(uin, client, credential).await.py_res()
     }
 
@@ -289,7 +285,7 @@ async fn password_login_process(
     loop {
         match resp {
             LoginResponse::Success(LoginSuccess { .. }) => {
-                Python::with_gil(|py| call_state(py, &handle_getter, "Success", ()))?;
+                py_try(|py| call_state(py, &handle_getter, "Success", ()))?;
                 break;
             }
             LoginResponse::DeviceLocked(data) => {
@@ -302,21 +298,19 @@ async fn password_login_process(
                     Err(exc::RICQError::new_err("无法获取验证地址")),
                     |url| Ok(url.to_owned()),
                 )?;
-                Python::with_gil(|py| {
-                    call_state(py, &handle_getter, "NeedCaptcha", (verify_url,))
-                })?;
+                py_try(|py| call_state(py, &handle_getter, "NeedCaptcha", (verify_url,)))?;
                 resp = origin_login(uin, client, &credential).await.py_res()?;
             }
             LoginResponse::DeviceLockLogin { .. } => {
-                Python::with_gil(|py| call_state(py, &handle_getter, "DeviceLockLogin", ()))?;
+                py_try(|py| call_state(py, &handle_getter, "DeviceLockLogin", ()))?;
                 resp = client.device_lock_login().await.py_res()?;
             }
             LoginResponse::AccountFrozen => {
-                Python::with_gil(|py| call_state(py, &handle_getter, "AccountFrozen", ()))?;
+                py_try(|py| call_state(py, &handle_getter, "AccountFrozen", ()))?;
                 break;
             }
             LoginResponse::TooManySMSRequest => {
-                Python::with_gil(|py| call_state(py, &handle_getter, "TooManySMSRequest", ()))?;
+                py_try(|py| call_state(py, &handle_getter, "TooManySMSRequest", ()))?;
                 break;
             }
             LoginResponse::UnknownStatus(LoginUnknownStatus {
@@ -325,9 +319,7 @@ async fn password_login_process(
                 ..
             }) => {
                 let (status, message) = (status.to_owned(), message.to_owned());
-                Python::with_gil(|py| {
-                    call_state(py, &handle_getter, "UnknownStatus", (message, status))
-                })?;
+                py_try(|py| call_state(py, &handle_getter, "UnknownStatus", (message, status)))?;
                 break;
             }
         }
@@ -345,7 +337,7 @@ async fn post_login(client: Arc<Client>, alive: JoinHandle<()>, token_rw: TokenR
         alive: Arc::new(std::sync::Mutex::new(Some(alive))),
         token_rw,
     };
-    Python::with_gil(|py| Ok(import_call!(py, "ichika.client" => "Client" => init)?.into_py(py)))
+    py_try(|py| Ok(import_call!(py, "ichika.client" => "Client" => init)?.into_py(py)))
 }
 
 #[pyfunction]
@@ -366,14 +358,8 @@ pub fn password_login<'py>(
         let (client, alive) = prepare_client(device, protocol.clone(), handler).await?;
         if !token_rw.try_login(&client).await? {
             tracing::info!("正在使用密码登录 {}", uin);
-            password_login_process(
-                &client,
-                uin,
-                credential,
-                use_sms,
-                Python::with_gil(|py| login_callbacks.getattr(py, "get_handle"))?,
-            )
-            .await?;
+            let handle_getter: PyObject = py_try(|py| login_callbacks.getattr(py, "get_handle"))?;
+            password_login_process(&client, uin, credential, use_sms, handle_getter).await?;
         }
 
         Ok(post_login(client, alive, token_rw).await?)
@@ -418,6 +404,7 @@ async fn qrcode_login_process(
     client: &Client,
     decl_uin: i64,
     handle_getter: PyObject,
+    interval: f64,
 ) -> PyResult<()> {
     let mut resp = client.fetch_qrcode().await.py_res()?;
     let mut image_sig = bytes::Bytes::new();
@@ -427,18 +414,18 @@ async fn qrcode_login_process(
         let st_time = Instant::now();
         match resp {
             QRCodeState::WaitingForScan => {
-                Python::with_gil(|py| call_state(py, &handle_getter, "WaitingForScan", ()))?;
+                py_try(|py| call_state(py, &handle_getter, "WaitingForScan", ()))?;
             }
             QRCodeState::WaitingForConfirm => {
-                Python::with_gil(|py| call_state(py, &handle_getter, "WaitingForConfirm", ()))?;
+                py_try(|py| call_state(py, &handle_getter, "WaitingForConfirm", ()))?;
             }
             QRCodeState::Canceled => {
-                Python::with_gil(|py| call_state(py, &handle_getter, "Canceled", ()))?;
+                py_try(|py| call_state(py, &handle_getter, "Canceled", ()))?;
                 resp = client.fetch_qrcode().await.py_res()?;
                 continue;
             }
             QRCodeState::Timeout => {
-                Python::with_gil(|py| call_state(py, &handle_getter, "Timeout", ()))?;
+                py_try(|py| call_state(py, &handle_getter, "Timeout", ()))?;
                 resp = client.fetch_qrcode().await.py_res()?;
                 continue;
             }
@@ -448,23 +435,19 @@ async fn qrcode_login_process(
             }) => {
                 image_sig = sig.clone();
                 let qrcode_data = parse_qrcode(image_data)?;
-                Python::with_gil(|py| {
-                    call_state(py, &handle_getter, "DisplayQRCode", (qrcode_data,))
-                })?;
+                py_try(|py| call_state(py, &handle_getter, "DisplayQRCode", (qrcode_data,)))?;
             }
             QRCodeState::Confirmed(ricq::QRCodeConfirmed { uin, .. }) => {
                 if uin == decl_uin {
-                    Python::with_gil(|py| call_state(py, &handle_getter, "Success", (uin,)))?;
+                    py_try(|py| call_state(py, &handle_getter, "Success", (uin,)))?;
                     break;
                 }
-                Python::with_gil(|py| {
-                    call_state(py, &handle_getter, "UINMismatch", (decl_uin, uin))
-                })?;
+                py_try(|py| call_state(py, &handle_getter, "UINMismatch", (decl_uin, uin)))?;
                 resp = client.fetch_qrcode().await.py_res()?;
                 continue;
             }
         }
-        sleep_until(st_time + Duration::new(5, 0)).await;
+        sleep_until(st_time + Duration::from_secs_f64(interval)).await;
         resp = client.query_qrcode_result(&image_sig).await.py_res()?;
     }
     Ok(())
@@ -486,12 +469,14 @@ pub fn qrcode_login<'py>(
         let (client, alive) = prepare_client(device, protocol.clone(), handler).await?;
         if !token_rw.try_login(&client).await? {
             tracing::info!("正在使用二维码登录 {}", uin);
-            qrcode_login_process(
-                &client,
-                uin,
-                Python::with_gil(|py| login_callbacks.getattr(py, "get_handle"))?,
-            )
-            .await?;
+            let interval: f64 = py_try(|py| {
+                login_callbacks
+                    .as_ref(py)
+                    .getattr("interval")?
+                    .extract::<f64>()
+            })?;
+            let handle_getter: PyObject = py_try(|py| login_callbacks.getattr(py, "get_handle"))?;
+            qrcode_login_process(&client, uin, handle_getter, interval).await?;
         }
 
         Ok(post_login(client, alive, token_rw).await?)
