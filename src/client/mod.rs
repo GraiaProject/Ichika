@@ -79,6 +79,14 @@ impl PlumbingClient {
             .load(std::sync::atomic::Ordering::Acquire)
     }
 
+    pub fn stop<'py>(&self, py: Python<'py>) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            client.stop(ricq::client::NetworkStatus::Stop);
+            Ok(())
+        })
+    }
+
     pub fn get_account_info<'py>(&self, py: Python<'py>) -> PyResult<&'py PyAny> {
         let client = self.client.clone();
         py_future(py, async move {

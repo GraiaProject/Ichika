@@ -365,6 +365,7 @@ pub fn password_login<'py>(
     py_future(py, async move {
         let (client, alive) = prepare_client(device, protocol.clone(), handler).await?;
         if !token_rw.try_login(&client).await? {
+            tracing::info!("正在使用密码登录 {}", uin);
             password_login_process(
                 &client,
                 uin,
@@ -484,6 +485,7 @@ pub fn qrcode_login<'py>(
     py_future(py, async move {
         let (client, alive) = prepare_client(device, protocol.clone(), handler).await?;
         if !token_rw.try_login(&client).await? {
+            tracing::info!("正在使用二维码登录 {}", uin);
             qrcode_login_process(
                 &client,
                 uin,

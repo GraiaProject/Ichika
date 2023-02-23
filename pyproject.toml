@@ -46,5 +46,8 @@ python-source = "python"
 line-length = 120
 [tool.isort]
 profile = "black"
+py_version = 38
+known_first_party = ["ichika"]
+extra_standard_library = ["typing_extensions"]
 [tool.pyright]
 reportMissingModuleSource = false
