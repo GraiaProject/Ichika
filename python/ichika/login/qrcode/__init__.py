@@ -22,10 +22,10 @@ class QRCodeLoginState(str, AutoEnum):
 
 
 class QRCodeLoginCallbacks:
-    def __init__(self, callbacks: dict[QRCodeLoginState, Callable] | None = None, poll_interval: float = 5.0):
+    def __init__(self, callbacks: dict[QRCodeLoginState, Callable] | None = None, interval: float = 5.0):
         self.callbacks: dict[QRCodeLoginState, Optional[Callable]] = {state: None for state in QRCodeLoginState}
         self.callbacks.update(callbacks or {})
-        self.poll_interval: float = poll_interval
+        self.interval: float = interval
 
     @overload
     def set_handle(self, state: Literal[QRCodeLoginState.WaitingForScan]) -> Decor[Callable[[], Any]]:
@@ -67,7 +67,7 @@ class QRCodeLoginCallbacks:
 
     @classmethod
     def default(cls, qrcode_printer: QRCodeRenderer = Dense1x2(), interval: float = 5.0, merge: bool = True) -> Self:
-        cbs = QRCodeLoginCallbacks(poll_interval=interval)
+        cbs = QRCodeLoginCallbacks(interval=interval)
         S = QRCodeLoginState
 
         last_state: Ref[Optional[S]] = Ref(None)
