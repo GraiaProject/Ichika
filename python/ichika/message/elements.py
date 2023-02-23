@@ -7,11 +7,11 @@ from enum import Enum
 from functools import total_ordering
 from io import BytesIO
 from typing import Any, Generic, Literal, Optional
+from typing_extensions import Self, TypeGuard, TypeVar
 
 import aiohttp
 from graia.amnesia.message import Element
 from graia.amnesia.message.element import Text as Text
-from typing_extensions import Self, TypeGuard, TypeVar
 
 from .. import core
 from ._sealed import SealedImage, SealedMarketFace
