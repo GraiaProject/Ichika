@@ -6,8 +6,8 @@ from dataclasses import dataclass
 from enum import Enum
 from functools import total_ordering
 from io import BytesIO
-from typing import Any, Generic, Literal, Optional
-from typing_extensions import Self, TypeGuard, TypeVar
+from typing import Generic, Literal, Optional
+from typing_extensions import Self, TypeVar
 
 import aiohttp
 from graia.amnesia.message import Element
@@ -121,7 +121,7 @@ class Audio(Element):
     ...
 
 
-T_Image = TypeVar("T_Image", bound=Optional[SealedImage])
+T_Image = TypeVar("T_Image", bound=Optional[SealedImage], default=SealedImage)
 
 
 class Image(Generic[T_Image], Element):
@@ -144,9 +144,6 @@ class Image(Generic[T_Image], Element):
         img._data_cache = data
         return img
 
-    def is_online_image(self) -> TypeGuard[Image[SealedImage]]:
-        return self.raw is not None
-
     @property
     def md5(self: Image[SealedImage]) -> bytes:
         return self.raw.md5
@@ -167,7 +164,7 @@ class Image(Generic[T_Image], Element):
     def image_type(self: Image[SealedImage]) -> int:
         return self.raw.image_type
 
-    async def get_bytes(self) -> bytes:
+    async def fetch(self) -> bytes:
         if self._data_cache is None:
             if self.url.startswith("base64://"):
                 self._data_cache = base64.urlsafe_b64decode(self.url[8:])
@@ -191,9 +188,6 @@ class FlashImage(Image[T_Image]):
     @classmethod
     def build(cls, data: bytes | BytesIO | pathlib.Path) -> FlashImage[None]:
         return Image.build(data).as_flash
-
-    def is_online_image(self) -> TypeGuard[FlashImage[SealedImage]]:
-        return self.raw is not None
 
     @property
     def as_image(self) -> Image[T_Image]:

@@ -30,8 +30,8 @@ def get_imei(rng: Random, model: Model) -> str:
 
 def get_mac_addr(rng: Random, model: Model) -> str:
     if model.brand in data.addr:
-        return rng.choice(data.addr[model.brand]) + "".join(f":{t:02x}" for t in rng.randbytes(3))
-    return ":".join(f"{t:02x}" for t in rng.randbytes(6))
+        return rng.choice(data.addr[model.brand]) + "".join(f":{rng.randrange(0, 256):02x}" for _ in range(3))
+    return ":".join(f"{rng.randrange(0, 256):02x}" for _ in range(6))
 
 
 def generate(rng: Random = Random(hash(""))) -> RICQDevice:
@@ -56,11 +56,11 @@ def generate(rng: Random = Random(hash(""))) -> RICQDevice:
         os_type="android",
         wifi_bssid="02:00:00:00:00:00",
         wifi_ssid="<unknown ssid>",
-        imsi_md5=list(hashlib.md5(rng.randbytes(16)).digest()),
+        imsi_md5=list(hashlib.md5(rng.getrandbits(16 * 8).to_bytes(16, "little")).digest()),
         ip_address=[10, 0, 1, 3],
         apn="wifi",
         mac_address=get_mac_addr(rng, model),
-        android_id="".join(f"{t:02x}" for t in rng.randbytes(8)),
+        android_id="".join(f"{rng.randrange(0, 256):02x}" for _ in range(8)),
         vendor_name=model.brand.lower(),
         vendor_os_name="unknown",
     )

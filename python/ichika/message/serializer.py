@@ -1,7 +1,11 @@
+from __future__ import annotations
+
 import functools
 from typing import Any, Callable, TypeVar
 
 from graia.amnesia.message import Element, Text
+
+from ichika.utils import Decor
 
 from .elements import (
     At,
@@ -21,7 +25,7 @@ Elem_T = TypeVar("Elem_T", bound=Element)
 
 def _serialize(
     elem_type: type[Elem_T],
-) -> Callable[[Callable[[Elem_T], dict[str, Any]]], Callable[[Elem_T], dict[str, Any]]]:
+) -> Decor[Callable[[Elem_T], dict[str, Any]]]:
     def func_register(func: Callable[[Elem_T], dict[str, Any]]) -> Callable[[Elem_T], dict[str, Any]]:
         @functools.wraps(func)
         def wrapper(elem: Elem_T) -> dict[str, Any]:

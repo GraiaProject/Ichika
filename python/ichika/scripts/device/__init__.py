@@ -32,10 +32,10 @@ class RICQDevice:
     sim_info: str
     os_type: str
     mac_address: str
-    ip_address: list[int]
+    ip_address: List[int]
     wifi_bssid: str
     wifi_ssid: str
-    imsi_md5: list[int]
+    imsi_md5: List[int]
     android_id: str
     apn: str
     vendor_name: str
