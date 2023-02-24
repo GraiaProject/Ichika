@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from enum import auto
-from typing import Any, Callable, Literal, Optional, Self, overload
+from typing import Any, Callable, Literal, Optional, overload
+from typing_extensions import Self
 
 from loguru import logger as log
 
-from ichika.utils import C_T, AutoEnum, Decor, P, R, Ref
+from ichika.utils import AutoEnum, Decor, P, Ref
 
 from .render import Dense1x2 as Dense1x2
 from .render import QRCodeRenderer as QRCodeRenderer
