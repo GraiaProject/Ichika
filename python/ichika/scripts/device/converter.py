@@ -5,6 +5,7 @@ import string
 import uuid
 from dataclasses import asdict as to_dict
 from random import Random
+from typing import Any, List
 
 from dacite.config import Config
 from dacite.core import from_dict
@@ -63,8 +64,8 @@ def make_defaults() -> dict:
         "ip_address": [10, 0, 1, 3],
         "wifi_bssid": "02:00:00:00:00:00",
         "wifi_ssid": "<unknown ssid>",
-        "imsi_md5": list(hashlib.md5(rng.randbytes(16)).digest()),
-        "android_id": "".join(f"{t:02x}" for t in rng.randbytes(8)),
+        "imsi_md5": list(hashlib.md5(rng.getrandbits(16 * 8).to_bytes(16, "little")).digest()),
+        "android_id": "".join(f"{rng.randrange(0, 256):02x}" for _ in range(8)),
         "apn": "wifi",
         "vendor_name": "MIUI",
         "vendor_os_name": "ricq",
@@ -77,6 +78,7 @@ def convert(source: dict) -> RICQDevice:
     if "fingerprint" in source:
         source["finger_print"] = source["fingerprint"]
     params = make_defaults()
-    source.setdefault("version", params["version"]).update(source.get("version", {}))
+    version: Any = source.setdefault("version", params["version"])
+    version.update(source.get("version", {}))
     params.update({camel_to_snake(k): source[k] for k in source})
-    return from_dict(RICQDevice, params, Config({str: string_hook, list[int]: list_int_hook}))
+    return from_dict(RICQDevice, params, Config({str: string_hook, List[int]: list_int_hook}))
