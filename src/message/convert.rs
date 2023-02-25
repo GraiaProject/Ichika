@@ -40,9 +40,9 @@ pub fn convert_message_chain(py: Python, chain: MessageChain) -> PyResult<Py<PyL
             }
             RQElem::FingerGuessing(f) => {
                 let choice = match f {
-                    ricq::msg::elem::FingerGuessing::Rock => "Rock",
-                    ricq::msg::elem::FingerGuessing::Paper => "Paper",
-                    ricq::msg::elem::FingerGuessing::Scissors => "Scissors",
+                    FingerGuessing::Rock => "Rock",
+                    FingerGuessing::Paper => "Paper",
+                    FingerGuessing::Scissors => "Scissors",
                 };
                 py_dict!(py,
                     "type" => "FingerGuessing",
