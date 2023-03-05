@@ -151,6 +151,7 @@ jobs:
           target: ${{ matrix.target }}
           manylinux: ${{ matrix.manylinux }}
           args: ${{ matrix.build_args }}
+          sccache: true
 
       - name: Upload wheels - Packed
         uses: actions/upload-artifact@v3
