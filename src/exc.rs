@@ -6,6 +6,8 @@ import_exception!(ichika.exceptions, IchikaError);
 import_exception!(ichika.exceptions, RICQError);
 import_exception!(ichika.exceptions, LoginError);
 
+// TODO: drop anyhow::Error
+
 pub(crate) trait IntoPyErr {
     fn into_py(self) -> PyErr;
 }

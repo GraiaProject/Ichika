@@ -7,7 +7,7 @@ from enum import Enum
 from functools import total_ordering
 from io import BytesIO
 from typing import Generic, Literal, Optional
-from typing_extensions import Self, TypeVar
+from typing_extensions import Self, TypeAlias, TypeVar
 
 import aiohttp
 from graia.amnesia.message import Element
@@ -62,8 +62,8 @@ class FingerGuessing(Element):
         choice: Literal["Rock", "Paper", "Scissors" "石头", "剪刀", "布"] | Choice,
     ) -> None:
         C = FingerGuessing.Choice
-        if isinstance(choice, str) and choice in ("Rock", "Paper", "Scissors"):
-            self.choice = C[choice]
+        if isinstance(choice, str):
+            self.choice = C[choice] if choice in C else C(choice)
         if isinstance(choice, C):
             self.choice = choice
         raise TypeError(f"无效的猜拳参数：{choice}")
@@ -75,10 +75,13 @@ class FingerGuessing(Element):
         return f"FingerGuessing(choice={self.choice})"
 
 
-class Dice(Element):
-    value: Literal[1, 2, 3, 4, 5, 6]
+DiceValues: TypeAlias = Literal[1, 2, 3, 4, 5, 6]
 
-    def __init__(self, value: Literal[1, 2, 3, 4, 5, 6]) -> None:
+
+class Dice(Element):
+    value: DiceValues
+
+    def __init__(self, value: DiceValues) -> None:
         if value not in range(1, 6 + 1):
             raise ValueError(f"{value} 不是有效的骰子值")
         self.value = value
