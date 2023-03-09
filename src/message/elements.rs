@@ -5,6 +5,7 @@ use pyo3::types::PyBytes;
 use ricq::msg::elem::{FriendImage, GroupImage, MarketFace};
 
 use crate::props;
+use crate::utils::py_bytes;
 
 #[pyfunction]
 pub fn face_name_from_id(id: i32) -> String {
@@ -43,7 +44,7 @@ py_seal!(SealedGroupImage => GroupImage);
 py_seal!(SealedFriendImage => FriendImage);
 
 props!(self @ SealedGroupImage:
-    md5 => [Py<PyBytes>] Python::with_gil(|py| PyBytes::new(py, &self.inner.md5).into_py(py));
+    md5 => [Py<PyBytes>] py_bytes(&self.inner.md5);
     size => [u32] self.inner.size;
     width => [u32] self.inner.width;
     height => [u32] self.inner.height;
@@ -51,9 +52,17 @@ props!(self @ SealedGroupImage:
 );
 
 props!(self @ SealedFriendImage:
-    md5 => [Py<PyBytes>] Python::with_gil(|py| PyBytes::new(py, &self.inner.md5).into_py(py));
+    md5 => [Py<PyBytes>] py_bytes(&self.inner.md5);
     size => [u32] self.inner.size;
     width => [u32] self.inner.width;
     height => [u32] self.inner.height;
     image_type => [i32] self.inner.image_type;
+);
+
+py_seal!(SealedAudio => ricq_core::pb::msg::Ptt);
+
+props!(self @ SealedAudio:
+    md5 => [Py<PyBytes>] py_bytes(self.inner.file_md5());
+    size => [i32] self.inner.file_size();
+    file_type => [i32] self.inner.file_type();
 );

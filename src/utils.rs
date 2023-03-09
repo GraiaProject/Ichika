@@ -1,6 +1,7 @@
 use anyhow::Result;
 use futures_util::Future;
 use pyo3::prelude::*;
+use pyo3::types::PyBytes;
 
 // use pyo3::types::*;
 
@@ -20,6 +21,10 @@ where
     fn obj(self) -> PyObject {
         Python::with_gil(|py| self.into_py(py))
     }
+}
+
+pub fn py_bytes(data: &[u8]) -> Py<PyBytes> {
+    py_use(|py| PyBytes::new(py, data).into_py(py))
 }
 
 /// 构造一个 Python 的 dict。
