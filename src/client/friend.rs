@@ -1,14 +1,11 @@
 use std::collections::HashMap;
-use std::sync::Arc;
 
-use anyhow::Result;
-use futures_util::Future;
 use pyo3::prelude::*;
+use pyo3::types::*;
 use pyo3_repr::PyRepr;
 use ricq::structs::{FriendGroupInfo, FriendInfo};
-use ricq::Client;
+use ricq_core::command::friendlist::FriendListResponse;
 
-use super::utils::CacheTarget;
 #[pyclass(get_all)]
 #[derive(PyRepr, Clone)]
 pub struct Friend {
@@ -42,13 +39,21 @@ pub struct FriendGroup {
 }
 
 impl From<FriendGroupInfo> for FriendGroup {
-    fn from(info: FriendGroupInfo) -> Self {
+    fn from(
+        FriendGroupInfo {
+            group_id,
+            group_name,
+            friend_count,
+            online_friend_count,
+            seq_id,
+        }: FriendGroupInfo,
+    ) -> Self {
         FriendGroup {
-            group_id: info.group_id,
-            name: info.group_name,
-            total_count: info.friend_count,
-            online_count: info.online_friend_count,
-            seq_id: info.seq_id,
+            group_id,
+            name: group_name,
+            total_count: friend_count,
+            online_count: online_friend_count,
+            seq_id,
         }
     }
 }
@@ -66,8 +71,8 @@ pub struct FriendList {
 
 #[pymethods]
 impl FriendList {
-    pub fn friends(&self, py: Python) -> Py<pyo3::types::PyTuple> {
-        pyo3::types::PyTuple::new(
+    pub fn friends(&self, py: Python) -> Py<PyTuple> {
+        PyTuple::new(
             py,
             self.entries
                 .clone()
@@ -85,8 +90,8 @@ impl FriendList {
             .cloned()
     }
 
-    pub fn friend_groups(&self, py: Python) -> Py<pyo3::types::PyTuple> {
-        pyo3::types::PyTuple::new(
+    pub fn friend_groups(&self, py: Python) -> Py<PyTuple> {
+        PyTuple::new(
             py,
             self.friend_groups
                 .clone()
@@ -102,23 +107,17 @@ impl FriendList {
     }
 }
 
-impl CacheTarget for FriendList {
-    type FetchFuture = impl Future<Output = Result<Self>>;
-
-    fn fetch(client: Arc<Client>) -> Self::FetchFuture {
-        async move {
-            let resp = client.get_friend_list().await?;
-            let friend_list = FriendList {
-                entries: Vec::from_iter(resp.friends.into_iter().map(Friend::from)),
-                friend_groups: HashMap::from_iter(
-                    resp.friend_groups
-                        .into_iter()
-                        .map(|(g_id, info)| (g_id, FriendGroup::from(info))),
-                ),
-                total_count: resp.total_count,
-                online_count: resp.online_friend_count,
-            };
-            Ok(friend_list)
+impl From<FriendListResponse> for FriendList {
+    fn from(resp: FriendListResponse) -> Self {
+        Self {
+            entries: Vec::from_iter(resp.friends.into_iter().map(Friend::from)),
+            friend_groups: HashMap::from_iter(
+                resp.friend_groups
+                    .into_iter()
+                    .map(|(g_id, info)| (g_id, FriendGroup::from(info))),
+            ),
+            total_count: resp.total_count,
+            online_count: resp.online_friend_count,
         }
     }
 }

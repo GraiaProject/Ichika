@@ -9,6 +9,19 @@ pub fn py_none() -> PyObject {
     Python::with_gil(|py| py.None())
 }
 
+pub trait AsPython {
+    fn obj(self) -> PyObject;
+}
+
+impl<T> AsPython for T
+where
+    T: IntoPy<PyObject>,
+{
+    fn obj(self) -> PyObject {
+        Python::with_gil(|py| self.into_py(py))
+    }
+}
+
 /// 构造一个 Python 的 dict。
 #[macro_export]
 #[doc(hidden)]

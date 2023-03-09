@@ -1,21 +1,19 @@
+mod cached;
 mod friend;
 mod group;
 mod structs;
-mod utils;
 use std::sync::Arc;
-use std::time::Duration;
 
-use friend::FriendList;
+use cached::cache;
 use group::Group;
 use pyo3::prelude::*;
 use pyo3::types::*;
 use structs::*;
 use tokio::task::JoinHandle;
-use utils::CacheField;
 
 use crate::login::{reconnect, TokenRW};
 use crate::message::convert::extract_message_chain;
-use crate::utils::{py_future, py_none};
+use crate::utils::{py_future, py_none, py_use, AsPython};
 #[pyclass(subclass)]
 pub struct PlumbingClient {
     client: Arc<ricq::client::Client>,
@@ -23,7 +21,6 @@ pub struct PlumbingClient {
     #[pyo3(get)]
     uin: i64,
     token_rw: TokenRW,
-    friend_cache: Arc<CacheField<FriendList>>,
 }
 
 /// 用于向 Python 内的 `ichika.client.Client` 传递初始值
@@ -45,7 +42,6 @@ impl PlumbingClient {
             alive: init.alive.lock().unwrap().take(),
             uin: init.uin,
             token_rw: init.token_rw,
-            friend_cache: Arc::new(CacheField::new(Duration::from_secs(3600))),
         }
     }
 
@@ -129,43 +125,40 @@ impl PlumbingClient {
 #[pymethods]
 impl PlumbingClient {
     pub fn get_friend_list<'py>(&self, py: Python<'py>) -> PyResult<&'py PyAny> {
-        let field = self.friend_cache.clone();
         let client = self.client.clone();
         py_future(py, async move {
-            let friend_list = field.get(client).await?;
-            Ok(friend_list)
+            let friend_list = cache(client).await.fetch_friend_list().await?;
+            Ok((*friend_list).clone().obj())
         })
     }
 
     pub fn get_friend_list_raw<'py>(&self, py: Python<'py>) -> PyResult<&'py PyAny> {
-        let field = self.friend_cache.clone();
         let client = self.client.clone();
         py_future(py, async move {
-            field.clear().await;
-            let friend_list = field.get(client).await?;
-            Ok(friend_list)
+            let mut cache = cache(client).await;
+            cache.flush_friend_list().await;
+            let friend_list = cache.fetch_friend_list().await?;
+            Ok((*friend_list).clone().obj())
         })
     }
 
     pub fn get_friends<'py>(&self, py: Python<'py>) -> PyResult<&'py PyAny> {
-        let field = self.friend_cache.clone();
         let client = self.client.clone();
         py_future(py, async move {
-            let friend_list = field.get(client).await?;
+            let friend_list = cache(client).await.fetch_friend_list().await?;
             Ok(Python::with_gil(|py| friend_list.friends(py)))
         })
     }
 
     pub fn find_friend<'py>(&self, py: Python<'py>, uin: i64) -> PyResult<&'py PyAny> {
-        let field = self.friend_cache.clone();
         let client = self.client.clone();
         py_future(py, async move {
-            let friend_list = field.get(client).await?;
+            let friend_list = cache(client).await.fetch_friend_list().await?;
             Ok(friend_list.find_friend(uin))
         })
     }
 
-    pub fn poke_friend_raw<'py>(&self, py: Python<'py>, uin: i64) -> PyResult<&'py PyAny> {
+    pub fn poke_friend<'py>(&self, py: Python<'py>, uin: i64) -> PyResult<&'py PyAny> {
         let client = self.client.clone();
         py_future(py, async move {
             client.friend_poke(uin).await?;
@@ -173,31 +166,32 @@ impl PlumbingClient {
         })
     }
 }
+
 #[pymethods]
 impl PlumbingClient {
-    pub fn find_group<'py>(&self, py: Python<'py>, group_uin: i64) -> PyResult<&'py PyAny> {
+    pub fn get_group<'py>(&self, py: Python<'py>, uin: i64) -> PyResult<&'py PyAny> {
         let client = self.client.clone();
         py_future(py, async move {
-            if let Some(info) = client.get_group_info(group_uin).await? {
-                Ok(Some(Group::from(info)))
-            } else {
-                Ok(None)
-            }
+            let group = cache(client).await.fetch_group(uin).await?;
+            Ok((*group).clone().obj())
         })
     }
 
-    pub fn find_groups<'py>(&self, py: Python<'py>, group_uins: Vec<i64>) -> PyResult<&'py PyAny> {
+    pub fn get_group_raw<'py>(&self, py: Python<'py>, uin: i64) -> PyResult<&'py PyAny> {
         let client = self.client.clone();
         py_future(py, async move {
-            let infos = client.get_group_infos(group_uins).await?;
-            let infos = infos.into_iter().map(|info| (info.code, info));
-            Ok(Python::with_gil(|py| -> PyResult<PyObject> {
-                let dict = PyDict::new(py);
-                for (key, info) in infos {
-                    dict.set_item(key, Group::from(info).into_py(py))?;
-                }
-                Ok(dict.into_py(py))
-            })?)
+            let mut cache = cache(client).await;
+            cache.flush_group(uin).await;
+            let group = cache.fetch_group(uin).await?;
+            Ok((*group).clone().obj())
+        })
+    }
+
+    pub fn find_group<'py>(&self, py: Python<'py>, uin: i64) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            let group = client.get_group_info(uin).await?;
+            Ok(group.map(Group::from))
         })
     }
 
@@ -205,22 +199,51 @@ impl PlumbingClient {
         let client = self.client.clone();
         py_future(py, async move {
             let infos = client.get_group_list().await?;
-            Python::with_gil(|py| {
-                let tup: PyObject = PyTuple::new(
+            Ok(py_use(|py| {
+                PyTuple::new(
                     py,
                     infos
                         .into_iter()
-                        .map(Group::from)
-                        .map(|g| g.into_py(py))
+                        .map(|g| Group::from(g).obj())
                         .collect::<Vec<PyObject>>(),
                 )
-                .into_py(py);
-                Ok(tup)
-            })
+                .obj()
+            }))
+        })
+    }
+}
+
+#[pymethods]
+impl PlumbingClient {
+    pub fn get_member<'py>(
+        &self,
+        py: Python<'py>,
+        group_uin: i64,
+        uin: i64,
+    ) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            let member = cache(client).await.fetch_member(group_uin, uin).await?;
+            Ok((*member).clone().obj())
         })
     }
 
-    pub fn poke_member_raw<'py>(
+    pub fn get_member_raw<'py>(
+        &self,
+        py: Python<'py>,
+        group_uin: i64,
+        uin: i64,
+    ) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            let mut cache = cache(client).await;
+            cache.flush_member(group_uin, uin).await;
+            let member = cache.fetch_member(group_uin, uin).await?;
+            Ok((*member).clone().obj())
+        })
+    }
+
+    pub fn poke_member<'py>(
         &self,
         py: Python<'py>,
         group_uin: i64,
@@ -236,7 +259,7 @@ impl PlumbingClient {
 
 #[pymethods]
 impl PlumbingClient {
-    pub fn send_friend_message_raw<'py>(
+    pub fn send_friend_message<'py>(
         &self,
         py: Python<'py>,
         uin: i64,
@@ -256,7 +279,7 @@ impl PlumbingClient {
         })
     }
 
-    pub fn send_group_message_raw<'py>(
+    pub fn send_group_message<'py>(
         &self,
         py: Python<'py>,
         group_uin: i64,
