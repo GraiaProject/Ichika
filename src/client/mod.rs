@@ -1,10 +1,10 @@
 mod cached;
-mod friend;
-mod group;
+pub mod friend;
+pub mod group;
 mod structs;
 use std::sync::Arc;
 
-use cached::cache;
+pub use cached::cache;
 use group::Group;
 use pyo3::prelude::*;
 use pyo3::types::*;
