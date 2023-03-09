@@ -108,6 +108,20 @@ pub fn convert_message_chain(py: Python, chain: MessageChain) -> PyResult<Py<PyL
     Ok(res.into_py(py))
 }
 
+pub fn deserialize_audio(
+    py: Python,
+    url: String,
+    ptt: &ricq_core::pb::msg::Ptt,
+) -> PyResult<PyObject> {
+    let audio_data = py_dict!(py,
+        "type" => "Audio",
+        "url" => url,
+        "raw" => (SealedAudio {inner: ptt.clone()}).into_py(py)
+    );
+    let py_fn: &PyAny = py_deserialize(py);
+    Ok(py_fn.call1((vec![audio_data],))?.into_py(py))
+}
+
 static_py_fn!(
     py_deserialize,
     __py_deserialize_cell,
