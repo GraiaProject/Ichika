@@ -40,6 +40,7 @@ async-trait = "0.1.66"
 serde = "1.0"
 pythonize = "0.18"
 pyo3-repr = { version = "0.1.0", path = "pyo3-repr" }
+once_cell = "1.17.1"
 
 
 [package.metadata.maturin]

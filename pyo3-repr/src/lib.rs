@@ -7,10 +7,19 @@ use proc_macro2 as pm2;
 use quote::quote;
 use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Fields, FieldsNamed};
 
-#[proc_macro_derive(PyRepr, attributes(py_repr))]
+#[proc_macro_derive(PyDebug, attributes(py_debug))]
+pub fn py_debug(input: TokenStream) -> TokenStream {
+    let ast = parse_macro_input!(input as DeriveInput);
+    match do_expand(&ast, false) {
+        Ok(token_stream) => token_stream.into(),
+        Err(e) => e.to_compile_error().into(),
+    }
+}
+
+#[proc_macro_derive(PyRepr, attributes(py_debug))]
 pub fn py_repr(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
-    match do_expand(&ast) {
+    match do_expand(&ast, true) {
         Ok(token_stream) => token_stream.into(),
         Err(e) => e.to_compile_error().into(),
     }
@@ -18,7 +27,7 @@ pub fn py_repr(input: TokenStream) -> TokenStream {
 
 type MacroResult = syn::Result<pm2::TokenStream>;
 
-fn do_expand(ast: &DeriveInput) -> MacroResult {
+fn do_expand(ast: &DeriveInput, gen_repr: bool) -> MacroResult {
     if !ast.generics.params.is_empty() {
         return Err(syn::Error::new_spanned(
             ast,
@@ -26,7 +35,7 @@ fn do_expand(ast: &DeriveInput) -> MacroResult {
         ));
     }
     match &ast.data {
-        Data::Struct(structure) => impl_struct_repr(ast, structure),
+        Data::Struct(structure) => impl_struct_repr(ast, structure, gen_repr),
         _ => Err(syn::Error::new_spanned(
             ast,
             "Must define on a Struct".to_string(),
@@ -34,13 +43,25 @@ fn do_expand(ast: &DeriveInput) -> MacroResult {
     }
 }
 
-fn impl_struct_repr(ast: &DeriveInput, structure: &DataStruct) -> MacroResult {
+fn impl_struct_repr(ast: &DeriveInput, structure: &DataStruct, gen_repr: bool) -> MacroResult {
     let fields = &structure.fields;
     match fields {
-        Fields::Named(named) => Ok(gen_impl_block(
-            &ast.ident,
-            gen_named_impl(ast.ident.to_string(), named)?,
-        )),
+        Fields::Named(named) => Ok({
+            let mut token_stream =
+                gen_impl_block(&ast.ident, gen_named_impl(ast.ident.to_string(), named)?);
+            if gen_repr {
+                let ident = &ast.ident;
+                token_stream.extend(quote!(
+                    #[pymethods]
+                    impl #ident {
+                        fn __repr__(&self) -> String {
+                            format!("{:?}", self)
+                        }
+                    }
+                ));
+            }
+            token_stream
+        }),
         Fields::Unnamed(_) => todo!(),
         Fields::Unit => unimplemented!(),
     }
@@ -53,13 +74,6 @@ fn gen_impl_block(ident: &Ident, core_stream: pm2::TokenStream) -> pm2::TokenStr
                 ::pyo3::marker::Python::with_gil(|py| {
                     #core_stream
                 })
-            }
-        }
-
-        #[pymethods]
-        impl #ident {
-            fn __repr__(&self) -> String {
-                format!("{:?}", self)
             }
         }
     )

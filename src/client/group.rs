@@ -1,6 +1,6 @@
 use pyo3::prelude::*;
 use pyo3_repr::PyRepr;
-use ricq::structs::GroupInfo;
+use ricq::structs::{GroupInfo, GroupMemberInfo};
 #[pyclass(get_all)]
 #[derive(PyRepr, Clone)]
 pub struct Group {
@@ -21,19 +21,85 @@ pub struct Group {
 }
 
 impl From<GroupInfo> for Group {
-    fn from(info: GroupInfo) -> Self {
+    fn from(
+        GroupInfo {
+            code,
+            name,
+            memo,
+            owner_uin,
+            group_create_time,
+            group_level,
+            member_count,
+            max_member_count,
+            shut_up_timestamp,
+            my_shut_up_timestamp,
+            last_msg_seq,
+            ..
+        }: GroupInfo,
+    ) -> Self {
         Group {
-            uin: info.code,
-            name: info.name,
-            memo: info.memo,
-            owner_uin: info.owner_uin,
-            create_time: info.group_create_time,
-            level: info.group_level,
-            member_count: info.member_count,
-            max_member_count: info.max_member_count,
-            global_mute_timestamp: info.shut_up_timestamp,
-            mute_timestamp: info.my_shut_up_timestamp,
-            last_msg_seq: info.last_msg_seq, // TODO: maybe `Option`?
+            uin: code,
+            name,
+            memo,
+            owner_uin,
+            create_time: group_create_time,
+            level: group_level,
+            member_count,
+            max_member_count,
+            global_mute_timestamp: shut_up_timestamp,
+            mute_timestamp: my_shut_up_timestamp,
+            last_msg_seq, // TODO: maybe `Option`?
+        }
+    }
+}
+
+#[pyclass(get_all)]
+#[derive(PyRepr, Clone)]
+pub struct Member {
+    pub group_uin: i64,
+    pub uin: i64,
+    pub gender: u8,
+    pub nickname: String,
+    pub card_name: String,
+    pub level: u16,
+    pub join_time: i64, // TODO: Datetime
+    pub last_speak_time: i64,
+    pub special_title: String,
+    pub special_title_expire_time: i64,
+    pub mute_timestamp: i64,
+    pub permission: u8,
+}
+
+impl From<GroupMemberInfo> for Member {
+    fn from(
+        GroupMemberInfo {
+            group_code,
+            uin,
+            gender,
+            nickname,
+            card_name,
+            level,
+            join_time,
+            last_speak_time,
+            special_title,
+            special_title_expire_time,
+            shut_up_timestamp,
+            permission,
+        }: GroupMemberInfo,
+    ) -> Self {
+        Self {
+            group_uin: group_code,
+            uin,
+            gender,
+            nickname,
+            card_name,
+            level,
+            join_time,
+            last_speak_time,
+            special_title,
+            special_title_expire_time,
+            mute_timestamp: shut_up_timestamp,
+            permission: permission as u8,
         }
     }
 }
