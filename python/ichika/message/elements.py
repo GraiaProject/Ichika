@@ -14,7 +14,7 @@ from graia.amnesia.message import Element
 from graia.amnesia.message.element import Text as Text
 
 from .. import core
-from ._sealed import SealedImage, SealedMarketFace
+from ._sealed import SealedAudio, SealedImage, SealedMarketFace
 
 
 @dataclass
@@ -120,8 +120,53 @@ class LightApp(Element):
         return "[小程序]"
 
 
-class Audio(Element):
-    ...
+T_Audio = TypeVar("T_Audio", bound=Optional[SealedAudio], default=SealedAudio)
+
+
+class Audio(Generic[T_Audio], Element):
+    url: str
+    raw: T_Audio
+    _data_cache: bytes | None
+
+    def __init__(self, url: str, raw: T_Audio = None) -> None:
+        self.url = url
+        self._data_cache = None
+        self.raw = raw
+
+    @classmethod
+    def build(cls, data: bytes | BytesIO | pathlib.Path) -> Audio[None]:
+        if isinstance(data, BytesIO):
+            data = data.read()
+        elif isinstance(data, pathlib.Path):
+            data = data.read_bytes()
+        audio = Audio(f"base64://{base64.urlsafe_b64encode(data)}")
+        audio._data_cache = data
+        return audio
+
+    @property
+    def md5(self: Audio[SealedAudio]) -> bytes:
+        return self.raw.md5
+
+    @property
+    def size(self: Audio[SealedAudio]) -> int:
+        return self.raw.size
+
+    @property
+    def file_type(self: Audio[SealedAudio]) -> int:
+        return self.raw.file_type
+
+    async def fetch(self) -> bytes:
+        if self._data_cache is None:
+            if self.url.startswith("base64://"):
+                self._data_cache = base64.urlsafe_b64decode(self.url[8:])
+            else:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(self.url) as resp:
+                        self._data_cache = await resp.read()
+        return self._data_cache
+
+    def __repr__(self) -> str:
+        return "[音频]"
 
 
 T_Image = TypeVar("T_Image", bound=Optional[SealedImage], default=SealedImage)
@@ -220,5 +265,5 @@ class MarketFace(Element):
 
 TYPE_MAP = {
     cls.__name__: cls
-    for cls in (Text, At, AtAll, FingerGuessing, Dice, Face, LightApp, Audio, Image, FlashImage, MarketFace)
+    for cls in (Text, At, AtAll, FingerGuessing, Dice, Face, LightApp, Audio, Image, FlashImage, MarketFace, Audio)
 }

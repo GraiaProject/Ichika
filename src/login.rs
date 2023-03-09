@@ -21,7 +21,7 @@ use tokio::task::JoinHandle;
 
 use crate::events::PyHandler;
 use crate::exc::MapPyErr;
-use crate::utils::{partial, py_future, py_try, py_use};
+use crate::utils::{partial, py_bytes, py_future, py_try, py_use};
 use crate::{exc, import_call, PyRet};
 
 async fn prepare_client(
@@ -95,7 +95,7 @@ impl TokenRW {
         let token = client.gen_token().await;
         let token = serde_json::to_vec::<Token>(&token)
             .map_err(|e| exc::RICQError::new_err(format!("{:?}", e)))?;
-        py_try(|py| self.write_token.call1(py, (PyBytes::new(py, &token),)))?;
+        py_try(|py| self.write_token.call1(py, (py_bytes(&token),)))?;
         Ok(())
     }
 

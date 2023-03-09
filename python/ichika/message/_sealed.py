@@ -11,3 +11,9 @@ class SealedImage:  # Rust Native
     width: int
     height: int
     image_type: int
+
+
+class SealedAudio:  # Rust Native
+    md5: bytes
+    size: int
+    file_type: int
