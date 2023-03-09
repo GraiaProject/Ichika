@@ -1,10 +1,10 @@
 use pyo3::prelude::*;
 use ricq::client::event as rce;
 use ricq::handler::QEvent;
-use ricq::RQError;
 
-use super::structs::{FriendInfo, GroupInfo, MemberInfo, MessageSource};
+use super::structs::{FriendInfo, MemberInfo, MessageSource};
 use super::{FriendMessage, GroupMessage, LoginEvent, TempMessage, UnknownEvent};
+use crate::client::cache;
 use crate::exc::MapPyErr;
 use crate::message::convert::deserialize;
 use crate::utils::{py_try, py_use};
@@ -34,23 +34,24 @@ async fn handle_login(uin: i64) -> PyRet {
 
 async fn handle_group_message(event: rce::GroupMessageEvent) -> PyRet {
     let msg = event.inner;
-    let client = event.client;
-    let sender_info = client
-        .get_group_member_info(msg.group_code, msg.from_uin)
+
+    let mut cache = cache(event.client).await;
+    let group_info = cache.fetch_group(msg.group_code).await.py_res()?;
+    let sender_info = cache
+        .fetch_member(msg.group_code, msg.from_uin)
         .await
         .py_res()?;
+
     let content = py_try(|py| deserialize(py, msg.elements))?;
     obj(|py| GroupMessage {
         source: MessageSource::new(py, &msg.seqs, &msg.rands, msg.time),
         content,
         sender: MemberInfo {
             uin: msg.from_uin,
-            name: sender_info.card_name,
-            group: GroupInfo {
-                uin: msg.group_code,
-                name: msg.group_name,
-            },
-            permission: sender_info.permission as u8,
+            name: sender_info.card_name.clone(),
+            nickname: sender_info.nickname.clone(),
+            group: (*group_info).clone(),
+            permission: sender_info.permission,
         },
     })
 }
@@ -71,28 +72,23 @@ async fn handle_friend_message(event: rce::FriendMessageEvent) -> PyRet {
 async fn handle_temp_message(event: rce::GroupTempMessageEvent) -> PyRet {
     let msg = event.inner;
     let content = py_try(|py| deserialize(py, msg.elements))?;
-    let client = event.client;
-    let group_info = client
-        .get_group_info(msg.group_code)
-        .await
-        .transpose()
-        .unwrap_or_else(|| Err(RQError::UnsuccessfulRetCode(-1)))
-        .py_res()?;
-    let sender_info = client
-        .get_group_member_info(msg.group_code, msg.from_uin)
+
+    let mut cache = cache(event.client).await;
+    let group_info = cache.fetch_group(msg.group_code).await.py_res()?;
+    let sender_info = cache
+        .fetch_member(msg.group_code, msg.from_uin)
         .await
         .py_res()?;
+
     obj(|py| TempMessage {
         source: MessageSource::new(py, &msg.seqs, &msg.rands, msg.time),
         content,
         sender: MemberInfo {
             uin: msg.from_uin,
-            name: sender_info.card_name,
-            group: GroupInfo {
-                uin: group_info.code,
-                name: group_info.name,
-            },
-            permission: sender_info.permission as u8,
+            name: sender_info.card_name.clone(),
+            nickname: sender_info.nickname.clone(),
+            group: (*group_info).clone(),
+            permission: sender_info.permission,
         },
     })
 }
