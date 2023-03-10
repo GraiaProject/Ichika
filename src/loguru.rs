@@ -60,11 +60,7 @@ impl<S> Layer<S> for LoguruLayer
 where
     S: tracing::Subscriber,
 {
-    fn on_event(
-        &self,
-        event: &tracing::Event<'_>,
-        _ctx: tracing_subscriber::layer::Context<'_, S>,
-    ) {
+    fn on_event(&self, event: &tracing::Event, _ctx: tracing_subscriber::layer::Context<'_, S>) {
         // 记录日志发生的位置，保存为伪 Python 堆栈
         Python::with_gil(|py| {
             if let Ok(mut frame) = LAST_RUST_FRAME

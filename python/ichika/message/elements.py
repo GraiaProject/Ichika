@@ -7,7 +7,7 @@ from enum import Enum
 from functools import total_ordering
 from io import BytesIO
 from typing import Generic, Literal, Optional
-from typing_extensions import Self, TypeAlias, TypeVar
+from typing_extensions import Self, TypeAlias, TypeGuard, TypeVar
 
 import aiohttp
 from graia.amnesia.message import Element
@@ -143,6 +143,10 @@ class Audio(Generic[T_Audio], Element):
         audio._data_cache = data
         return audio
 
+    @classmethod
+    def _check(cls, elem: Element) -> TypeGuard[Audio[Optional[SealedAudio]]]:
+        return isinstance(elem, Audio)
+
     @property
     def md5(self: Audio[SealedAudio]) -> bytes:
         return self.raw.md5
@@ -192,6 +196,10 @@ class Image(Generic[T_Image], Element):
         img._data_cache = data
         return img
 
+    @classmethod
+    def _check(cls, elem: Element) -> TypeGuard[Image[Optional[SealedImage]]]:
+        return isinstance(elem, Image)
+
     @property
     def md5(self: Image[SealedImage]) -> bytes:
         return self.raw.md5
@@ -222,7 +230,6 @@ class Image(Generic[T_Image], Element):
                         self._data_cache = await resp.read()
         return self._data_cache
 
-    @property
     def as_flash(self) -> FlashImage[T_Image]:
         img = FlashImage(self.url, self.raw)
         img._data_cache = self._data_cache
@@ -235,9 +242,12 @@ class Image(Generic[T_Image], Element):
 class FlashImage(Image[T_Image]):
     @classmethod
     def build(cls, data: bytes | BytesIO | pathlib.Path) -> FlashImage[None]:
-        return Image.build(data).as_flash
+        return Image.build(data).as_flash()
 
-    @property
+    @classmethod
+    def _check(cls, elem: Element) -> TypeGuard[FlashImage[Optional[SealedImage]]]:
+        return isinstance(elem, FlashImage)
+
     def as_image(self) -> Image[T_Image]:
         img = Image(self.url, self.raw)
         img._data_cache = self._data_cache

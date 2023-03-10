@@ -6,7 +6,7 @@ use super::structs::{FriendInfo, MemberInfo, MessageSource};
 use super::{FriendMessage, GroupMessage, LoginEvent, TempMessage, UnknownEvent};
 use crate::client::cache;
 use crate::exc::MapPyErr;
-use crate::message::convert::{deserialize, deserialize_audio};
+use crate::message::convert::{serialize_as_py_chain, serialize_audio};
 use crate::utils::{py_try, py_use};
 use crate::PyRet;
 
@@ -44,7 +44,7 @@ async fn handle_group_message(event: rce::GroupMessageEvent) -> PyRet {
         .await
         .py_res()?;
 
-    let content = py_try(|py| deserialize(py, msg.elements))?;
+    let content = py_try(|py| serialize_as_py_chain(py, msg.elements))?;
     obj(|py| GroupMessage {
         source: MessageSource::new(py, &msg.seqs, &msg.rands, msg.time),
         content,
@@ -61,7 +61,7 @@ async fn handle_group_message(event: rce::GroupMessageEvent) -> PyRet {
 async fn handle_group_audio(event: rce::GroupAudioMessageEvent) -> PyRet {
     let url = event.url().await.py_res()?;
     let msg = event.inner;
-    let content = py_try(|py| deserialize_audio(py, url, &msg.audio.0))?;
+    let content = py_try(|py| serialize_audio(py, url, &msg.audio.0))?;
     let mut cache = cache(event.client).await;
     let group_info = cache.fetch_group(msg.group_code).await.py_res()?;
     let sender_info = cache
@@ -84,7 +84,7 @@ async fn handle_group_audio(event: rce::GroupAudioMessageEvent) -> PyRet {
 
 async fn handle_friend_message(event: rce::FriendMessageEvent) -> PyRet {
     let msg = event.inner;
-    let content = py_try(|py| deserialize(py, msg.elements))?;
+    let content = py_try(|py| serialize_as_py_chain(py, msg.elements))?;
     obj(|py| FriendMessage {
         source: MessageSource::new(py, &msg.seqs, &msg.rands, msg.time),
         content,
@@ -98,7 +98,7 @@ async fn handle_friend_message(event: rce::FriendMessageEvent) -> PyRet {
 async fn handle_friend_audio(event: rce::FriendAudioMessageEvent) -> PyRet {
     let url = event.url().await.py_res()?;
     let msg = event.inner;
-    let content = py_try(|py| deserialize_audio(py, url, &msg.audio.0))?;
+    let content = py_try(|py| serialize_audio(py, url, &msg.audio.0))?;
     obj(|py| FriendMessage {
         source: MessageSource::new(py, &msg.seqs, &msg.rands, msg.time),
         content,
@@ -111,7 +111,7 @@ async fn handle_friend_audio(event: rce::FriendAudioMessageEvent) -> PyRet {
 
 async fn handle_temp_message(event: rce::GroupTempMessageEvent) -> PyRet {
     let msg = event.inner;
-    let content = py_try(|py| deserialize(py, msg.elements))?;
+    let content = py_try(|py| serialize_as_py_chain(py, msg.elements))?;
 
     let mut cache = cache(event.client).await;
     let group_info = cache.fetch_group(msg.group_code).await.py_res()?;

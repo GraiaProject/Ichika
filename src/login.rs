@@ -155,12 +155,7 @@ fn parse_login_args<'py>(
     ))
 }
 
-fn call_state(
-    py: Python<'_>,
-    getter: &PyObject,
-    name: &str,
-    args: impl IntoPy<Py<PyTuple>>,
-) -> PyRet {
+fn call_state(py: Python, getter: &PyObject, name: &str, args: impl IntoPy<Py<PyTuple>>) -> PyRet {
     let handler = getter.as_ref(py).call1((name,))?;
     if handler.is_none() {
         return Ok(py.None()); // return None
@@ -253,6 +248,7 @@ async fn password_login_process(
             Err(exc::RICQError::new_err("无法获取验证地址")),
             |url| Ok(url.to_owned()),
         )?;
+        tracing::info!("{:?}", data.clone());
         if let Some(sms_phone) = sms_phone
             && sms
             && let Ok(rsp) = client.request_sms().await {
@@ -298,8 +294,14 @@ async fn password_login_process(
                     Err(exc::RICQError::new_err("无法获取验证地址")),
                     |url| Ok(url.to_owned()),
                 )?;
-                py_try(|py| call_state(py, &handle_getter, "NeedCaptcha", (verify_url,)))?;
-                resp = origin_login(uin, client, &credential).await.py_res()?;
+                let ticket = py_try(|py| {
+                    Ok(
+                        call_state(py, &handle_getter, "NeedCaptcha", (verify_url,))?
+                            .downcast::<PyString>(py)?
+                            .to_string(),
+                    )
+                })?;
+                resp = client.submit_ticket(&ticket).await.py_res()?;
             }
             LoginResponse::DeviceLockLogin { .. } => {
                 py_try(|py| call_state(py, &handle_getter, "DeviceLockLogin", ()))?;
