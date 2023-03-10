@@ -75,22 +75,22 @@ async def qrcode_login(
 
 # region: client
 
-internal_repr = dataclass(frozen=True, init=False)
+_internal_repr = dataclass(frozen=True, init=False)
 
-@internal_repr
-class __AccountInfo:
+@_internal_repr
+class AccountInfo:
     nickname: str
     age: int
     gender: int
 
-@internal_repr
-class __OtherClientInfo:
+@_internal_repr
+class OtherClientInfo:
     app_id: int
     instance_id: int
     sub_platform: str
     device_kind: str
 
-@internal_repr
+@_internal_repr
 class Friend:
     uin: int
     nick: str
@@ -98,7 +98,7 @@ class Friend:
     face_id: int
     group_id: int
 
-@internal_repr
+@_internal_repr
 class FriendGroup:
     group_id: int
     name: str
@@ -106,7 +106,7 @@ class FriendGroup:
     online_count: int
     seq_id: int
 
-@internal_repr
+@_internal_repr
 class FriendList:
     total_count: int
     online_count: int
@@ -115,7 +115,7 @@ class FriendList:
     def friend_groups(self) -> tuple[FriendGroup, ...]: ...
     def find_friend_group(self, group_id: int) -> FriendGroup | None: ...
 
-@internal_repr
+@_internal_repr
 class Group:
     uin: int
     name: str
@@ -129,7 +129,7 @@ class Group:
     mute_timestamp: int
     last_msg_seq: int
 
-@internal_repr
+@_internal_repr
 class Member:
     group_uin: int
     uin: int
@@ -148,7 +148,7 @@ _T = TypeVar("_T")
 
 VTuple = tuple[_T, ...]
 
-@internal_repr
+@_internal_repr
 class RawMessageReceipt:
     seqs: VTuple[int]
     rands: VTuple[int]
@@ -162,8 +162,8 @@ class PlumbingClient:
     def online(self) -> bool: ...
     async def keep_alive(self) -> None: ...
     async def stop(self) -> None: ...
-    async def get_account_info(self) -> __AccountInfo: ...
-    async def get_other_clients(self) -> VTuple[__OtherClientInfo]: ...
+    async def get_account_info(self) -> AccountInfo: ...
+    async def get_other_clients(self) -> VTuple[OtherClientInfo]: ...
     # [impl 2]
     async def get_friend_list(self) -> FriendList: ...
     async def get_friend_list_raw(self) -> FriendList: ...
@@ -180,8 +180,10 @@ class PlumbingClient:
     async def get_member_raw(self, group_uin: int, uin: int) -> Member: ...
     async def poke_member(self, group_uin: int, uin: int) -> None: ...
     # [impl 5]
-    async def send_friend_message_raw(self, uin: int, chain: list[dict[str, Any]]) -> RawMessageReceipt: ...
-    async def send_group_message_raw(self, group_uin: int, chain: list[dict[str, Any]]) -> RawMessageReceipt: ...
+    async def upload_friend_image(self, uin: int, data: bytes) -> dict[str, Any]: ...
+    async def send_friend_message(self, uin: int, chain: list[dict[str, Any]]) -> RawMessageReceipt: ...
+    async def upload_group_image(self, uin: int, data: bytes) -> dict[str, Any]: ...
+    async def send_group_message(self, uin: int, chain: list[dict[str, Any]]) -> RawMessageReceipt: ...
 
 # endregion: client
 

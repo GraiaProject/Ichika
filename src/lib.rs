@@ -41,14 +41,22 @@ pub fn core(py: Python, m: &PyModule) -> PyResult<()> {
         login::qrcode_login
     );
     add_batch!(@cls m,
-        client::PlumbingClient
+        client::PlumbingClient,
+        client::friend::Friend,
+        client::friend::FriendGroup,
+        client::friend::FriendList,
+        client::group::Group,
+        client::group::Member,
+        client::structs::AccountInfo,
+        client::structs::OtherClientInfo,
+        client::structs::RawMessageReceipt
     );
     register_event_module(py, m)?;
     loguru::init(m)?;
     Ok(())
 }
 
-fn register_event_module(py: Python<'_>, parent: &PyModule) -> PyResult<()> {
+fn register_event_module(py: Python, parent: &PyModule) -> PyResult<()> {
     let m = PyModule::new(py, "ichika.core.events")?;
     add_batch!(@cls m,
         crate::events::GroupMessage,
@@ -66,7 +74,7 @@ fn register_event_module(py: Python<'_>, parent: &PyModule) -> PyResult<()> {
     Ok(())
 }
 
-fn register_event_structs_module(py: Python<'_>, parent: &PyModule) -> PyResult<()> {
+fn register_event_structs_module(py: Python, parent: &PyModule) -> PyResult<()> {
     let m = PyModule::new(py, "ichika.core.events.structs")?;
     add_batch!(@cls m,
         crate::events::structs::MessageSource,

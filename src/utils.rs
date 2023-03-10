@@ -133,7 +133,7 @@ macro_rules! static_py_fn {
         #[allow(non_upper_case_globals)]
         static $cell_name: ::pyo3::once_cell::GILOnceCell<PyObject> = ::pyo3::once_cell::GILOnceCell::new();
 
-        pub fn $name(python: ::pyo3::marker::Python<'_>) -> &pyo3::PyAny {
+        pub fn $name(python: ::pyo3::marker::Python) -> &pyo3::PyAny {
             $cell_name.get_or_init(python, || {
                 python
                 .import(::pyo3::intern!(python, $module)).expect(concat!("Unable to import module ", $module))

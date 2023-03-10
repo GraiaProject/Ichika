@@ -14,7 +14,7 @@ pub struct MessageSource {
 }
 
 impl MessageSource {
-    pub fn new(py: Python<'_>, seqs: &[i32], rands: &[i32], time: i32) -> Self {
+    pub fn new(py: Python, seqs: &[i32], rands: &[i32], time: i32) -> Self {
         Self {
             seqs: PyTuple::new(py, seqs).into_py(py),
             rands: PyTuple::new(py, rands).into_py(py),
