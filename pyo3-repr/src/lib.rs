@@ -70,7 +70,7 @@ fn impl_struct_repr(ast: &DeriveInput, structure: &DataStruct, gen_repr: bool) -
 fn gen_impl_block(ident: &Ident, core_stream: pm2::TokenStream) -> pm2::TokenStream {
     quote!(
         impl ::std::fmt::Debug for #ident {
-            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
                 ::pyo3::marker::Python::with_gil(|py| {
                     #core_stream
                 })

@@ -1,18 +1,19 @@
 mod cached;
 pub mod friend;
 pub mod group;
-mod structs;
+pub mod structs;
 use std::sync::Arc;
 
 pub use cached::cache;
 use group::Group;
 use pyo3::prelude::*;
 use pyo3::types::*;
+use ricq::msg::elem::RQElem;
 use structs::*;
 use tokio::task::JoinHandle;
 
 use crate::login::{reconnect, TokenRW};
-use crate::message::convert::extract_message_chain;
+use crate::message::convert::{deserialize_message_chain, serialize_element};
 use crate::utils::{py_future, py_none, py_use, AsPython};
 #[pyclass(subclass)]
 pub struct PlumbingClient {
@@ -259,6 +260,22 @@ impl PlumbingClient {
 
 #[pymethods]
 impl PlumbingClient {
+    pub fn upload_friend_image<'py>(
+        &self,
+        py: Python<'py>,
+        uin: i64,
+        data: Py<PyBytes>,
+    ) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            let data: Vec<u8> = py_use(|py| data.as_bytes(py).into());
+            let image = client.upload_friend_image(uin, &data).await?;
+            Ok(py_use(|py| {
+                serialize_element(py, RQElem::FriendImage(image)).into_py(py)
+            }))
+        })
+    }
+
     pub fn send_friend_message<'py>(
         &self,
         py: Python<'py>,
@@ -266,9 +283,8 @@ impl PlumbingClient {
         chain: &'py PyList,
     ) -> PyResult<&'py PyAny> {
         let client = self.client.clone();
-        let chain = extract_message_chain(chain)?;
+        let chain = deserialize_message_chain(chain)?;
         py_future(py, async move {
-            // TODO: Audio
             let ricq::structs::MessageReceipt { seqs, rands, time } =
                 client.send_friend_message(uin, chain).await?;
             Ok(Python::with_gil(|py| RawMessageReceipt {
@@ -279,18 +295,34 @@ impl PlumbingClient {
         })
     }
 
+    pub fn upload_group_image<'py>(
+        &self,
+        py: Python<'py>,
+        uin: i64,
+        data: Py<PyBytes>,
+    ) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            let data: Vec<u8> = py_use(|py| data.as_bytes(py).into());
+            let image = client.upload_group_image(uin, &data).await?;
+            Ok(py_use(|py| {
+                serialize_element(py, RQElem::GroupImage(image)).into_py(py)
+            }))
+        })
+    }
+
     pub fn send_group_message<'py>(
         &self,
         py: Python<'py>,
-        group_uin: i64,
+        uin: i64,
         chain: &'py PyList,
     ) -> PyResult<&'py PyAny> {
         let client = self.client.clone();
-        let chain = extract_message_chain(chain)?;
+        let chain = deserialize_message_chain(chain)?;
+        tracing::info!("{:?}", chain);
         py_future(py, async move {
-            // TODO: Audio
             let ricq::structs::MessageReceipt { seqs, rands, time } =
-                client.send_group_message(group_uin, chain).await?;
+                client.send_group_message(uin, chain).await?;
             Ok(Python::with_gil(|py| RawMessageReceipt {
                 seqs: PyTuple::new(py, seqs).into_py(py),
                 rands: PyTuple::new(py, rands).into_py(py),
@@ -298,4 +330,6 @@ impl PlumbingClient {
             }))
         })
     }
+
+    // TODO: Send audio
 }

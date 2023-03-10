@@ -26,4 +26,6 @@ def serialize_message(chain: MessageChain) -> list[dict[str, Any]]:
     for elem in chain:
         if serializer := SERIALIZE_INV.get(elem.__class__):
             res.append(serializer(elem))
+        else:
+            raise TypeError(f"无法发送元素 {elem!r}")
     return res

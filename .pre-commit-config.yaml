@@ -11,7 +11,7 @@ repos:
     pass_filenames: false
     types: [rust]
     files: \.rs$
-    args: ["--all", "--", "--check"]
+    args: ["--all"]
   - id: clippy
     name: Run cargo clippy.
     description: Checks a package to catch common mistakes and improve your Rust code.
