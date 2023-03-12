@@ -43,7 +43,7 @@ pub(crate) struct LoguruLayer {
 }
 
 impl LoguruLayer {
-    /// 创建一个新的 LoguruLayer 对象。
+    /// 创建一个新的 `LoguruLayer` 对象。
     pub(crate) fn new() -> PyResult<Self> {
         let log_fn = Python::with_gil(|py| -> PyResult<PyObject> {
             let loguru = py.import("loguru")?;
@@ -101,7 +101,7 @@ where
 struct LoguruVisiter(String);
 
 impl LoguruVisiter {
-    /// 创建一个新的 LoguruVisiter 对象。
+    /// 创建一个新的 `LoguruVisiter` 对象。
     pub fn new() -> Self {
         LoguruVisiter(String::new())
     }
@@ -195,12 +195,12 @@ pub fn getframe(py: Python, depth: usize) -> PyResult<FakePyFrame> {
             .get_or_init(py, || Arc::new(std::sync::RwLock::new(None)))
             .read()
             .map(|frame| {
-                frame
-                    .as_ref()
-                    .map(|f| Ok(f.clone()))
-                    .unwrap_or_else(|| FakePyFrame::new("<unknown>", "", "", 0))
+                frame.as_ref().map_or_else(
+                    || FakePyFrame::new("<unknown>", "", "", 0),
+                    |f| Ok(f.clone()),
+                )
             })
-            .map_err(|e| PyRuntimeError::new_err(format!("Unable to create Rust frame: {:?}", e)));
+            .map_err(|e| PyRuntimeError::new_err(format!("Unable to create Rust frame: {e:?}")));
         frame??
     })
 }

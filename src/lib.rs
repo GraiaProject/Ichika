@@ -3,6 +3,8 @@
 #![feature(concat_idents)]
 #![feature(let_chains)]
 #![feature(async_closure)]
+#![feature(lint_reasons)]
+
 use pyo3::prelude::*;
 use pyo3_built::pyo3_built;
 

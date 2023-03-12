@@ -66,7 +66,7 @@ impl PyHandler {
 #[async_trait]
 impl Handler for PyHandler {
     async fn handle(&self, event: QEvent) {
-        let event_repr = format!("{:?}", event);
+        let event_repr = format!("{event:?}");
         let py_event = match self::converter::convert(event).await {
             Ok(obj) => obj,
             Err(e) => {
@@ -82,10 +82,10 @@ impl Handler for PyHandler {
                     Ok(_) => {}
                     Err(e) => {
                         tracing::error!("调用回调 {:?} 时失败:", cb);
-                        e.print_and_set_sys_last_vars(py)
+                        e.print_and_set_sys_last_vars(py);
                     }
                 }
             }
-        })
+        });
     }
 }
