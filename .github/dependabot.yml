@@ -4,7 +4,13 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    labels:
+      - "A-dependencies"
+      - "deps-actions"
   - package-ecosystem: "cargo"
     directory: "/"
     schedule:
       interval: "daily"
+    labels:
+      - "A-dependencies"
+      - "deps-rust"
