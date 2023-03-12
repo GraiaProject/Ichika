@@ -130,7 +130,7 @@ where
 #[macro_export]
 macro_rules! static_py_fn {
     ($name: ident, $cell_name: ident, $module: expr, [$($attr: expr),*]) => {
-        #[allow(non_upper_case_globals)]
+        #[allow(non_upper_case_globals, reason = "Not controllable via declarative macros")]
         static $cell_name: ::pyo3::once_cell::GILOnceCell<PyObject> = ::pyo3::once_cell::GILOnceCell::new();
 
         pub fn $name(python: ::pyo3::marker::Python) -> &pyo3::PyAny {

@@ -111,7 +111,7 @@ pub fn serialize_element(py: Python, e: RQElem) -> Option<&PyDict> {
         unhandled => {
             py_dict!(py,
                 "type" => "Unknown",
-                "raw" => format!("{:?}", unhandled)
+                "raw" => format!("{unhandled:?}")
             )
         }
     };
@@ -148,17 +148,17 @@ pub fn deserialize_element(chain: &mut MessageChain, ident: &str, store: &PyDict
         "AtAll" => chain.push(At::new(0)),
         "At" => {
             if let Some(t) = store.get_item("target") {
-                chain.push(At::new(t.extract::<i64>()?))
+                chain.push(At::new(t.extract::<i64>()?));
             }
         }
         "Text" => {
             if let Some(t) = store.get_item("text") {
-                chain.push(Text::new(t.extract::<String>()?))
+                chain.push(Text::new(t.extract::<String>()?));
             }
         }
         "Dice" => {
             if let Some(t) = store.get_item("value") {
-                chain.push(Dice::new(t.extract::<i32>()?))
+                chain.push(Dice::new(t.extract::<i32>()?));
             }
         }
         "FingerGuessing" => {
@@ -168,17 +168,17 @@ pub fn deserialize_element(chain: &mut MessageChain, ident: &str, store: &PyDict
                     "Paper" => FingerGuessing::Paper,
                     "Scissors" => FingerGuessing::Scissors,
                     _ => return Ok(()),
-                })
+                });
             }
         }
         "MarketFace" => {
             if let Some(t) = store.get_item("raw") {
-                chain.push(t.extract::<SealedMarketFace>()?.inner)
+                chain.push(t.extract::<SealedMarketFace>()?.inner);
             }
         }
         "Face" => {
             if let Some(t) = store.get_item("index") {
-                chain.push(Face::new(t.extract::<i32>()?))
+                chain.push(Face::new(t.extract::<i32>()?));
             }
         }
         "Image" => {
@@ -186,7 +186,7 @@ pub fn deserialize_element(chain: &mut MessageChain, ident: &str, store: &PyDict
                 match t.extract::<SealedFriendImage>() {
                     Ok(i) => chain.push(i.inner),
                     Err(_) => chain.push(t.extract::<SealedGroupImage>()?.inner),
-                }
+                };
             }
         }
         "FlashImage" => {
@@ -194,7 +194,7 @@ pub fn deserialize_element(chain: &mut MessageChain, ident: &str, store: &PyDict
                 match t.extract::<SealedFriendImage>() {
                     Ok(i) => chain.push(FlashImage::from(i.inner)),
                     Err(_) => chain.push(FlashImage::from(t.extract::<SealedGroupImage>()?.inner)),
-                }
+                };
             }
         }
         _ => {}

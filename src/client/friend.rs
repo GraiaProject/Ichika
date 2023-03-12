@@ -110,12 +110,12 @@ impl FriendList {
 impl From<FriendListResponse> for FriendList {
     fn from(resp: FriendListResponse) -> Self {
         Self {
-            entries: Vec::from_iter(resp.friends.into_iter().map(Friend::from)),
-            friend_groups: HashMap::from_iter(
-                resp.friend_groups
-                    .into_iter()
-                    .map(|(g_id, info)| (g_id, FriendGroup::from(info))),
-            ),
+            entries: resp.friends.into_iter().map(Friend::from).collect(),
+            friend_groups: resp
+                .friend_groups
+                .into_iter()
+                .map(|(g_id, info)| (g_id, FriendGroup::from(info)))
+                .collect(),
             total_count: resp.total_count,
             online_count: resp.online_friend_count,
         }
