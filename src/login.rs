@@ -37,7 +37,14 @@ async fn prepare_client(
             .connect(&client)
             .await
             .map_err(|e| PyIOError::new_err(e.to_string()))?;
-        async move { client.start(stream).await }
+
+        #[allow(
+            clippy::redundant_async_block,
+            reason = "FP: rust-lang/rust-clippy#10482"
+        )]
+        async move {
+            client.start(stream).await;
+        }
     });
 
     tokio::task::yield_now().await; // 等一下，确保连上了
@@ -78,13 +85,11 @@ impl TokenRW {
                 token = serde_json::from_slice(
                     py_token
                         .downcast::<PyBytes>()
-                        .map_err(|e| {
-                            PyTypeError::new_err(format!("token 类型不是 bytes: {:?}", e))
-                        })?
+                        .map_err(|e| PyTypeError::new_err(format!("token 类型不是 bytes: {e:?}")))?
                         .as_bytes(),
                 )
                 .map_err(|e| {
-                    exc::LoginError::new_err(format!("无法转换 token 为 RICQ Token: {:?}", e))
+                    exc::LoginError::new_err(format!("无法转换 token 为 RICQ Token: {e:?}"))
                 })?;
             }
             Ok(token)
@@ -94,7 +99,7 @@ impl TokenRW {
     async fn set(&self, client: &Client) -> PyResult<()> {
         let token = client.gen_token().await;
         let token = serde_json::to_vec::<Token>(&token)
-            .map_err(|e| exc::RICQError::new_err(format!("{:?}", e)))?;
+            .map_err(|e| exc::RICQError::new_err(format!("{e:?}")))?;
         py_try(|py| self.write_token.call1(py, (py_bytes(&token),)))?;
         Ok(())
     }
@@ -138,7 +143,7 @@ fn parse_login_args<'py>(
 
     let device = store.getattr("get_device")?.call1((uin, protocol))?; // JSON
     let device: Device = depythonize(device)
-        .map_err(|e| exc::LoginError::new_err(format!("无法解析传入的 Device: {:?}", e)))?;
+        .map_err(|e| exc::LoginError::new_err(format!("无法解析传入的 Device: {e:?}")))?;
 
     // Extract Protocol
     let protocol = protocol.getattr("value")?.extract::<String>()?;
@@ -184,7 +189,14 @@ pub async fn reconnect(
                 let client = client.clone();
                 // 连接最快的服务器
                 let stream = DefaultConnector.connect(&client).await?;
-                async move { client.start(stream).await }
+
+                #[allow(
+                    clippy::redundant_async_block,
+                    reason = "FP: rust-lang/rust-clippy#10482"
+                )]
+                async move {
+                    client.start(stream).await;
+                }
             });
             tokio::task::yield_now().await; // 等一下，确保连上了
 
@@ -206,6 +218,71 @@ pub async fn reconnect(
     .await
 }
 
+async fn make_password_login_req(
+    uin: i64,
+    client: &Client,
+    credential: &PasswordCredential,
+) -> ricq::RQResult<LoginResponse> {
+    match credential {
+        PasswordCredential::String(str) => {
+            client
+                .password_login(uin, &py_use(|py| str.as_ref(py).to_string()))
+                .await
+        }
+        PasswordCredential::MD5(bytes) => {
+            client
+                .password_md5_login(uin, &py_use(|py| bytes.as_ref(py).as_bytes().to_owned()))
+                .await
+        }
+    }
+}
+async fn handle_device_lock(
+    data: &LoginDeviceLocked,
+    uin: i64,
+    client: &Client,
+    credential: &PasswordCredential,
+    handle_getter: PyObject,
+    sms: bool,
+) -> PyResult<LoginResponse> {
+    let sms_phone = data.sms_phone.as_ref();
+    let message = data
+        .message
+        .as_ref()
+        .map_or_else(|| "请解锁设备锁进行验证", |msg| msg.as_str());
+    let verify_url = data.verify_url.as_ref().map_or(
+        Err(exc::RICQError::new_err("无法获取验证地址")),
+        |url| Ok(url.clone()),
+    )?;
+    tracing::info!("{:?}", data.clone());
+    if let Some(sms_phone) = sms_phone
+        && sms
+        && let Ok(rsp) = client.request_sms().await {
+            if !matches!(rsp, LoginResponse::DeviceLocked(_)) {
+                return Ok(rsp);
+            }
+
+            let sms_code = py_try(|py| {
+                let res = call_state(py, &handle_getter, "RequestSMS", (message,sms_phone))?;
+                let res = res.as_ref(py);
+                if !res.is_none() {
+                    return Ok(Some(res.extract::<String>()?));
+                }
+                Ok(None)
+            })?;
+
+            if let Some(sms_code) = sms_code {
+                return client
+                .submit_sms_code(&sms_code)
+                .await
+                .py_res();
+            }
+        }
+    py_try(|py| call_state(py, &handle_getter, "DeviceLocked", (message, verify_url)))?;
+    make_password_login_req(uin, client, credential)
+        .await
+        .py_res()
+}
+
 async fn password_login_process(
     client: &Client,
     uin: i64,
@@ -213,70 +290,9 @@ async fn password_login_process(
     sms: bool,
     handle_getter: PyObject,
 ) -> PyResult<()> {
-    async fn origin_login(
-        uin: i64,
-        client: &Client,
-        credential: &PasswordCredential,
-    ) -> ricq::RQResult<LoginResponse> {
-        match credential {
-            PasswordCredential::String(str) => {
-                client
-                    .password_login(uin, &py_use(|py| str.as_ref(py).to_string()))
-                    .await
-            }
-            PasswordCredential::MD5(bytes) => {
-                client
-                    .password_md5_login(uin, &py_use(|py| bytes.as_ref(py).as_bytes().to_owned()))
-                    .await
-            }
-        }
-    }
-    async fn handle_device_lock(
-        data: &LoginDeviceLocked,
-        uin: i64,
-        client: &Client,
-        credential: &PasswordCredential,
-        handle_getter: PyObject,
-        sms: bool,
-    ) -> PyResult<LoginResponse> {
-        let sms_phone = data.sms_phone.as_ref();
-        let message = data
-            .message
-            .as_ref()
-            .map_or_else(|| "请解锁设备锁进行验证", |msg| msg.as_str());
-        let verify_url = data.verify_url.as_ref().map_or(
-            Err(exc::RICQError::new_err("无法获取验证地址")),
-            |url| Ok(url.to_owned()),
-        )?;
-        tracing::info!("{:?}", data.clone());
-        if let Some(sms_phone) = sms_phone
-            && sms
-            && let Ok(rsp) = client.request_sms().await {
-                if !matches!(rsp, LoginResponse::DeviceLocked(_)) {
-                    return Ok(rsp);
-                }
-
-                let sms_code = py_try(|py| {
-                    let res = call_state(py, &handle_getter, "RequestSMS", (message,sms_phone))?;
-                    let res = res.as_ref(py);
-                    if !res.is_none() {
-                        return Ok(Some(res.extract::<String>()?));
-                    }
-                    Ok(None)
-                })?;
-
-                if let Some(sms_code) = sms_code {
-                    return client
-                    .submit_sms_code(&sms_code)
-                    .await
-                    .py_res();
-                }
-            }
-        py_try(|py| call_state(py, &handle_getter, "DeviceLocked", (message, verify_url)))?;
-        origin_login(uin, client, credential).await.py_res()
-    }
-
-    let mut resp: LoginResponse = origin_login(uin, client, &credential).await.py_res()?;
+    let mut resp: LoginResponse = make_password_login_req(uin, client, &credential)
+        .await
+        .py_res()?;
 
     loop {
         match resp {
@@ -292,7 +308,7 @@ async fn password_login_process(
             LoginResponse::NeedCaptcha(LoginNeedCaptcha { ref verify_url, .. }) => {
                 let verify_url = verify_url.as_ref().map_or(
                     Err(exc::RICQError::new_err("无法获取验证地址")),
-                    |url| Ok(url.to_owned()),
+                    |url| Ok(url.clone()),
                 )?;
                 let ticket = py_try(|py| {
                     Ok(
@@ -320,7 +336,7 @@ async fn password_login_process(
                 ref message,
                 ..
             }) => {
-                let (status, message) = (status.to_owned(), message.to_owned());
+                let (status, message) = (*status, message.clone());
                 py_try(|py| call_state(py, &handle_getter, "UnknownStatus", (message, status)))?;
                 break;
             }
@@ -343,7 +359,7 @@ async fn post_login(client: Arc<Client>, alive: JoinHandle<()>, token_rw: TokenR
 }
 
 #[pyfunction]
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, reason = "Required for Python binding")]
 pub fn password_login<'py>(
     py: Python<'py>,
     uin: i64,
@@ -370,7 +386,7 @@ pub fn password_login<'py>(
 
 fn parse_qrcode(qrcode: &bytes::Bytes) -> PyResult<Vec<Vec<bool>>> {
     let qrcode = image::load_from_memory(qrcode)
-        .map_err(|e| PyValueError::new_err(format!("加载二维码图像出现错误: {:?}", e)))?
+        .map_err(|e| PyValueError::new_err(format!("加载二维码图像出现错误: {e:?}")))?
         .to_luma8();
     let mut qrcode = rqrr::PreparedImage::prepare(qrcode);
     let grids = qrcode.detect_grids();
@@ -382,9 +398,9 @@ fn parse_qrcode(qrcode: &bytes::Bytes) -> PyResult<Vec<Vec<bool>>> {
     }
     let (_, content) = grids[0]
         .decode()
-        .map_err(|e| PyValueError::new_err(format!("解码二维码出现错误: {:?}", e)))?;
+        .map_err(|e| PyValueError::new_err(format!("解码二维码出现错误: {e:?}")))?;
     let qrcode = qrcode::QrCode::new(content)
-        .map_err(|e| PyValueError::new_err(format!("生成二维码数据出现错误: {:?}", e)))?;
+        .map_err(|e| PyValueError::new_err(format!("生成二维码数据出现错误: {e:?}")))?;
 
     let width = qrcode.width();
     Ok(qrcode
@@ -456,7 +472,6 @@ async fn qrcode_login_process(
 }
 
 #[pyfunction]
-#[allow(unused)]
 pub fn qrcode_login<'py>(
     py: Python<'py>,
     uin: i64,

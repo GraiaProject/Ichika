@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 pub use cached::cache;
 use group::Group;
+use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::*;
 use ricq::msg::elem::RQElem;
@@ -37,13 +38,17 @@ pub struct ClientInitializer {
 #[pymethods]
 impl PlumbingClient {
     #[new]
-    pub fn new(init: ClientInitializer) -> Self {
-        Self {
+    pub fn new(init: ClientInitializer) -> PyResult<Self> {
+        Ok(Self {
             client: init.client,
-            alive: init.alive.lock().unwrap().take(),
+            alive: init
+                .alive
+                .lock()
+                .map_err(|e| PyRuntimeError::new_err(format!("{e:?}")))?
+                .take(),
             uin: init.uin,
             token_rw: init.token_rw,
-        }
+        })
     }
 
     pub fn keep_alive<'py>(&mut self, py: Python<'py>) -> PyResult<&'py PyAny> {

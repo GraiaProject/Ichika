@@ -154,7 +154,7 @@ impl ClientCache {
 
     pub async fn flush_friend_list(&mut self) {
         let mut guard = self.detached.lock().await;
-        guard.friends.clear()
+        guard.friends.clear();
     }
 
     pub async fn fetch_group(&mut self, uin: i64) -> RQResult<Arc<Group>> {
@@ -184,7 +184,7 @@ pub async fn cache(client: Arc<Client>) -> ClientCache {
     let detached = match cache_guard.get(&uin) {
         Some(detached) => detached.clone(),
         None => {
-            let detached: Arc<Mutex<DetachedCache>> = Default::default();
+            let detached: Arc<Mutex<DetachedCache>> = Arc::default();
             cache_guard.insert(uin, detached.clone());
             detached
         }

@@ -19,7 +19,7 @@ pub(crate) trait MapPyErr {
 
 impl IntoPyErr for RQError {
     fn into_py(self) -> PyErr {
-        RICQError::new_err(format!("RICQ 出现错误: {:?}", self))
+        RICQError::new_err(format!("RICQ 出现错误: {self:?}"))
     }
 }
 
