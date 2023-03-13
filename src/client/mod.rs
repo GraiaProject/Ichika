@@ -286,6 +286,29 @@ impl PlumbingClient {
             Ok(())
         })
     }
+
+    pub fn quit_group<'py>(&self, py: Python<'py>, uin: i64) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            client.group_quit(uin).await?;
+            Ok(())
+        })
+    }
+
+    pub fn kick_member<'py>(
+        &self,
+        py: Python<'py>,
+        group_uin: i64,
+        uin: i64,
+        msg: String,
+        block: bool,
+    ) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            client.group_kick(group_uin, vec![uin], &msg, block).await?;
+            Ok(())
+        })
+    }
 }
 
 #[pymethods]
