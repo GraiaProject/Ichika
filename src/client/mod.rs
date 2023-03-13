@@ -164,7 +164,7 @@ impl PlumbingClient {
         })
     }
 
-    pub fn poke_friend<'py>(&self, py: Python<'py>, uin: i64) -> PyResult<&'py PyAny> {
+    pub fn nudge_friend<'py>(&self, py: Python<'py>, uin: i64) -> PyResult<&'py PyAny> {
         let client = self.client.clone();
         py_future(py, async move {
             client.friend_poke(uin).await?;
@@ -249,7 +249,7 @@ impl PlumbingClient {
         })
     }
 
-    pub fn poke_member<'py>(
+    pub fn nudge_group_member<'py>(
         &self,
         py: Python<'py>,
         group_uin: i64,
