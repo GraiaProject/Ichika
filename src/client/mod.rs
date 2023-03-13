@@ -3,6 +3,7 @@ pub mod friend;
 pub mod group;
 pub mod structs;
 use std::sync::Arc;
+use std::time::Duration;
 
 pub use cached::cache;
 use group::Group;
@@ -249,15 +250,39 @@ impl PlumbingClient {
         })
     }
 
-    pub fn nudge_group_member<'py>(
+    pub fn nudge_member<'py>(
         &self,
         py: Python<'py>,
         group_uin: i64,
-        member_uin: i64,
+        uin: i64,
     ) -> PyResult<&'py PyAny> {
         let client = self.client.clone();
         py_future(py, async move {
-            client.group_poke(group_uin, member_uin).await?;
+            client.group_poke(group_uin, uin).await?;
+            Ok(())
+        })
+    }
+
+    pub fn mute_member<'py>(
+        &self,
+        py: Python<'py>,
+        group_uin: i64,
+        uin: i64,
+        duration: u64,
+    ) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            client
+                .group_mute(group_uin, uin, Duration::from_secs(duration))
+                .await?;
+            Ok(())
+        })
+    }
+
+    pub fn mute_group<'py>(&self, py: Python<'py>, uin: i64, mute: bool) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            client.group_mute_all(uin, mute).await?;
             Ok(())
         })
     }
