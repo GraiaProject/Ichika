@@ -44,32 +44,9 @@ def random_imei() -> str:
 
 
 def make_defaults() -> dict:
-    return {
-        "display": f"RICQ.{rng.randrange(100000, 1000000)}.001",
-        "product": "iarim",
-        "device": "sagit",
-        "board": "eomam",
-        "model": "MI 6",
-        "finger_print": f"RICQ.{rng.randrange(100000, 1000000)}.001",
-        "boot_id": str(uuid.uuid4()),
-        "proc_version": f"Linux 5.4.0-54-generic-{''.join(rng.choices(string.hexdigits, k=8))} (android-build@google.com)",
-        "imei": random_imei(),
-        "brand": "Xiaomi",
-        "bootloader": "U-boot",
-        "base_band": "",
-        "version": to_dict(rng.choice(data.os_versions)),
-        "sim_info": "T-Mobile",
-        "os_type": "android",
-        "mac_address": "00:50:56:C0:00:08",
-        "ip_address": [10, 0, 1, 3],
-        "wifi_bssid": "02:00:00:00:00:00",
-        "wifi_ssid": "<unknown ssid>",
-        "imsi_md5": list(hashlib.md5(rng.getrandbits(16 * 8).to_bytes(16, "little")).digest()),
-        "android_id": "".join(f"{rng.randrange(0, 256):02x}" for _ in range(8)),
-        "apn": "wifi",
-        "vendor_name": "MIUI",
-        "vendor_os_name": "ricq",
-    }
+    from .generator import generate
+
+    return to_dict(generate())
 
 
 def convert(source: dict) -> RICQDevice:
@@ -80,5 +57,11 @@ def convert(source: dict) -> RICQDevice:
     params = make_defaults()
     version: Any = source.setdefault("version", params["version"])
     version.update(source.get("version", {}))
-    params.update({camel_to_snake(k): source[k] for k in source})
+    for key in source:
+        converted_key = camel_to_snake(key)
+        if converted_key in params:
+            if isinstance(params[converted_key], dict):
+                params[converted_key].update(source[key])
+            else:
+                params[converted_key] = source[key]
     return from_dict(RICQDevice, params, Config({str: string_hook, List[int]: list_int_hook}))
