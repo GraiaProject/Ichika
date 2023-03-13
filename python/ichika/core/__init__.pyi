@@ -153,6 +153,8 @@ class RawMessageReceipt:
     seqs: VTuple[int]
     rands: VTuple[int]
     time: int
+    kind: str
+    target: int
 
 class PlumbingClient:
     # [impl 1]
@@ -184,6 +186,8 @@ class PlumbingClient:
     async def send_friend_message(self, uin: int, chain: list[dict[str, Any]]) -> RawMessageReceipt: ...
     async def upload_group_image(self, uin: int, data: bytes) -> dict[str, Any]: ...
     async def send_group_message(self, uin: int, chain: list[dict[str, Any]]) -> RawMessageReceipt: ...
+    async def recall_friend_message(self, uin: int, time: int, seq: int, rand: int): ...
+    async def recall_group_message(self, uin: int, seq: int, rand: int): ...
 
 # endregion: client
 
