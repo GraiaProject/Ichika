@@ -296,6 +296,8 @@ impl PlumbingClient {
                 seqs: PyTuple::new(py, seqs).into_py(py),
                 rands: PyTuple::new(py, rands).into_py(py),
                 time,
+                kind: "friend".into(),
+                target: uin,
             }))
         })
     }
@@ -324,7 +326,6 @@ impl PlumbingClient {
     ) -> PyResult<&'py PyAny> {
         let client = self.client.clone();
         let chain = deserialize_message_chain(chain)?;
-        tracing::info!("{:?}", chain);
         py_future(py, async move {
             let ricq::structs::MessageReceipt { seqs, rands, time } =
                 client.send_group_message(uin, chain).await?;
@@ -332,9 +333,43 @@ impl PlumbingClient {
                 seqs: PyTuple::new(py, seqs).into_py(py),
                 rands: PyTuple::new(py, rands).into_py(py),
                 time,
+                kind: "group".into(),
+                target: uin,
             }))
         })
     }
 
+    pub fn recall_friend_message<'py>(
+        &self,
+        py: Python<'py>,
+        uin: i64,
+        time: i64,
+        seq: i32,
+        rand: i32,
+    ) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            client
+                .recall_friend_message(uin, time, vec![seq], vec![rand])
+                .await?;
+            Ok(())
+        })
+    }
+
+    pub fn recall_group_message<'py>(
+        &self,
+        py: Python<'py>,
+        uin: i64,
+        seq: i32,
+        rand: i32,
+    ) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            client
+                .recall_group_message(uin, vec![seq], vec![rand])
+                .await?;
+            Ok(())
+        })
+    }
     // TODO: Send audio
 }

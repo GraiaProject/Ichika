@@ -24,4 +24,6 @@ pub struct RawMessageReceipt {
     pub seqs: Py<PyTuple>,
     pub rands: Py<PyTuple>,
     pub time: i64,
+    pub kind: String,
+    pub target: i64,
 }
