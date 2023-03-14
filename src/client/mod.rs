@@ -295,6 +295,34 @@ impl PlumbingClient {
             Ok(())
         })
     }
+
+    #[pyo3(signature = (uin, *, memo=None, name=None))]
+    pub fn modify_group_info<'py>(
+        &self,
+        py: Python<'py>,
+        uin: i64,
+        memo: Option<String>,
+        name: Option<String>,
+    ) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            if let Some(memo) = memo {
+                client.update_group_memo(uin, memo).await?;
+            }
+            if let Some(name) = name {
+                client.update_group_name(uin, name).await?;
+            }
+            Ok(())
+        })
+    }
+
+    pub fn group_sign_in<'py>(&self, py: Python<'py>, uin: i64) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            client.group_sign_in(uin).await?;
+            Ok(())
+        })
+    }
 }
 
 #[pymethods]
