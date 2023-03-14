@@ -172,6 +172,14 @@ impl PlumbingClient {
             Ok(())
         })
     }
+
+    pub fn delete_friend<'py>(&self, py: Python<'py>, uin: i64) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            client.delete_friend(uin).await?;
+            Ok(())
+        })
+    }
 }
 
 #[pymethods]
