@@ -11,6 +11,7 @@ use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::*;
 use ricq::msg::elem::RQElem;
+use ricq::structs::ProfileDetailUpdate;
 use structs::*;
 use tokio::task::JoinHandle;
 
@@ -99,6 +100,45 @@ impl PlumbingClient {
                 age: info.age,
                 gender: info.gender,
             })
+        })
+    }
+
+    #[pyo3(signature = (*, name=None, email=None, personal_note=None, company=None,college=None,signature=None))]
+    #[allow(clippy::too_many_arguments, reason = "Readable")]
+    pub fn set_account_info<'py>(
+        &self,
+        py: Python<'py>,
+        name: Option<String>,
+        email: Option<String>,
+        personal_note: Option<String>,
+        company: Option<String>,
+        college: Option<String>,
+        signature: Option<String>,
+    ) -> PyResult<&'py PyAny> {
+        macro_rules! set {
+            ($field:ident, $profile_update:expr) => {
+                if let Some($field) = $field {
+                    $profile_update.$field($field);
+                }
+            };
+        }
+
+        let mut upd = ProfileDetailUpdate::new();
+        set!(name, upd);
+        set!(email, upd);
+        set!(personal_note, upd);
+        set!(company, upd);
+        set!(college, upd);
+
+        let client = self.client.clone();
+        py_future(py, async move {
+            if !upd.0.is_empty() {
+                client.update_profile_detail(upd).await?;
+            }
+            if let Some(signature) = signature {
+                client.update_signature(signature).await?;
+            }
+            Ok(())
         })
     }
 

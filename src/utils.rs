@@ -67,7 +67,7 @@ macro_rules! import_call {
 
 #[macro_export]
 macro_rules! props {
-    ($self_t: ident @ $cls: ident : $($name: ident => [$type: ty] $res: stmt);* ;) => {
+    ($self_t:ident @ $cls:ident : $($name:ident => [$type:ty] $res:stmt);* ;) => {
         #[::pyo3::pymethods]
         impl $cls {
             $(
@@ -129,7 +129,7 @@ where
 
 #[macro_export]
 macro_rules! static_py_fn {
-    ($name: ident, $cell_name: ident, $module: expr, [$($attr: expr),*]) => {
+    ($name:ident, $cell_name:ident, $module:expr, [$($attr:expr),*]) => {
         #[allow(non_upper_case_globals, reason = "Not controllable via declarative macros")]
         static $cell_name: ::pyo3::once_cell::GILOnceCell<PyObject> = ::pyo3::once_cell::GILOnceCell::new();
 
@@ -148,12 +148,12 @@ macro_rules! static_py_fn {
 
 #[macro_export]
 macro_rules! call_static_py {
-    ($pth: expr, $py: expr, ($($arg: expr),*)) => {
+    ($pth:expr, $py:expr, ($($arg:expr),*)) => {
         $pth($py).call1(
             ($($arg),*)
         )
     };
-    ($pth: expr, $py: expr, ($($arg: expr),*) ! $reason: expr) => {
+    ($pth:expr, $py:expr, ($($arg:expr),*) ! $reason:expr) => {
         $pth($py).call1(
             ($($arg,)*)
         )
