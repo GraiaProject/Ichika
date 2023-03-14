@@ -266,6 +266,35 @@ impl PlumbingClient {
             }))
         })
     }
+
+    pub fn get_group_admins<'py>(&self, py: Python<'py>, uin: i64) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            let admins = client
+                .get_group_admin_list(uin)
+                .await?
+                .into_iter()
+                .map(|(member_uin, perm)| (member_uin, perm as u8))
+                .collect::<Vec<(i64, u8)>>(); // TODO: Better Perm handling
+            Ok(admins)
+        })
+    }
+
+    pub fn mute_group<'py>(&self, py: Python<'py>, uin: i64, mute: bool) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            client.group_mute_all(uin, mute).await?;
+            Ok(())
+        })
+    }
+
+    pub fn quit_group<'py>(&self, py: Python<'py>, uin: i64) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            client.group_quit(uin).await?;
+            Ok(())
+        })
+    }
 }
 
 #[pymethods]
@@ -327,22 +356,6 @@ impl PlumbingClient {
         })
     }
 
-    pub fn mute_group<'py>(&self, py: Python<'py>, uin: i64, mute: bool) -> PyResult<&'py PyAny> {
-        let client = self.client.clone();
-        py_future(py, async move {
-            client.group_mute_all(uin, mute).await?;
-            Ok(())
-        })
-    }
-
-    pub fn quit_group<'py>(&self, py: Python<'py>, uin: i64) -> PyResult<&'py PyAny> {
-        let client = self.client.clone();
-        py_future(py, async move {
-            client.group_quit(uin).await?;
-            Ok(())
-        })
-    }
-
     pub fn kick_member<'py>(
         &self,
         py: Python<'py>,
@@ -354,6 +367,52 @@ impl PlumbingClient {
         let client = self.client.clone();
         py_future(py, async move {
             client.group_kick(group_uin, vec![uin], &msg, block).await?;
+            Ok(())
+        })
+    }
+
+    pub fn modify_member_special_title<'py>(
+        &self,
+        py: Python<'py>,
+        group_uin: i64,
+        uin: i64,
+        special_title: String,
+    ) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            client
+                .group_edit_special_title(group_uin, uin, special_title)
+                .await?;
+            Ok(())
+        })
+    }
+
+    pub fn modify_member_card<'py>(
+        &self,
+        py: Python<'py>,
+        group_uin: i64,
+        uin: i64,
+        card_name: String,
+    ) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            client
+                .edit_group_member_card(group_uin, uin, card_name)
+                .await?;
+            Ok(())
+        })
+    }
+
+    pub fn modify_member_admin<'py>(
+        &self,
+        py: Python<'py>,
+        group_uin: i64,
+        uin: i64,
+        admin: bool,
+    ) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            client.group_set_admin(group_uin, uin, admin).await?;
             Ok(())
         })
     }
