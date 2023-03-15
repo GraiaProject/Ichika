@@ -11,7 +11,7 @@ use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::*;
 use ricq::msg::elem::RQElem;
-use ricq::structs::ProfileDetailUpdate;
+use ricq::structs::{ProfileDetailUpdate, Status};
 use structs::*;
 use tokio::task::JoinHandle;
 
@@ -165,6 +165,18 @@ impl PlumbingClient {
                 .into_py(py);
                 Ok(tup)
             })
+        })
+    }
+
+    pub fn set_online_status<'py>(
+        &self,
+        py: Python<'py>,
+        status: OnlineStatusParam,
+    ) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            client.update_online_status(Status::from(status)).await?;
+            Ok(())
         })
     }
 }
@@ -551,6 +563,21 @@ impl PlumbingClient {
             client
                 .recall_group_message(uin, vec![seq], vec![rand])
                 .await?;
+            Ok(())
+        })
+    }
+
+    pub fn modify_group_essence<'py>(
+        &self,
+        py: Python<'py>,
+        uin: i64,
+        seq: i32,
+        rand: i32,
+        flag: bool,
+    ) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            client.operate_group_essence(uin, seq, rand, flag).await?;
             Ok(())
         })
     }
