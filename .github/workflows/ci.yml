@@ -85,15 +85,7 @@ jobs:
 
       - name: Bump Dev Version
         if: ${{ env.RELEASE != true }}
-        run: |
-          from os import environ as env
-          import tomlkit
-          with open("./Cargo.toml") as cargo_file:
-            doc = tomlkit.load(cargo_file)
-            doc["package"]["version"] = doc["package"]["version"] + "+dev." + env["GITHUB_SHA"][:7]
-          with open("./Cargo.toml", "w") as cargo_file:
-            tomlkit.dump(doc, cargo_file)
-        shell: python
+        run: python ./.github/scripts/bump_cargo_version.py
 
       - name: Build Wheel
         uses: PyO3/maturin-action@v1
@@ -123,11 +115,33 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' }}
     needs: [lint-python, lint-rust, build]
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+      - name: Install Dependencies
+        runs: |
+          pip install -r ./dev-requirements.txt
+      - name: Extract Version
+        id: extract-version
+        runs: python ./.github/scripts/extract_version.py
+      - name: Download Built Wheels
+        uses: actions/download-artifact@v3
         with:
           name: wheels
           path: dist
+
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_TOKEN }}
+
+      - name: Release to GitHub
+        runs: |
+          towncrier build --version ${{ env.VERSION }} --keep --config .\towncrier_release.toml
+          towncrier build --version ${{ env.VERSION }} --yes
+          git add .
+          git commit -m "chore(release): ${{ env.VERSION }}"
+          git push
+          gh release create "${{ env.VERSION }}" dist/* --notes-file ./release-notes.md --title "${{ env.VERSION }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.extract-version.outputs.version }}
