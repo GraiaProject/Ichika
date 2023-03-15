@@ -1,8 +1,7 @@
 import datetime
 from dataclasses import dataclass
-from types import ModuleType
-from typing import Callable, Sequence, TypedDict, TypeVar
-from typing_extensions import Any
+from typing import Callable, Literal, TypedDict, TypeVar
+from typing_extensions import Any, TypeAlias
 
 from ..client import Client
 from ..login import (
@@ -156,6 +155,46 @@ class RawMessageReceipt:
     kind: str
     target: int
 
+__OnlineStatus: TypeAlias = (  # TODO: Wrapper
+    tuple[int, str]  # (face_index, wording)
+    | tuple[
+        Literal[False],
+        Literal[
+            11,  # 在线
+            21,  # 离线，效果未知
+            31,  # 离开
+            41,  # 隐身
+            50,  # 忙
+            60,  # Q 我吧
+            70,  # 请勿打扰
+        ],
+    ]
+    | tuple[
+        Literal[True],
+        Literal[
+            1000,  # 当前电量
+            1028,  # 听歌中
+            1040,  # 星座运势
+            1030,  # 今日天气
+            1069,  # 遇见春天
+            1027,  # Timi中
+            1064,  # 吃鸡中
+            1051,  # 恋爱中
+            1053,  # 汪汪汪
+            1019,  # 干饭中
+            1018,  # 学习中
+            1032,  # 熬夜中
+            1050,  # 打球中
+            1011,  # 信号弱
+            1024,  # 在线学习
+            1017,  # 游戏中
+            1022,  # 度假中
+            1021,  # 追剧中
+            1020,  # 健身中
+        ],
+    ]
+)
+
 class PlumbingClient:
     # [impl 1]
     @property
@@ -176,6 +215,7 @@ class PlumbingClient:
         signature: str = ...,
     ) -> None: ...
     async def get_other_clients(self) -> VTuple[OtherClientInfo]: ...
+    async def modify_online_status(self, status: __OnlineStatus) -> None: ...
     # [impl 2]
     async def get_friend_list(self) -> FriendList: ...
     async def get_friend_list_raw(self) -> FriendList: ...
@@ -210,6 +250,7 @@ class PlumbingClient:
     async def send_group_message(self, uin: int, chain: list[dict[str, Any]]) -> RawMessageReceipt: ...
     async def recall_friend_message(self, uin: int, time: int, seq: int, rand: int) -> None: ...
     async def recall_group_message(self, uin: int, seq: int, rand: int) -> None: ...
+    async def modify_group_essence(self, uin: int, seq: int, rand: int, flag: bool) -> None: ...
 
 # endregion: client
 
