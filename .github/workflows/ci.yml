@@ -2,6 +2,9 @@ name: Run CI
 
 on:
   workflow_dispatch:
+    inputs:
+      pre:
+        type: boolean
   push:
     branches:
       - "master"
@@ -131,14 +134,18 @@ jobs:
         with:
           password: ${{ secrets.PYPI_TOKEN }}
 
+      - name: Towncrier Extract Release Notes
+        run: towncrier build --version ${{ env.VERSION }} --keep --config .\towncrier_release.toml
+
+      - name: Towncrier Build Release Changelog
+        if: ${{ !inputs.pre }}
+        run: towncrier build --version ${{ env.VERSION }} --yes
+
       - name: Release to GitHub
         run: |
-          towncrier build --version ${{ env.VERSION }} --keep --config .\towncrier_release.toml
-          towncrier build --version ${{ env.VERSION }} --yes
           git add .
-          git commit -m "chore(release): ${{ env.VERSION }}"
+          git diff-index --quiet HEAD || git commit -m "chore(release): ${{ env.VERSION }}"
           git push
           gh release create "${{ env.VERSION }}" dist/* --notes-file ./release-notes.md --title "${{ env.VERSION }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ steps.extract-version.outputs.version }}
