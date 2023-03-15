@@ -54,3 +54,42 @@ extra_standard_library = ["typing_extensions"]
 [tool.pyright]
 reportMissingModuleSource = false
 pythonVersion = "3.8"
+
+[tool.towncrier]
+directory = "news"
+filename = "CHANGELOG.md"
+start_string = "<!-- towncrier release notes start -->\n"
+underlines = ["", "", ""]
+template = "news/template.jinja"
+title_format = "## [{version}](https://github.com/BlueGlassBlock/ichika/tree/{version}) - {project_date}"
+issue_format = "[#{issue}](https://github.com/BlueGlassBlock/my-ichika/issues/{issue})"
+
+[[tool.towncrier.type]]
+directory = "removed"
+name = "移除"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "deprecated"
+name = "弃用"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "added"
+name = "新增"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "changed"
+name = "更改"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "fixed"
+name = "修复"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "misc"
+name = "其他"
+showcontent = true
