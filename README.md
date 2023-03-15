@@ -3,13 +3,12 @@
 # Ichika
 
 
-[![PyPI](https://img.shields.io/pypi/v/ichika)](https://pypi.org/project/ichika)
+[![PyPI](https://img.shields.io/pypi/v/ichika)](https://github.com/BlueGlassBlock/ichika/blob/master/CHANGELOG.md)
 [![Python Version](https://img.shields.io/pypi/pyversions/ichika)](https://pypi.org/project/ichika)
 [![License](https://img.shields.io/github/license/BlueGlassBlock/Ichika)](https://github.com/BlueGlassBlock/Ichika/blob/master/LICENSE)
 
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
-[![pdm-managed](https://img.shields.io/badge/pdm-managed-blueviolet)](https://pdm.fming.dev)
 
 [![Run CI](https://github.com/BlueGlassBlock/Ichika/actions/workflows/ci.yml/badge.svg)](https://github.com/BlueGlassBlock/Ichika/actions/workflows/ci.yml)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/BlueGlassBlock/Ichika/master.svg)](https://results.pre-commit.ci/latest/github/BlueGlassBlock/Ichika/master)

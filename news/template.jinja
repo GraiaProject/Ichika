@@ -1,0 +1,17 @@
+你可以在 [PyPI](https://pypi.org/project/ichika/{{ versiondata["version"] }}/) 找到该版本。
+
+{% if sections[""] %}
+
+{% for category, val in definitions.items() if category in sections[""] %}
+
+### {{ definitions[category]['name'] }}
+
+{% for text, values in sections[""][category].items() %}
+- {{ text }} {{ values|join(', ') }}
+{% endfor %}
+
+{% endfor %}
+{% else %}
+没有重要的改动。
+
+{% endif %}
