@@ -85,7 +85,7 @@ jobs:
         run: pip install tomlkit
 
       - name: Bump Dev Version
-        if: ${{ env.RELEASE != true }}
+        if: ${{ env.RELEASE != "true" }}
         run: python ./.github/scripts/bump_cargo_version.py
 
       - name: Build Wheel
