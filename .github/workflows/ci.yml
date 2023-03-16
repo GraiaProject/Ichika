@@ -129,13 +129,8 @@ jobs:
           name: wheels
           path: dist
 
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.PYPI_TOKEN }}
-
       - name: Towncrier Extract Release Notes
-        run: towncrier build --version ${{ env.VERSION }} --keep --config .\towncrier_release.toml
+        run: towncrier build --version ${{ env.VERSION }} --keep --config ./towncrier_release.toml
 
       - name: Towncrier Build Release Changelog
         if: ${{ !inputs.pre }}
@@ -149,3 +144,8 @@ jobs:
           gh release create "${{ env.VERSION }}" dist/* --notes-file ./release-notes.md --title "${{ env.VERSION }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_TOKEN }}
