@@ -43,4 +43,4 @@
 
 ### 其他
 
-- 使用 [`towncrier`](https://towncrier.readthedocs.io) 和 GitHub Release 来管理项目。 [#18](https://github.com/BlueGlassBlock/ichika/issues/18)
+- 使用 [`towncrier`](https://towncrier.readthedocs.io) 和 GitHub Release 来管理项目。 ([#18](https://github.com/BlueGlassBlock/ichika/issues/18))
