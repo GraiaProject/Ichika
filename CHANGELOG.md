@@ -39,8 +39,7 @@
   - 禁言
   - 取消禁言
   - 全体禁言
-  - 取消全体禁言 [#3](https://github.com/BlueGlassBlock/ichika/issues/3)
-
+  - 取消全体禁言
 
 ### 其他
 
