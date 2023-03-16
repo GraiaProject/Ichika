@@ -9,11 +9,11 @@ use ricq_core::command::friendlist::FriendListResponse;
 #[pyclass(get_all)]
 #[derive(PyRepr, Clone)]
 pub struct Friend {
-    uin: i64,
-    nick: String,
-    remark: String,
-    face_id: i16,
-    group_id: u8,
+    pub uin: i64,
+    pub nick: String,
+    pub remark: String,
+    pub face_id: i16,
+    pub group_id: u8,
 }
 
 impl From<FriendInfo> for Friend {
@@ -31,11 +31,11 @@ impl From<FriendInfo> for Friend {
 #[pyclass(get_all)]
 #[derive(PyRepr, Clone)]
 pub struct FriendGroup {
-    group_id: u8,
-    name: String,
-    total_count: i32,
-    online_count: i32,
-    seq_id: u8,
+    pub group_id: u8,
+    pub name: String,
+    pub total_count: i32,
+    pub online_count: i32,
+    pub seq_id: u8,
 }
 
 impl From<FriendGroupInfo> for FriendGroup {
@@ -64,9 +64,9 @@ pub struct FriendList {
     entries: Vec<Friend>,
     friend_groups: HashMap<u8, FriendGroup>,
     #[pyo3(get)]
-    total_count: i16,
+    pub total_count: i16,
     #[pyo3(get)]
-    online_count: i16,
+    pub online_count: i16,
 }
 
 #[pymethods]

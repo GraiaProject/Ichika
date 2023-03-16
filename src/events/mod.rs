@@ -26,10 +26,27 @@ pub struct GroupMessage {
 
 #[pyclass(get_all)]
 #[derive(PyRepr, Clone)]
+pub struct GroupRecallMessage {
+    time: PyObject, // PyDatetime
+    author: MemberInfo,
+    operator: MemberInfo,
+    seq: i32,
+}
+
+#[pyclass(get_all)]
+#[derive(PyRepr, Clone)]
 pub struct FriendMessage {
     source: MessageSource,
     content: PyObject, // PyMessageChain
     sender: FriendInfo,
+}
+
+#[pyclass(get_all)]
+#[derive(PyRepr, Clone)]
+pub struct FriendRecallMessage {
+    time: PyObject, // PyDatetime
+    author: FriendInfo,
+    seq: i32,
 }
 
 #[pyclass(get_all)]
