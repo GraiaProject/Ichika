@@ -3,7 +3,7 @@ use pyo3::types::PyTuple;
 use pyo3_repr::PyRepr;
 
 use crate::call_static_py;
-use crate::client::group::Group;
+use crate::client::group::{Group, Member};
 use crate::utils::datetime_from_ts;
 #[pyclass(get_all)]
 #[derive(PyRepr, Clone)]
@@ -14,12 +14,12 @@ pub struct MessageSource {
 }
 
 impl MessageSource {
-    pub fn new(py: Python, seqs: &[i32], rands: &[i32], time: i32) -> Self {
-        Self {
+    pub fn new(py: Python, seqs: &[i32], rands: &[i32], time: i32) -> PyResult<Self> {
+        Ok(Self {
             seqs: PyTuple::new(py, seqs).into_py(py),
             rands: PyTuple::new(py, rands).into_py(py),
-            time: call_static_py!(datetime_from_ts, py, (time)! "Unable to convert time"),
-        }
+            time: call_static_py!(datetime_from_ts, py, (time))?.into(),
+        })
     }
 }
 
@@ -31,6 +31,18 @@ pub struct MemberInfo {
     pub nickname: String,
     pub group: Group,
     pub permission: u8,
+}
+
+impl MemberInfo {
+    pub fn new(member: &Member, group: Group) -> Self {
+        Self {
+            uin: member.uin,
+            name: member.card_name.clone(),
+            nickname: member.nickname.clone(),
+            group,
+            permission: member.permission,
+        }
+    }
 }
 
 #[pyclass(get_all)]

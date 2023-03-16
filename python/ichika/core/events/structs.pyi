@@ -16,3 +16,8 @@ class MemberInfo:
     uin: int
     name: str
     group: Group
+
+@internal_repr
+class FriendInfo:
+    uin: int
+    nickname: str

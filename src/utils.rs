@@ -150,7 +150,7 @@ macro_rules! static_py_fn {
 macro_rules! call_static_py {
     ($pth:expr, $py:expr, ($($arg:expr),*)) => {
         $pth($py).call1(
-            ($($arg),*)
+            ($($arg,)*)
         )
     };
     ($pth:expr, $py:expr, ($($arg:expr),*) ! $reason:expr) => {
