@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import base64
 import pathlib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from functools import total_ordering
 from io import BytesIO
@@ -26,14 +26,13 @@ class At(Element):
         return f"@{self.target}"
 
 
+@dataclass
 class AtAll(Element):
     def __str__(self) -> str:
         return "@全体成员"
 
-    def __repr__(self) -> str:
-        return "AtAll()"
 
-
+@dataclass(init=False)
 class FingerGuessing(Element):
     @total_ordering
     class Choice(Enum):
@@ -71,28 +70,19 @@ class FingerGuessing(Element):
     def __str__(self) -> str:
         return f"[猜拳: {self.choice.value}]"
 
-    def __repr__(self) -> str:
-        return f"FingerGuessing(choice={self.choice})"
-
 
 DiceValues: TypeAlias = Literal[1, 2, 3, 4, 5, 6]
 
 
+@dataclass
 class Dice(Element):
-    value: DiceValues
-
-    def __init__(self, value: DiceValues) -> None:
-        if value not in range(1, 6 + 1):
-            raise ValueError(f"{value} 不是有效的骰子值")
-        self.value = value
+    value: Literal[1, 2, 3, 4, 5, 6]
 
     def __str__(self) -> str:
         return f"[骰子: {self.value}]"
 
-    def __repr__(self) -> str:
-        return f"Dice(value={self.value})"
 
-
+@dataclass(init=False)
 class Face(Element):
     def __init__(self, index: int, name: str | None = None) -> None:
         self.index = index
@@ -108,9 +98,6 @@ class Face(Element):
     def __str__(self) -> str:
         return f"[表情: {self.name}]"
 
-    def __repr__(self) -> str:
-        return f"Face(index={self.index}, name={self.name})"
-
 
 @dataclass
 class LightApp(Element):
@@ -123,10 +110,11 @@ class LightApp(Element):
 T_Audio = TypeVar("T_Audio", bound=Optional[SealedAudio], default=SealedAudio)
 
 
+@dataclass(init=False)
 class Audio(Generic[T_Audio], Element):
     url: str
-    raw: T_Audio
-    _data_cache: bytes | None
+    raw: T_Audio = field(compare=False)
+    _data_cache: bytes | None = field(repr=False, compare=False)
 
     def __init__(self, url: str, raw: T_Audio = None) -> None:
         self.url = url
@@ -176,10 +164,11 @@ class Audio(Generic[T_Audio], Element):
 T_Image = TypeVar("T_Image", bound=Optional[SealedImage], default=SealedImage)
 
 
+@dataclass(init=False)
 class Image(Generic[T_Image], Element):
     url: str
-    raw: T_Image
-    _data_cache: bytes | None
+    raw: T_Image = field(compare=False)
+    _data_cache: bytes | None = field(repr=False, compare=False)
 
     def __init__(self, url: str, raw: T_Image = None) -> None:
         self.url = url
@@ -239,6 +228,7 @@ class Image(Generic[T_Image], Element):
         return "[图片]"
 
 
+@dataclass(init=False)
 class FlashImage(Image[T_Image]):
     @classmethod
     def build(cls, data: bytes | BytesIO | pathlib.Path) -> FlashImage[None]:
@@ -271,6 +261,9 @@ class MarketFace(Element):
 
     def __str__(self) -> str:
         return f"[商城表情:{self.name}]"
+
+    def __repr__(self) -> str:
+        return f"MarketFace(name={self.name})"
 
 
 TYPE_MAP = {
