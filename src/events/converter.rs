@@ -23,10 +23,10 @@ use crate::{call_static_py, PyRet};
 
 pub async fn convert(event: QEvent) -> PyRet {
     match event {
-        QEvent::Login(event) => handle_login(event).await,
+        QEvent::Login(event) => Ok(handle_login(event)),
         QEvent::GroupMessage(event) => handle_group_message(event).await,
         QEvent::GroupAudioMessage(event) => handle_group_audio(event).await,
-        QEvent::FriendMessage(event) => handle_friend_message(event).await,
+        QEvent::FriendMessage(event) => handle_friend_message(event),
         QEvent::FriendAudioMessage(event) => handle_friend_audio(event).await,
         QEvent::GroupTempMessage(event) => handle_temp_message(event).await,
         QEvent::GroupMessageRecall(event) => handle_group_recall(event).await,
@@ -37,8 +37,8 @@ pub async fn convert(event: QEvent) -> PyRet {
     }
 }
 
-async fn handle_login(uin: i64) -> PyRet {
-    Ok(LoginEvent { uin }.obj())
+fn handle_login(uin: i64) -> PyObject {
+    LoginEvent { uin }.obj()
 }
 
 async fn handle_group_message(event: rce::GroupMessageEvent) -> PyRet {
@@ -111,7 +111,7 @@ async fn handle_group_audio(event: rce::GroupAudioMessageEvent) -> PyRet {
     })
 }
 
-async fn handle_friend_message(event: rce::FriendMessageEvent) -> PyRet {
+fn handle_friend_message(event: rce::FriendMessageEvent) -> PyRet {
     let msg = event.inner;
     let content = py_try(|py| serialize_as_py_chain(py, msg.elements))?;
     py_try(|py| {

@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 from dataclasses import dataclass
 from typing import Callable, Literal, TypedDict, TypeVar
@@ -55,20 +56,24 @@ __build__: __BuildInfo
 
 # endregion: build info
 
+T_Event: TypeAlias = Any  # TODO
+
+# Here, outside wrapper "login_XXX" ensures that a "task locals" can be acquired for event task execution.
+
 async def password_login(
     uin: int,
     credential: str | bytes,
     use_sms: bool,
     protocol: Protocol,
     store: BaseLoginCredentialStore,
-    event_callbacks: list[Callable],
+    event_callbacks: list[asyncio.Queue[T_Event]],
     login_callbacks: PasswordLoginCallbacks,
 ) -> Client: ...
 async def qrcode_login(
     uin: int,
     protocol: Protocol,
     store: BaseLoginCredentialStore,
-    event_callbacks: list[Callable],
+    event_callbacks: list[asyncio.Queue[T_Event]],
     login_callbacks: QRCodeLoginCallbacks,
 ) -> Client: ...
 
