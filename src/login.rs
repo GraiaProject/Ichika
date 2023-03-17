@@ -3,6 +3,7 @@ use std::sync::Arc;
 use pyo3::exceptions::*;
 use pyo3::prelude::*;
 use pyo3::types::*;
+use pyo3_asyncio::TaskLocals;
 use pythonize::depythonize;
 use ricq::client::{Client, Connector, DefaultConnector, NetworkStatus, Token};
 use ricq::ext::common::after_login;
@@ -134,16 +135,19 @@ fn parse_login_args<'py>(
     uin: i64,
     protocol: &'py PyAny,
     store: &'py PyAny,
-    event_callbacks: &'py PyList,
+    queues: &'py PyList,
 ) -> PyResult<(Protocol, PyHandler, Device, TokenRW)> {
-    let handler = PyHandler::new(event_callbacks.into_py(py));
+    let handler = PyHandler::new(
+        queues.into_py(py),
+        TaskLocals::with_running_loop(py)?, // Necessary since retrieving task locals at handling time is already insufficient
+    );
 
     let get_token = partial(py).call1((store.getattr("get_token")?, uin, protocol))?;
     let write_token = partial(py).call1((store.getattr("write_token")?, uin, protocol))?;
 
     let device = store.getattr("get_device")?.call1((uin, protocol))?; // JSON
     let device: Device = depythonize(device)
-        .map_err(|e| exc::LoginError::new_err(format!("无法解析传入的 Device: {e:?}")))?;
+        .map_err(|e| exc::LoginError::new_err(format!("无法解析传入的设备信息: {e:?}")))?;
 
     // Extract Protocol
     let protocol = protocol.getattr("value")?.extract::<String>()?;
@@ -367,11 +371,10 @@ pub fn password_login<'py>(
     use_sms: bool,
     protocol: &'py PyAny,
     store: &'py PyAny,
-    event_callbacks: &'py PyList, // List[Callable[...]]
-    login_callbacks: PyObject,    // PasswordLoginCallbacks
+    queues: &'py PyList,       // List[asyncio.Queue[Event]]
+    login_callbacks: PyObject, // PasswordLoginCallbacks
 ) -> PyResult<&'py PyAny> {
-    let (protocol, handler, device, token_rw) =
-        parse_login_args(py, uin, protocol, store, event_callbacks)?;
+    let (protocol, handler, device, token_rw) = parse_login_args(py, uin, protocol, store, queues)?;
     py_future(py, async move {
         let (client, alive) = prepare_client(device, protocol.clone(), handler).await?;
         if !token_rw.try_login(&client).await? {
@@ -477,11 +480,10 @@ pub fn qrcode_login<'py>(
     uin: i64,
     protocol: &'py PyAny,
     store: &'py PyAny,
-    event_callbacks: &'py PyList, // List[Callable[...]]
-    login_callbacks: PyObject,    // QRCodeLoginCallbacks
+    queues: &'py PyList,       // List[asyncio.Queue[Event]]
+    login_callbacks: PyObject, // QRCodeLoginCallbacks
 ) -> PyResult<&'py PyAny> {
-    let (protocol, handler, device, token_rw) =
-        parse_login_args(py, uin, protocol, store, event_callbacks)?;
+    let (protocol, handler, device, token_rw) = parse_login_args(py, uin, protocol, store, queues)?;
     py_future(py, async move {
         let (client, alive) = prepare_client(device, protocol.clone(), handler).await?;
         if !token_rw.try_login(&client).await? {
