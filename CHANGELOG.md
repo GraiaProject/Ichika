@@ -7,6 +7,24 @@
 
 <!-- towncrier release notes start -->
 
+## [0.0.4](https://github.com/BlueGlassBlock/ichika/tree/0.0.4) - 2023-03-17
+
+你可以在 [PyPI](https://pypi.org/project/ichika/0.0.4/) 找到该版本。
+
+### 新增
+
+- 支持处理群聊和好友撤回消息事件 ([#22](https://github.com/BlueGlassBlock/ichika/issues/22))
+- 修复了消息元素的 `__repr__` 显示。
+- 支持好友和群组的拍一拍（双击头像触发）事件。
+
+
+### 更改
+
+- 使用 `asyncio.Queue` 而不是回调函数来处理事件。
+
+  `Queue.put` 的任务上下文会与 `ichika.login.xxx_login` 的调用者一致。
+
+
 ## [0.0.3](https://github.com/BlueGlassBlock/ichika/tree/0.0.3) - 2023-03-16
 
 你可以在 [PyPI](https://pypi.org/project/ichika/0.0.3/) 找到该版本。
