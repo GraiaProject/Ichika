@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use pyo3::prelude::*;
 use pyo3::types::*;
+use pyo3_asyncio::{into_future_with_locals, TaskLocals};
 use pyo3_repr::PyRepr;
 use ricq::handler::{Handler, QEvent};
 
@@ -9,6 +10,7 @@ pub mod structs;
 use structs::MessageSource;
 
 use self::structs::{FriendInfo, MemberInfo};
+use crate::utils::py_try;
 
 #[pyclass(get_all)]
 #[derive(PyRepr, Clone)]
@@ -84,12 +86,13 @@ impl UnknownEvent {
 }
 
 pub struct PyHandler {
-    callbacks: Py<PyList>,
+    queues: Py<PyList>,
+    locals: TaskLocals,
 }
 
 impl PyHandler {
-    pub fn new(callbacks: Py<PyList>) -> Self {
-        Self { callbacks }
+    pub fn new(queues: Py<PyList>, locals: TaskLocals) -> Self {
+        Self { queues, locals }
     }
 }
 
@@ -100,25 +103,41 @@ impl Handler for PyHandler {
         let py_event = match self::converter::convert(event).await {
             Ok(obj) => obj,
             Err(e) => {
-                tracing::error!("转换事件 {} 时失败:", event_repr);
-                Python::with_gil(|py| e.print_and_set_sys_last_vars(py));
+                tracing::error!("转换事件 {} 时失败: {}", event_repr, e);
                 return;
             }
         };
+        let mut handles: Vec<tokio::task::JoinHandle<Result<(), PyErr>>> = vec![];
         Python::with_gil(|py| {
             if py_event.is_none(py) {
                 return;
             }
             let args: Py<PyTuple> = (py_event,).into_py(py);
-            for cb in self.callbacks.as_ref(py) {
-                match cb.call1(args.clone().as_ref(py)) {
-                    Ok(_) => {}
-                    Err(e) => {
-                        tracing::error!("调用回调 {:?} 时失败:", cb);
-                        e.print_and_set_sys_last_vars(py);
-                    }
-                }
+            for q in self.queues.as_ref(py).iter().map(|q| q.into_py(py)) {
+                let locals = self.locals.clone();
+                let args = args.clone();
+                handles.push(tokio::spawn(async move {
+                    py_try(|py| {
+                        into_future_with_locals(
+                            &locals,
+                            q.as_ref(py).getattr("put")?.call1(args.as_ref(py))?,
+                        )
+                    })?
+                    .await?;
+                    Ok(())
+                }));
             }
         });
+        for handle in handles {
+            match handle.await {
+                Err(err) => {
+                    tracing::error!("向队列发送事件失败: {:?}", err);
+                }
+                Ok(Err(err)) => {
+                    tracing::error!("向队列发送事件失败: {:?}", err);
+                }
+                Ok(Ok(())) => {}
+            };
+        }
     }
 }

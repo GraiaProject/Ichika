@@ -7,7 +7,7 @@ use pyo3::types::PyBytes;
 
 /// 获取 Python 的 None。
 pub fn py_none() -> PyObject {
-    Python::with_gil(|py| py.None())
+    py_use(|py| py.None())
 }
 
 pub trait AsPython {
@@ -19,7 +19,7 @@ where
     T: IntoPy<PyObject>,
 {
     fn obj(self) -> PyObject {
-        Python::with_gil(|py| self.into_py(py))
+        py_use(|py| self.into_py(py))
     }
 }
 

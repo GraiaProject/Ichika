@@ -31,7 +31,7 @@ pub struct RawMessageReceipt {
 #[derive(FromPyObject)]
 pub enum OnlineStatusParam {
     #[pyo3(annotation = "tuple[bool, int]")]
-    Normal(bool, u64),
+    Normal(bool, i32),
     #[pyo3(annotation = "tuple[int, str]")]
     Custom(u64, String),
 }
@@ -49,8 +49,8 @@ impl From<OnlineStatusParam> for ricq::structs::Status {
                 }),
             },
             OnlineStatusParam::Normal(is_ext, index) => Status {
-                online_status: if is_ext { 11 } else { index as i32 },
-                ext_online_status: if is_ext { index as i64 } else { 0 },
+                online_status: if is_ext { 11 } else { index },
+                ext_online_status: if is_ext { i64::from(index) } else { 0 },
                 custom_status: None,
             },
         }

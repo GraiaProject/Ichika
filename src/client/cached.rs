@@ -181,13 +181,12 @@ impl ClientCache {
 pub async fn cache(client: Arc<Client>) -> ClientCache {
     let uin = client.uin().await;
     let mut cache_guard = CACHE.lock().await;
-    let detached = match cache_guard.get(&uin) {
-        Some(detached) => detached.clone(),
-        None => {
-            let detached: Arc<Mutex<DetachedCache>> = Arc::default();
-            cache_guard.insert(uin, detached.clone());
-            detached
-        }
+    let detached = if let Some(detached) = cache_guard.get(&uin) {
+        detached.clone()
+    } else {
+        let detached: Arc<Mutex<DetachedCache>> = Arc::default();
+        cache_guard.insert(uin, detached.clone());
+        detached
     };
     ClientCache { client, detached }
 }
