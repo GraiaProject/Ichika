@@ -66,6 +66,8 @@ fn register_event_module(py: Python, parent: &PyModule) -> PyResult<()> {
         crate::events::TempMessage,
         crate::events::FriendMessage,
         crate::events::FriendRecallMessage,
+        crate::events::GroupNudge,
+        crate::events::FriendNudge,
         crate::events::UnknownEvent
     );
     parent.add_submodule(m)?;
