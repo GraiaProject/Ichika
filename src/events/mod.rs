@@ -57,6 +57,19 @@ pub struct TempMessage {
     sender: MemberInfo,
 }
 
+#[pyclass(get_all)]
+#[derive(PyRepr, Clone)]
+pub struct GroupNudge {
+    sender: MemberInfo,
+    receiver: MemberInfo,
+}
+
+#[pyclass(get_all)]
+#[derive(PyRepr, Clone)]
+pub struct FriendNudge {
+    sender: FriendInfo,
+}
+
 #[pyclass]
 #[derive(PyRepr, Clone)]
 pub struct UnknownEvent {
@@ -93,7 +106,10 @@ impl Handler for PyHandler {
             }
         };
         Python::with_gil(|py| {
-            let args: Py<PyTuple> = PyTuple::new(py, &[py_event]).into_py(py);
+            if py_event.is_none(py) {
+                return;
+            }
+            let args: Py<PyTuple> = (py_event,).into_py(py);
             for cb in self.callbacks.as_ref(py) {
                 match cb.call1(args.clone().as_ref(py)) {
                     Ok(_) => {}

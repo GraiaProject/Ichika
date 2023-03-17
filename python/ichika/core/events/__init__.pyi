@@ -44,4 +44,13 @@ class TempMessage:
     sender: MemberInfo
 
 @internal_repr
+class GroupNudge:
+    sender: MemberInfo
+    receiver: MemberInfo
+
+@internal_repr
+class FriendNudge:
+    sender: FriendInfo
+
+@internal_repr
 class UnknownEvent: ...
