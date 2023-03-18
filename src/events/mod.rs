@@ -72,6 +72,18 @@ pub struct FriendNudge {
     sender: FriendInfo,
 }
 
+#[pyclass(get_all)]
+#[derive(PyRepr, Clone)]
+pub struct NewFriend {
+    friend: FriendInfo,
+}
+
+#[pyclass(get_all)]
+#[derive(PyRepr, Clone)]
+pub struct NewMember {
+    member: MemberInfo,
+}
+
 #[pyclass]
 #[derive(PyRepr, Clone)]
 pub struct UnknownEvent {
