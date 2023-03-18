@@ -81,8 +81,10 @@ jobs:
           python-version: 3.8
           architecture: ${{ matrix.py_arch || 'x64' }}
 
-      - name: Install tomlkit to edit Cargo.toml
-        run: pip install tomlkit
+      - name: Install Dependencies
+        run: |
+          pip install tomlkit
+          pip install actions_toolkit
 
       - name: Bump Dev Version
         if: ${{ env.RELEASE != 'true' }}
