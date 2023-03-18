@@ -89,6 +89,8 @@ jobs:
         run: python ./.github/scripts/bump_cargo_version.py
 
       - name: Build Wheel
+        id: build-wheel
+        continue-on-error: true
         uses: PyO3/maturin-action@v1
         with:
           rust-toolchain: nightly
@@ -99,16 +101,25 @@ jobs:
           sccache: true
 
       - name: Upload wheels - Packed
+        if: ${{ steps.build-wheel.outcome == 'success' }}
         uses: actions/upload-artifact@v3
         with:
           name: wheels
           path: dist
 
       - name: Upload wheels - Unpacked
+        if: ${{ steps.build-wheel.outcome == 'success' }}
         uses: actions/upload-artifact@v3
         with:
           name: ${{ matrix.name }}
           path: dist
+
+      - name: Conclusion
+        if: ${{ always() }}
+        run: python ./.github/scripts/build_conclusion.py
+        env:
+          MATRIX: ${{ toJSON(matrix) }}
+          RESULT: ${{ steps.build-wheel.outcome }}
 
   release:
     name: Release
