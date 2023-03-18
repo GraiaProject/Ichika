@@ -61,4 +61,21 @@ class NewMember:
     member: MemberInfo
 
 @internal_repr
+class MemberLeaveGroup:
+    group_uin: int
+    member_uin: int
+
+@internal_repr
+class BotLeaveGroup:
+    group_uin: int
+
+@internal_repr
+class GroupDisband:
+    group_uin: int
+
+@internal_repr
+class FriendDeleted:
+    friend_uin: int
+
+@internal_repr
 class UnknownEvent: ...

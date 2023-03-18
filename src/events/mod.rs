@@ -84,6 +84,32 @@ pub struct NewMember {
     member: MemberInfo,
 }
 
+#[pyclass(get_all)]
+#[derive(PyRepr, Clone)]
+pub struct MemberLeaveGroup {
+    group_uin: i64,
+    member_uin: i64,
+}
+
+#[pyclass(get_all)]
+#[derive(PyRepr, Clone)]
+pub struct BotLeaveGroup {
+    group_uin: i64,
+}
+
+#[pyclass(get_all)]
+#[derive(PyRepr, Clone)]
+pub struct GroupDisband {
+    group_uin: i64,
+    operator_uin: i64,
+}
+
+#[pyclass(get_all)]
+#[derive(PyRepr, Clone)]
+pub struct FriendDeleted {
+    friend_uin: i64,
+}
+
 #[pyclass]
 #[derive(PyRepr, Clone)]
 pub struct UnknownEvent {
