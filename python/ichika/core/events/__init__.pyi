@@ -53,4 +53,12 @@ class FriendNudge:
     sender: FriendInfo
 
 @internal_repr
+class NewFriend:
+    friend: FriendInfo
+
+@internal_repr
+class NewMember:
+    member: MemberInfo
+
+@internal_repr
 class UnknownEvent: ...
