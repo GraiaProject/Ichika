@@ -29,8 +29,7 @@ fail = """\
 if result.lower() == "success":
     filename = "<ERROR>"
     for res in Path("./dist").iterdir():
-        if res.suffix in (".whl", ".tar.gz"):
-            filename = res.name
+        filename = res.name
     issue_file_command(
         "STEP_SUMMARY",
         success.format(
