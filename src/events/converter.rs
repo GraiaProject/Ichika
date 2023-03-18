@@ -5,13 +5,17 @@ use ricq::handler::QEvent;
 
 use super::structs::{FriendInfo, MemberInfo, MessageSource};
 use super::{
+    BotLeaveGroup,
+    FriendDeleted,
     FriendMessage,
     FriendNudge,
     FriendRecallMessage,
+    GroupDisband,
     GroupMessage,
     GroupNudge,
     GroupRecallMessage,
     LoginEvent,
+    MemberLeaveGroup,
     NewFriend,
     NewMember,
     TempMessage,
@@ -37,6 +41,9 @@ pub async fn convert(event: QEvent) -> PyRet {
         QEvent::FriendPoke(event) => handle_friend_nudge(event).await,
         QEvent::NewFriend(event) => Ok(handle_new_friend(event)),
         QEvent::NewMember(event) => handle_new_member(event).await,
+        QEvent::GroupLeave(event) => Ok(handle_group_leave(event).await),
+        QEvent::GroupDisband(event) => Ok(handle_group_disband(event)),
+        QEvent::DeleteFriend(event) => Ok(handle_friend_delete(event)),
         unknown => Ok(UnknownEvent { inner: unknown }.obj()),
     }
 }
@@ -256,4 +263,36 @@ async fn handle_new_member(event: rce::NewMemberEvent) -> PyRet {
         member: MemberInfo::new(&member, (*group).clone()),
     }
     .obj())
+}
+
+async fn handle_group_leave(event: rce::GroupLeaveEvent) -> PyObject {
+    let uin = event.client.uin().await;
+    let event = event.inner;
+    if event.member_uin == uin {
+        BotLeaveGroup {
+            group_uin: event.group_code,
+        }
+        .obj()
+    } else {
+        MemberLeaveGroup {
+            group_uin: event.group_code,
+            member_uin: event.member_uin,
+        }
+        .obj()
+    }
+}
+
+fn handle_group_disband(event: rce::GroupDisbandEvent) -> PyObject {
+    GroupDisband {
+        group_uin: event.inner.group_code,
+        operator_uin: event.inner.operator_uin,
+    }
+    .obj()
+}
+
+fn handle_friend_delete(event: rce::DeleteFriendEvent) -> PyObject {
+    FriendDeleted {
+        friend_uin: event.inner.uin,
+    }
+    .obj()
 }

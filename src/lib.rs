@@ -70,6 +70,10 @@ fn register_event_module(py: Python, parent: &PyModule) -> PyResult<()> {
         crate::events::FriendNudge,
         crate::events::NewFriend,
         crate::events::NewMember,
+        crate::events::MemberLeaveGroup,
+        crate::events::BotLeaveGroup,
+        crate::events::GroupDisband,
+        crate::events::FriendDeleted,
         crate::events::UnknownEvent
     );
     parent.add_submodule(m)?;
