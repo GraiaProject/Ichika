@@ -12,6 +12,8 @@ use super::{
     GroupNudge,
     GroupRecallMessage,
     LoginEvent,
+    NewFriend,
+    NewMember,
     TempMessage,
     UnknownEvent,
 };
@@ -33,6 +35,8 @@ pub async fn convert(event: QEvent) -> PyRet {
         QEvent::FriendMessageRecall(event) => handle_friend_recall(event).await,
         QEvent::GroupPoke(event) => handle_group_nudge(event).await,
         QEvent::FriendPoke(event) => handle_friend_nudge(event).await,
+        QEvent::NewFriend(event) => Ok(handle_new_friend(event)),
+        QEvent::NewMember(event) => handle_new_member(event).await,
         unknown => Ok(UnknownEvent { inner: unknown }.obj()),
     }
 }
@@ -226,6 +230,30 @@ async fn handle_friend_nudge(event: rce::FriendPokeEvent) -> PyRet {
             uin: friend.uin,
             nickname: friend.nick,
         },
+    }
+    .obj())
+}
+
+fn handle_new_friend(event: rce::NewFriendEvent) -> PyObject {
+    NewFriend {
+        friend: FriendInfo {
+            uin: event.inner.uin,
+            nickname: event.inner.nick,
+        },
+    }
+    .obj()
+}
+
+async fn handle_new_member(event: rce::NewMemberEvent) -> PyRet {
+    let mut cache = cache(event.client).await;
+    let event = event.inner;
+    let group = cache.fetch_group(event.group_code).await.py_res()?;
+    let member = cache
+        .fetch_member(event.group_code, event.member_uin)
+        .await
+        .py_res()?;
+    Ok(NewMember {
+        member: MemberInfo::new(&member, (*group).clone()),
     }
     .obj())
 }
