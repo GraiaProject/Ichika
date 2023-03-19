@@ -10,6 +10,7 @@ use super::{
     FriendNudge,
     FriendRecallMessage,
     GroupDisband,
+    GroupInfoUpdate,
     GroupMessage,
     GroupMute,
     GroupNudge,
@@ -26,8 +27,8 @@ use super::{
 use crate::client::cache;
 use crate::exc::MapPyErr;
 use crate::message::convert::{serialize_as_py_chain, serialize_audio};
-use crate::utils::{datetime_from_ts, py_none, py_try, timedelta_from_secs, AsPython};
-use crate::PyRet;
+use crate::utils::{datetime_from_ts, py_none, py_try, py_use, timedelta_from_secs, AsPython};
+use crate::{py_dict, PyRet};
 
 pub async fn convert(event: QEvent) -> PyRet {
     match event {
@@ -48,6 +49,7 @@ pub async fn convert(event: QEvent) -> PyRet {
         QEvent::DeleteFriend(event) => Ok(handle_friend_delete(event).await),
         QEvent::GroupMute(event) => handle_mute(event).await,
         QEvent::MemberPermissionChange(event) => handle_permission_change(event).await,
+        QEvent::GroupNameUpdate(event) => handle_group_info_update(event).await,
         unknown => Ok(UnknownEvent { inner: unknown }.obj()),
     }
 }
@@ -365,6 +367,29 @@ async fn handle_permission_change(event: rce::MemberPermissionChangeEvent) -> Py
     Ok(MemberPermissionChange {
         target,
         permission: event.new_permission as u8,
+    }
+    .obj())
+}
+
+async fn handle_group_info_update(event: rce::GroupNameUpdateEvent) -> PyRet {
+    let mut cache = cache(event.client).await;
+    let event = event.inner;
+    cache.flush_group(event.group_code).await;
+    let group = cache
+        .fetch_group(event.group_code)
+        .await
+        .py_res()?
+        .as_ref()
+        .clone();
+    let operator = cache
+        .fetch_member(event.group_code, event.operator_uin)
+        .await
+        .py_res()?;
+    let operator = MemberInfo::new(&operator, group.clone());
+    Ok(GroupInfoUpdate {
+        group,
+        operator,
+        info: py_use(|py| py_dict!(py, "name" => event.group_name).into_py(py)),
     }
     .obj())
 }

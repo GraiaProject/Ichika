@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Literal
+from typing import Literal, TypedDict
 
 from graia.amnesia.message import MessageChain
 
@@ -92,6 +92,15 @@ class MemberMute:
 class MemberPermissionChange:
     target: MemberInfo
     permission: int
+
+class __GroupInfo(TypedDict):
+    name: str
+
+@internal_repr
+class GroupInfoUpdate:
+    group: Group
+    operator: MemberInfo
+    info: __GroupInfo
 
 @internal_repr
 class UnknownEvent: ...
