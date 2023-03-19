@@ -1,7 +1,10 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
+from typing import Literal
 
 from graia.amnesia.message import MessageChain
+
+from ichika.core import Group
 
 from . import structs as structs
 from .structs import FriendInfo, MemberInfo, MessageSource
@@ -76,6 +79,24 @@ class GroupDisband:
 @internal_repr
 class FriendDeleted:
     friend_uin: int
+
+@internal_repr
+class GroupMute:
+    group: Group
+    operator: MemberInfo
+    status: bool
+
+@internal_repr
+class MemberMute:
+    operator: MemberInfo
+    target: MemberInfo
+    duration: timedelta | Literal[False]
+
+@internal_repr
+class BotMute:
+    group: Group
+    operator: MemberInfo
+    duration: timedelta | Literal[False]
 
 @internal_repr
 class UnknownEvent: ...

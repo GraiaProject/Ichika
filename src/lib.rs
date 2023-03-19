@@ -74,6 +74,9 @@ fn register_event_module(py: Python, parent: &PyModule) -> PyResult<()> {
         crate::events::BotLeaveGroup,
         crate::events::GroupDisband,
         crate::events::FriendDeleted,
+        crate::events::GroupMute,
+        crate::events::MemberMute,
+        crate::events::BotMute,
         crate::events::UnknownEvent
     );
     parent.add_submodule(m)?;

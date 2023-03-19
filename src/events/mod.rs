@@ -10,6 +10,7 @@ pub mod structs;
 use structs::MessageSource;
 
 use self::structs::{FriendInfo, MemberInfo};
+use crate::client::group::Group;
 use crate::utils::py_try;
 
 #[pyclass(get_all)]
@@ -108,6 +109,30 @@ pub struct GroupDisband {
 #[derive(PyRepr, Clone)]
 pub struct FriendDeleted {
     friend_uin: i64,
+}
+
+#[pyclass(get_all)]
+#[derive(PyRepr, Clone)]
+pub struct MemberMute {
+    target: MemberInfo,
+    operator: MemberInfo,
+    duration: PyObject, // datetime.timedelta | Literal[False]
+}
+
+#[pyclass(get_all)]
+#[derive(PyRepr, Clone)]
+pub struct BotMute {
+    group: Group,
+    operator: MemberInfo,
+    duration: PyObject, // datetime.timedelta | Literal[False]
+}
+
+#[pyclass(get_all)]
+#[derive(PyRepr, Clone)]
+pub struct GroupMute {
+    group: Group,
+    operator: MemberInfo,
+    status: bool,
 }
 
 #[pyclass]
