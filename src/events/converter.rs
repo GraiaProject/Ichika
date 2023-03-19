@@ -5,8 +5,6 @@ use ricq::handler::QEvent;
 
 use super::structs::{FriendInfo, MemberInfo, MessageSource};
 use super::{
-    BotLeaveGroup,
-    BotMute,
     FriendDeleted,
     FriendMessage,
     FriendNudge,
@@ -19,6 +17,7 @@ use super::{
     LoginEvent,
     MemberLeaveGroup,
     MemberMute,
+    MemberPermissionChange,
     NewFriend,
     NewMember,
     TempMessage,
@@ -45,9 +44,10 @@ pub async fn convert(event: QEvent) -> PyRet {
         QEvent::NewFriend(event) => Ok(handle_new_friend(event)),
         QEvent::NewMember(event) => handle_new_member(event).await,
         QEvent::GroupLeave(event) => Ok(handle_group_leave(event).await),
-        QEvent::GroupDisband(event) => Ok(handle_group_disband(event)),
-        QEvent::DeleteFriend(event) => Ok(handle_friend_delete(event)),
+        QEvent::GroupDisband(event) => Ok(handle_group_disband(event).await),
+        QEvent::DeleteFriend(event) => Ok(handle_friend_delete(event).await),
         QEvent::GroupMute(event) => handle_mute(event).await,
+        QEvent::MemberPermissionChange(event) => handle_permission_change(event).await,
         unknown => Ok(UnknownEvent { inner: unknown }.obj()),
     }
 }
@@ -270,31 +270,31 @@ async fn handle_new_member(event: rce::NewMemberEvent) -> PyRet {
 }
 
 async fn handle_group_leave(event: rce::GroupLeaveEvent) -> PyObject {
-    let uin = event.client.uin().await;
+    let mut cache = cache(event.client).await;
     let event = event.inner;
-    if event.member_uin == uin {
-        BotLeaveGroup {
-            group_uin: event.group_code,
-        }
-        .obj()
-    } else {
-        MemberLeaveGroup {
-            group_uin: event.group_code,
-            member_uin: event.member_uin,
-        }
-        .obj()
-    }
-}
+    cache.flush_member(event.group_code, event.member_uin).await;
 
-fn handle_group_disband(event: rce::GroupDisbandEvent) -> PyObject {
-    GroupDisband {
-        group_uin: event.inner.group_code,
-        operator_uin: event.inner.operator_uin,
+    MemberLeaveGroup {
+        group_uin: event.group_code,
+        member_uin: event.member_uin,
     }
     .obj()
 }
 
-fn handle_friend_delete(event: rce::DeleteFriendEvent) -> PyObject {
+async fn handle_group_disband(event: rce::GroupDisbandEvent) -> PyObject {
+    let mut cache = cache(event.client).await;
+    let event = event.inner;
+    cache.flush_group(event.group_code).await;
+    GroupDisband {
+        group_uin: event.group_code,
+        operator_uin: event.operator_uin,
+    }
+    .obj()
+}
+
+async fn handle_friend_delete(event: rce::DeleteFriendEvent) -> PyObject {
+    let mut cache = cache(event.client).await;
+    cache.flush_friend_list().await;
     FriendDeleted {
         friend_uin: event.inner.uin,
     }
@@ -302,15 +302,16 @@ fn handle_friend_delete(event: rce::DeleteFriendEvent) -> PyObject {
 }
 
 async fn handle_mute(event: rce::GroupMuteEvent) -> PyRet {
-    let uin = event.client.uin().await;
     let mut cache = cache(event.client).await;
     let event = event.inner;
+    cache.flush_group(event.group_code).await;
     let group = cache
         .fetch_group(event.group_code)
         .await
         .py_res()?
         .as_ref()
         .clone();
+
     let operator = cache
         .fetch_member(event.group_code, event.operator_uin)
         .await
@@ -333,24 +334,37 @@ async fn handle_mute(event: rce::GroupMuteEvent) -> PyRet {
             false.into_py(py)
         })
     })?;
-    if event.target_uin == uin {
-        Ok(BotMute {
-            group,
-            operator,
-            duration,
-        }
-        .obj())
-    } else {
-        let target = cache
-            .fetch_member(event.group_code, event.target_uin)
-            .await
-            .py_res()?;
-        let target = MemberInfo::new(&target, group.clone());
-        Ok(MemberMute {
-            operator,
-            target,
-            duration,
-        }
-        .obj())
+    let target = cache
+        .fetch_member(event.group_code, event.target_uin)
+        .await
+        .py_res()?;
+    let target = MemberInfo::new(&target, group.clone());
+    Ok(MemberMute {
+        operator,
+        target,
+        duration,
     }
+    .obj())
+}
+
+async fn handle_permission_change(event: rce::MemberPermissionChangeEvent) -> PyRet {
+    let mut cache = cache(event.client).await;
+    let event = event.inner;
+    cache.flush_member(event.group_code, event.member_uin).await;
+    let group = cache
+        .fetch_group(event.group_code)
+        .await
+        .py_res()?
+        .as_ref()
+        .clone();
+    let target = cache
+        .fetch_member(event.group_code, event.member_uin)
+        .await
+        .py_res()?;
+    let target = MemberInfo::new(&target, group.clone());
+    Ok(MemberPermissionChange {
+        target,
+        permission: event.new_permission as u8,
+    }
+    .obj())
 }
