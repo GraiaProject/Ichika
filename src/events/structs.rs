@@ -2,7 +2,6 @@ use pyo3::prelude::*;
 use pyo3::types::PyTuple;
 use pyo3_repr::PyRepr;
 
-use crate::call_static_py;
 use crate::client::group::{Group, Member};
 use crate::utils::datetime_from_ts;
 #[pyclass(get_all)]
@@ -18,7 +17,7 @@ impl MessageSource {
         Ok(Self {
             seqs: PyTuple::new(py, seqs).into_py(py),
             rands: PyTuple::new(py, rands).into_py(py),
-            time: call_static_py!(datetime_from_ts, py, (time))?.into(),
+            time: datetime_from_ts(py, time)?.into_py(py),
         })
     }
 }

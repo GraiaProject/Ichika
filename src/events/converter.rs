@@ -6,16 +6,19 @@ use ricq::handler::QEvent;
 use super::structs::{FriendInfo, MemberInfo, MessageSource};
 use super::{
     BotLeaveGroup,
+    BotMute,
     FriendDeleted,
     FriendMessage,
     FriendNudge,
     FriendRecallMessage,
     GroupDisband,
     GroupMessage,
+    GroupMute,
     GroupNudge,
     GroupRecallMessage,
     LoginEvent,
     MemberLeaveGroup,
+    MemberMute,
     NewFriend,
     NewMember,
     TempMessage,
@@ -24,8 +27,8 @@ use super::{
 use crate::client::cache;
 use crate::exc::MapPyErr;
 use crate::message::convert::{serialize_as_py_chain, serialize_audio};
-use crate::utils::{datetime_from_ts, py_none, py_try, AsPython};
-use crate::{call_static_py, PyRet};
+use crate::utils::{datetime_from_ts, py_none, py_try, timedelta_from_secs, AsPython};
+use crate::PyRet;
 
 pub async fn convert(event: QEvent) -> PyRet {
     match event {
@@ -44,6 +47,7 @@ pub async fn convert(event: QEvent) -> PyRet {
         QEvent::GroupLeave(event) => Ok(handle_group_leave(event).await),
         QEvent::GroupDisband(event) => Ok(handle_group_disband(event)),
         QEvent::DeleteFriend(event) => Ok(handle_friend_delete(event)),
+        QEvent::GroupMute(event) => handle_mute(event).await,
         unknown => Ok(UnknownEvent { inner: unknown }.obj()),
     }
 }
@@ -91,7 +95,7 @@ async fn handle_group_recall(event: rce::GroupMessageRecallEvent) -> PyRet {
         .fetch_member(event.group_code, event.operator_uin)
         .await
         .py_res()?;
-    let time = py_try(|py| Ok(call_static_py!(datetime_from_ts, py, (event.time))?.into_py(py)))?;
+    let time = py_try(|py| Ok(datetime_from_ts(py, event.time)?.into_py(py)))?;
     Ok(GroupRecallMessage {
         time,
         author: MemberInfo::new(&author, (*group_info).clone()),
@@ -149,7 +153,7 @@ async fn handle_friend_recall(event: rce::FriendMessageRecallEvent) -> PyRet {
         .ok_or_else(|| {
             PyValueError::new_err(format!("Unable to find friend {}", event.friend_uin))
         })?;
-    let time = py_try(|py| Ok(call_static_py!(datetime_from_ts, py, (event.time))?.into_py(py)))?;
+    let time = py_try(|py| Ok(datetime_from_ts(py, event.time)?.into_py(py)))?;
     Ok(FriendRecallMessage {
         time,
         author: FriendInfo {
@@ -295,4 +299,58 @@ fn handle_friend_delete(event: rce::DeleteFriendEvent) -> PyObject {
         friend_uin: event.inner.uin,
     }
     .obj()
+}
+
+async fn handle_mute(event: rce::GroupMuteEvent) -> PyRet {
+    let uin = event.client.uin().await;
+    let mut cache = cache(event.client).await;
+    let event = event.inner;
+    let group = cache
+        .fetch_group(event.group_code)
+        .await
+        .py_res()?
+        .as_ref()
+        .clone();
+    let operator = cache
+        .fetch_member(event.group_code, event.operator_uin)
+        .await
+        .py_res()?;
+    let operator = MemberInfo::new(&operator, group.clone());
+
+    if event.target_uin == 0 {
+        return Ok(GroupMute {
+            group,
+            operator,
+            status: event.duration.as_secs() == 0,
+        }
+        .obj());
+    }
+    let duration = event.duration.as_secs();
+    let duration = py_try(|py| {
+        Ok(if duration != 0 {
+            timedelta_from_secs(py, duration)?.into_py(py)
+        } else {
+            false.into_py(py)
+        })
+    })?;
+    if event.target_uin == uin {
+        Ok(BotMute {
+            group,
+            operator,
+            duration,
+        }
+        .obj())
+    } else {
+        let target = cache
+            .fetch_member(event.group_code, event.target_uin)
+            .await
+            .py_res()?;
+        let target = MemberInfo::new(&target, group.clone());
+        Ok(MemberMute {
+            operator,
+            target,
+            duration,
+        }
+        .obj())
+    }
 }
