@@ -163,10 +163,25 @@ macro_rules! call_static_py {
 }
 
 static_py_fn!(
-    datetime_from_ts,
+    _datetime_from_ts,
     __DT_CELL,
     "datetime",
     ["datetime", "fromtimestamp"]
 );
+
+pub fn datetime_from_ts(py: Python<'_>, time: impl IntoPy<PyObject>) -> PyResult<&PyAny> {
+    call_static_py!(_datetime_from_ts, py, (time))
+}
+
+static_py_fn!(
+    _timedelta_from_secs,
+    __TDELTA_CELL,
+    "datetime",
+    ["timedelta"]
+);
+
+pub fn timedelta_from_secs(py: Python<'_>, delta: impl IntoPy<PyObject>) -> PyResult<&PyAny> {
+    _timedelta_from_secs(py).call((), kwargs!(py, "seconds" => delta.into_py(py)))
+}
 
 static_py_fn!(partial, __PARTIAL_CELL, "functools", ["partial"]);
