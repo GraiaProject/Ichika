@@ -94,12 +94,6 @@ pub struct MemberLeaveGroup {
 
 #[pyclass(get_all)]
 #[derive(PyRepr, Clone)]
-pub struct BotLeaveGroup {
-    group_uin: i64,
-}
-
-#[pyclass(get_all)]
-#[derive(PyRepr, Clone)]
 pub struct GroupDisband {
     group_uin: i64,
     operator_uin: i64,
@@ -121,18 +115,17 @@ pub struct MemberMute {
 
 #[pyclass(get_all)]
 #[derive(PyRepr, Clone)]
-pub struct BotMute {
-    group: Group,
-    operator: MemberInfo,
-    duration: PyObject, // datetime.timedelta | Literal[False]
-}
-
-#[pyclass(get_all)]
-#[derive(PyRepr, Clone)]
 pub struct GroupMute {
     group: Group,
     operator: MemberInfo,
     status: bool,
+}
+
+#[pyclass(get_all)]
+#[derive(PyRepr, Clone)]
+pub struct MemberPermissionChange {
+    target: MemberInfo,
+    permission: u8,
 }
 
 #[pyclass]

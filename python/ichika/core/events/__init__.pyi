@@ -69,10 +69,6 @@ class MemberLeaveGroup:
     member_uin: int
 
 @internal_repr
-class BotLeaveGroup:
-    group_uin: int
-
-@internal_repr
 class GroupDisband:
     group_uin: int
 
@@ -93,10 +89,9 @@ class MemberMute:
     duration: timedelta | Literal[False]
 
 @internal_repr
-class BotMute:
-    group: Group
-    operator: MemberInfo
-    duration: timedelta | Literal[False]
+class MemberPermissionChange:
+    target: MemberInfo
+    permission: int
 
 @internal_repr
 class UnknownEvent: ...
