@@ -128,6 +128,14 @@ pub struct MemberPermissionChange {
     permission: u8,
 }
 
+#[pyclass(get_all)]
+#[derive(PyRepr, Clone)]
+pub struct GroupInfoUpdate {
+    group: Group,
+    operator: MemberInfo,
+    info: Py<PyDict>, // GroupInfo
+}
+
 #[pyclass]
 #[derive(PyRepr, Clone)]
 pub struct UnknownEvent {
