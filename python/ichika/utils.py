@@ -1,12 +1,13 @@
 from enum import Enum
-from typing import Callable, Generic, TypeVar
-from typing_extensions import ParamSpec
+from typing import Awaitable, Callable, Generic, TypeVar
+from typing_extensions import ParamSpec, TypeAlias
 
 C_T = TypeVar("C_T", bound=Callable)
 T = TypeVar("T")
 R = TypeVar("R")
 P = ParamSpec("P")
-Decor = Callable[[C_T], C_T]
+Decor: TypeAlias = Callable[[C_T], C_T]
+AsyncFn: TypeAlias = Callable[P, Awaitable[T]]
 
 
 class AutoEnum(Enum):
