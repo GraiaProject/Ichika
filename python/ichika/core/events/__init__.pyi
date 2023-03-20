@@ -4,10 +4,10 @@ from typing import Literal, TypedDict
 
 from graia.amnesia.message import MessageChain
 
-from ichika.core import Group
+from ichika.core import Group, Member
 
 from . import structs as structs
-from .structs import FriendInfo, MemberInfo, MessageSource
+from .structs import FriendInfo, MessageSource
 
 internal_repr = dataclass(frozen=True, init=False)
 
@@ -19,13 +19,15 @@ class LoginEvent:
 class GroupMessage:
     source: MessageSource
     content: MessageChain
-    sender: MemberInfo
+    group: Group
+    sender: Member
 
 @internal_repr
 class GroupRecallMessage:
     time: datetime
-    author: MemberInfo
-    operator: MemberInfo
+    group: Group
+    author: Member
+    operator: Member
     seq: int
 
 @internal_repr
@@ -44,12 +46,14 @@ class FriendRecallMessage:
 class TempMessage:
     source: MessageSource
     content: MessageChain
-    sender: MemberInfo
+    group: Group
+    sender: Member
 
 @internal_repr
 class GroupNudge:
-    sender: MemberInfo
-    receiver: MemberInfo
+    group: Group
+    sender: Member
+    receiver: Member
 
 @internal_repr
 class FriendNudge:
@@ -61,7 +65,8 @@ class NewFriend:
 
 @internal_repr
 class NewMember:
-    member: MemberInfo
+    group: Group
+    member: Member
 
 @internal_repr
 class MemberLeaveGroup:
@@ -79,18 +84,20 @@ class FriendDeleted:
 @internal_repr
 class GroupMute:
     group: Group
-    operator: MemberInfo
+    operator: Member
     status: bool
 
 @internal_repr
 class MemberMute:
-    operator: MemberInfo
-    target: MemberInfo
+    group: Group
+    operator: Member
+    target: Member
     duration: timedelta | Literal[False]
 
 @internal_repr
 class MemberPermissionChange:
-    target: MemberInfo
+    group: Group
+    target: Member
     permission: int
 
 class __GroupInfo(TypedDict):
@@ -99,7 +106,7 @@ class __GroupInfo(TypedDict):
 @internal_repr
 class GroupInfoUpdate:
     group: Group
-    operator: MemberInfo
+    operator: Member
     info: __GroupInfo
 
 @internal_repr

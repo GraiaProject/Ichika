@@ -3,7 +3,7 @@ use pyo3::prelude::*;
 use ricq::client::event as rce;
 use ricq::handler::QEvent;
 
-use super::structs::{FriendInfo, MemberInfo, MessageSource};
+use super::structs::{FriendInfo, MessageSource};
 use super::{
     FriendDeleted,
     FriendMessage,
@@ -58,28 +58,32 @@ fn handle_login(uin: i64) -> PyObject {
     LoginEvent { uin }.obj()
 }
 
+// TODO: split `fetch_group` and `fetch_member` into helper functions
+
 async fn handle_group_message(event: rce::GroupMessageEvent) -> PyRet {
     let msg = event.inner;
 
     let mut cache = cache(event.client).await;
-    let group_info = cache.fetch_group(msg.group_code).await.py_res()?;
-    let sender_info = cache
+    let group = cache
+        .fetch_group(msg.group_code)
+        .await
+        .py_res()?
+        .as_ref()
+        .clone();
+    let sender = cache
         .fetch_member(msg.group_code, msg.from_uin)
         .await
-        .py_res()?;
+        .py_res()?
+        .as_ref()
+        .clone();
 
     let content = py_try(|py| serialize_as_py_chain(py, msg.elements))?;
     py_try(|py| {
         Ok(GroupMessage {
             source: MessageSource::new(py, &msg.seqs, &msg.rands, msg.time)?,
             content,
-            sender: MemberInfo {
-                uin: msg.from_uin,
-                name: sender_info.card_name.clone(),
-                nickname: sender_info.nickname.clone(),
-                group: (*group_info).clone(),
-                permission: sender_info.permission,
-            },
+            group,
+            sender,
         }
         .obj())
     })
@@ -88,20 +92,30 @@ async fn handle_group_message(event: rce::GroupMessageEvent) -> PyRet {
 async fn handle_group_recall(event: rce::GroupMessageRecallEvent) -> PyRet {
     let mut cache = cache(event.client).await;
     let event = event.inner;
-    let group_info = cache.fetch_group(event.group_code).await.py_res()?;
+    let group = cache
+        .fetch_group(event.group_code)
+        .await
+        .py_res()?
+        .as_ref()
+        .clone();
     let author = cache
         .fetch_member(event.group_code, event.author_uin)
         .await
-        .py_res()?;
+        .py_res()?
+        .as_ref()
+        .clone();
     let operator = cache
         .fetch_member(event.group_code, event.operator_uin)
         .await
-        .py_res()?;
+        .py_res()?
+        .as_ref()
+        .clone();
     let time = py_try(|py| Ok(datetime_from_ts(py, event.time)?.into_py(py)))?;
     Ok(GroupRecallMessage {
         time,
-        author: MemberInfo::new(&author, (*group_info).clone()),
-        operator: MemberInfo::new(&operator, (*group_info).clone()),
+        group,
+        author,
+        operator,
         seq: event.msg_seq,
     }
     .obj())
@@ -112,17 +126,25 @@ async fn handle_group_audio(event: rce::GroupAudioMessageEvent) -> PyRet {
     let msg = event.inner;
     let content = py_try(|py| serialize_audio(py, url, &msg.audio.0))?;
     let mut cache = cache(event.client).await;
-    let group = cache.fetch_group(msg.group_code).await.py_res()?;
+    let group = cache
+        .fetch_group(msg.group_code)
+        .await
+        .py_res()?
+        .as_ref()
+        .clone();
     let sender = cache
         .fetch_member(msg.group_code, msg.from_uin)
         .await
-        .py_res()?;
+        .py_res()?
+        .as_ref()
+        .clone();
 
     py_try(|py| {
         Ok(GroupMessage {
             source: MessageSource::new(py, &msg.seqs, &msg.rands, msg.time)?,
             content,
-            sender: MemberInfo::new(&sender, (*group).clone()),
+            group,
+            sender,
         }
         .obj())
     })
@@ -189,17 +211,25 @@ async fn handle_temp_message(event: rce::GroupTempMessageEvent) -> PyRet {
     let content = py_try(|py| serialize_as_py_chain(py, msg.elements))?;
 
     let mut cache = cache(event.client).await;
-    let group = cache.fetch_group(msg.group_code).await.py_res()?;
+    let group = cache
+        .fetch_group(msg.group_code)
+        .await
+        .py_res()?
+        .as_ref()
+        .clone();
     let sender = cache
         .fetch_member(msg.group_code, msg.from_uin)
         .await
-        .py_res()?;
+        .py_res()?
+        .as_ref()
+        .clone();
 
     py_try(|py| {
         Ok(TempMessage {
             source: MessageSource::new(py, &msg.seqs, &msg.rands, msg.time)?,
             content,
-            sender: MemberInfo::new(&sender, (*group).clone()),
+            group,
+            sender,
         }
         .obj())
     })
@@ -208,19 +238,29 @@ async fn handle_temp_message(event: rce::GroupTempMessageEvent) -> PyRet {
 async fn handle_group_nudge(event: rce::GroupPokeEvent) -> PyRet {
     let mut cache = cache(event.client).await;
     let event = event.inner;
-    let group = cache.fetch_group(event.group_code).await.py_res()?;
+    let group = cache
+        .fetch_group(event.group_code)
+        .await
+        .py_res()?
+        .as_ref()
+        .clone();
     let sender = cache
         .fetch_member(event.group_code, event.sender)
         .await
-        .py_res()?;
+        .py_res()?
+        .as_ref()
+        .clone();
     let receiver = cache
         .fetch_member(event.group_code, event.receiver)
         .await
-        .py_res()?;
+        .py_res()?
+        .as_ref()
+        .clone();
 
     Ok(GroupNudge {
-        sender: MemberInfo::new(&sender, (*group).clone()),
-        receiver: MemberInfo::new(&receiver, (*group).clone()),
+        group,
+        sender,
+        receiver,
     }
     .obj())
 }
@@ -256,19 +296,22 @@ fn handle_new_friend(event: rce::NewFriendEvent) -> PyObject {
     }
     .obj()
 }
-
 async fn handle_new_member(event: rce::NewMemberEvent) -> PyRet {
     let mut cache = cache(event.client).await;
     let event = event.inner;
-    let group = cache.fetch_group(event.group_code).await.py_res()?;
+    let group = cache
+        .fetch_group(event.group_code)
+        .await
+        .py_res()?
+        .as_ref()
+        .clone();
     let member = cache
         .fetch_member(event.group_code, event.member_uin)
         .await
-        .py_res()?;
-    Ok(NewMember {
-        member: MemberInfo::new(&member, (*group).clone()),
-    }
-    .obj())
+        .py_res()?
+        .as_ref()
+        .clone();
+    Ok(NewMember { group, member }.obj())
 }
 
 async fn handle_group_leave(event: rce::GroupLeaveEvent) -> PyObject {
@@ -317,8 +360,9 @@ async fn handle_mute(event: rce::GroupMuteEvent) -> PyRet {
     let operator = cache
         .fetch_member(event.group_code, event.operator_uin)
         .await
-        .py_res()?;
-    let operator = MemberInfo::new(&operator, group.clone());
+        .py_res()?
+        .as_ref()
+        .clone();
 
     if event.target_uin == 0 {
         return Ok(GroupMute {
@@ -339,9 +383,11 @@ async fn handle_mute(event: rce::GroupMuteEvent) -> PyRet {
     let target = cache
         .fetch_member(event.group_code, event.target_uin)
         .await
-        .py_res()?;
-    let target = MemberInfo::new(&target, group.clone());
+        .py_res()?
+        .as_ref()
+        .clone();
     Ok(MemberMute {
+        group,
         operator,
         target,
         duration,
@@ -362,9 +408,11 @@ async fn handle_permission_change(event: rce::MemberPermissionChangeEvent) -> Py
     let target = cache
         .fetch_member(event.group_code, event.member_uin)
         .await
-        .py_res()?;
-    let target = MemberInfo::new(&target, group.clone());
+        .py_res()?
+        .as_ref()
+        .clone();
     Ok(MemberPermissionChange {
+        group,
         target,
         permission: event.new_permission as u8,
     }
@@ -384,8 +432,9 @@ async fn handle_group_info_update(event: rce::GroupNameUpdateEvent) -> PyRet {
     let operator = cache
         .fetch_member(event.group_code, event.operator_uin)
         .await
-        .py_res()?;
-    let operator = MemberInfo::new(&operator, group.clone());
+        .py_res()?
+        .as_ref()
+        .clone();
     Ok(GroupInfoUpdate {
         group,
         operator,

@@ -92,7 +92,6 @@ fn register_event_structs_module(py: Python, parent: &PyModule) -> PyResult<()> 
     let m = PyModule::new(py, "ichika.core.events.structs")?;
     add_batch!(@cls m,
         crate::events::structs::MessageSource,
-        crate::events::structs::MemberInfo,
         crate::events::structs::FriendInfo
     );
     parent.add_submodule(m)?;
