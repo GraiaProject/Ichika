@@ -6,7 +6,7 @@ from typing_extensions import Self
 
 from loguru import logger as log
 
-from ichika.utils import AutoEnum, Decor, P, Ref
+from ichika.utils import AsyncFn, AutoEnum, Decor, P, Ref
 
 from .render import Dense1x2 as Dense1x2
 from .render import QRCodeRenderer as QRCodeRenderer
@@ -29,31 +29,31 @@ class QRCodeLoginCallbacks:
         self.interval: float = interval
 
     @overload
-    def set_handle(self, state: Literal[QRCodeLoginState.WaitingForScan]) -> Decor[Callable[[], Any]]:
+    def set_handle(self, state: Literal[QRCodeLoginState.WaitingForScan]) -> Decor[AsyncFn[[], Any]]:
         ...
 
     @overload
-    def set_handle(self, state: Literal[QRCodeLoginState.WaitingForConfirm]) -> Decor[Callable[[], Any]]:
+    def set_handle(self, state: Literal[QRCodeLoginState.WaitingForConfirm]) -> Decor[AsyncFn[[], Any]]:
         ...
 
     @overload
-    def set_handle(self, state: Literal[QRCodeLoginState.Canceled]) -> Decor[Callable[[], Any]]:
+    def set_handle(self, state: Literal[QRCodeLoginState.Canceled]) -> Decor[AsyncFn[[], Any]]:
         ...
 
     @overload
-    def set_handle(self, state: Literal[QRCodeLoginState.Timeout]) -> Decor[Callable[[], Any]]:
+    def set_handle(self, state: Literal[QRCodeLoginState.Timeout]) -> Decor[AsyncFn[[], Any]]:
         ...
 
     @overload
-    def set_handle(self, state: Literal[QRCodeLoginState.Success]) -> Decor[Callable[[int], Any]]:
+    def set_handle(self, state: Literal[QRCodeLoginState.Success]) -> Decor[AsyncFn[[int], Any]]:
         ...
 
     @overload
-    def set_handle(self, state: Literal[QRCodeLoginState.UINMismatch]) -> Decor[Callable[[int, int], Any]]:
+    def set_handle(self, state: Literal[QRCodeLoginState.UINMismatch]) -> Decor[AsyncFn[[int, int], Any]]:
         ...
 
     @overload
-    def set_handle(self, state: Literal[QRCodeLoginState.DisplayQRCode]) -> Decor[Callable[[list[list[bool]]], Any]]:
+    def set_handle(self, state: Literal[QRCodeLoginState.DisplayQRCode]) -> Decor[AsyncFn[[list[list[bool]]], Any]]:
         ...
 
     def set_handle(self, state) -> Decor[Callable]:
@@ -73,12 +73,12 @@ class QRCodeLoginCallbacks:
 
         last_state: Ref[Optional[S]] = Ref(None)
 
-        def wrap(state: S) -> Decor[Callable[P, None]]:
-            def receiver(func: Callable[P, None]) -> Callable[P, None]:
+        def wrap(state: S) -> Callable[[Callable[P, None]], AsyncFn[P, None]]:
+            def receiver(func: Callable[P, None]) -> AsyncFn[P, None]:
                 import functools
 
                 @functools.wraps(func)
-                def wrapper(*args: P.args, **kwargs: P.kwargs) -> None:
+                async def wrapper(*args: P.args, **kwargs: P.kwargs) -> None:
                     if last_state.ref == state and merge:
                         return
                     last_state.ref = state

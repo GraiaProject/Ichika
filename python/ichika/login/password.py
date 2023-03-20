@@ -6,8 +6,7 @@ from typing_extensions import Self
 
 from loguru import logger as log
 
-from ichika.utils import AutoEnum
-from ichika.utils import Decor as Decor
+from ichika.utils import AsyncFn, AutoEnum, Decor
 
 
 class PasswordLoginState(str, AutoEnum):
@@ -27,44 +26,44 @@ class PasswordLoginCallbacks:
         self.callbacks.update(callbacks or {})
 
     @overload
-    def set_handle(self, state: Literal[PasswordLoginState.DeviceLocked]) -> Decor[Callable[[str, str], Any]]:
+    def set_handle(self, state: Literal[PasswordLoginState.DeviceLocked]) -> Decor[AsyncFn[[str, str], Any]]:
         ...
 
     @overload
-    def set_handle(self, state: Literal[PasswordLoginState.RequestSMS]) -> Decor[Callable[[str, str], str]]:
+    def set_handle(self, state: Literal[PasswordLoginState.RequestSMS]) -> Decor[AsyncFn[[str, str], str]]:
         ...
 
     @overload
-    def set_handle(self, state: Literal[PasswordLoginState.NeedCaptcha]) -> Decor[Callable[[str], str]]:
+    def set_handle(self, state: Literal[PasswordLoginState.NeedCaptcha]) -> Decor[AsyncFn[[str], str]]:
         ...
 
     @overload
-    def set_handle(self, state: Literal[PasswordLoginState.Success]) -> Decor[Callable[[], Any]]:
+    def set_handle(self, state: Literal[PasswordLoginState.Success]) -> Decor[AsyncFn[[], Any]]:
         ...
 
     @overload
-    def set_handle(self, state: Literal[PasswordLoginState.DeviceLockLogin]) -> Decor[Callable[[], Any]]:
+    def set_handle(self, state: Literal[PasswordLoginState.DeviceLockLogin]) -> Decor[AsyncFn[[], Any]]:
         ...
 
     @overload
     def set_handle(
         self,
         state: Literal[PasswordLoginState.AccountFrozen],
-    ) -> Decor[Callable[[], NoReturn]]:
+    ) -> Decor[AsyncFn[[], NoReturn]]:
         ...
 
     @overload
     def set_handle(
         self,
         state: Literal[PasswordLoginState.TooManySMSRequest],
-    ) -> Decor[Callable[[], NoReturn]]:
+    ) -> Decor[AsyncFn[[], NoReturn]]:
         ...
 
     @overload
     def set_handle(
         self,
         state: Literal[PasswordLoginState.UnknownStatus],
-    ) -> Decor[Callable[[str, int], NoReturn]]:
+    ) -> Decor[AsyncFn[[str, int], NoReturn]]:
         ...
 
     def set_handle(self, state) -> Decor[Callable]:
@@ -83,37 +82,43 @@ class PasswordLoginCallbacks:
         S = PasswordLoginState
 
         @cbs.set_handle(S.NeedCaptcha)
-        def _(url: str):
+        async def _(url: str):
             log.warning(f"请完成滑块验证，URL: {url}")
             return input("完成后请输入 ticket >").strip(" ")
 
         @cbs.set_handle(S.DeviceLocked)
-        def _(message: str, url: str):
+        async def _(message: str, url: str):
             log.warning(message)
             log.warning(f"请完成设备锁验证，URL: {url}")
             input("请在完成后回车")
 
         @cbs.set_handle(S.RequestSMS)
-        def _(message: str, phone_number: str) -> str:
+        async def _(message: str, phone_number: str) -> str:
             log.warning(message)
             log.warning(f"已发送短信验证码至 {phone_number}")
             return input("请输入收到的短信验证码 >").strip(" ")
 
         @cbs.set_handle(S.AccountFrozen)
-        def _() -> NoReturn:
+        async def _() -> NoReturn:
             msg = "无法登录：账号被冻结"
             raise RuntimeError(msg)
 
         @cbs.set_handle(S.TooManySMSRequest)
-        def _() -> NoReturn:
+        async def _() -> NoReturn:
             msg = "短信请求次数过多，请稍后再试"
             raise RuntimeError(msg)
 
         @cbs.set_handle(S.UnknownStatus)
-        def _(message: str, code: int) -> NoReturn:
+        async def _(message: str, code: int) -> NoReturn:
             msg = f"未知错误（代码 {code}）：{message}"
             raise RuntimeError(msg)
 
-        cbs.set_handle(S.Success)(lambda: log.success("登录成功"))
-        cbs.set_handle(S.DeviceLockLogin)(lambda: log.info("尝试设备锁登录"))
+        @cbs.set_handle(S.Success)
+        async def _() -> None:
+            log.success("登录成功")
+
+        @cbs.set_handle(S.DeviceLockLogin)
+        async def _() -> None:
+            log.info("尝试设备锁登录")
+
         return cbs

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use pyo3::exceptions::*;
 use pyo3::prelude::*;
 use pyo3::types::*;
-use pyo3_asyncio::TaskLocals;
+use pyo3_asyncio::{into_future_with_locals, TaskLocals};
 use pythonize::depythonize;
 use ricq::client::{Client, Connector, DefaultConnector, NetworkStatus, Token};
 use ricq::ext::common::after_login;
@@ -136,11 +136,9 @@ fn parse_login_args<'py>(
     protocol: &'py PyAny,
     store: &'py PyAny,
     queues: &'py PyList,
-) -> PyResult<(Protocol, PyHandler, Device, TokenRW)> {
-    let handler = PyHandler::new(
-        queues.into_py(py),
-        TaskLocals::with_running_loop(py)?, // Necessary since retrieving task locals at handling time is already insufficient
-    );
+) -> PyResult<(Protocol, PyHandler, Device, TokenRW, TaskLocals)> {
+    let task_locals = TaskLocals::with_running_loop(py)?; // Necessary since retrieving task locals at handling time is already insufficient
+    let handler = PyHandler::new(queues.into_py(py), task_locals.clone());
 
     let get_token = partial(py).call1((store.getattr("get_token")?, uin, protocol))?;
     let write_token = partial(py).call1((store.getattr("write_token")?, uin, protocol))?;
@@ -161,15 +159,27 @@ fn parse_login_args<'py>(
             get_token: get_token.into_py(py),
             write_token: write_token.into_py(py),
         },
+        task_locals,
     ))
 }
 
-fn call_state(py: Python, getter: &PyObject, name: &str, args: impl IntoPy<Py<PyTuple>>) -> PyRet {
-    let handler = getter.as_ref(py).call1((name,))?;
-    if handler.is_none() {
-        return Ok(py.None()); // return None
+async fn invoke_cb(
+    locals: &TaskLocals,
+    getter: &PyObject,
+    name: &str,
+    args: impl IntoPy<Py<PyTuple>>,
+) -> PyRet {
+    let (obj, is_none) = py_try(|py| {
+        let handler = getter.as_ref(py).call1((name,))?;
+        if handler.is_none() {
+            return Ok((py.None(), true)); // return None
+        }
+        Ok((handler.call1(args)?.into_py(py), false))
+    })?;
+    if is_none {
+        return Ok(obj);
     }
-    Ok(handler.call1(args)?.into_py(py))
+    py_use(|py| into_future_with_locals(locals, obj.as_ref(py)))?.await
 }
 
 pub async fn reconnect(
@@ -241,6 +251,7 @@ async fn make_password_login_req(
     }
 }
 async fn handle_device_lock(
+    locals: &TaskLocals,
     data: &LoginDeviceLocked,
     uin: i64,
     client: &Client,
@@ -265,14 +276,8 @@ async fn handle_device_lock(
                 return Ok(rsp);
             }
 
-            let sms_code = py_try(|py| {
-                let res = call_state(py, &handle_getter, "RequestSMS", (message,sms_phone))?;
-                let res = res.as_ref(py);
-                if !res.is_none() {
-                    return Ok(Some(res.extract::<String>()?));
-                }
-                Ok(None)
-            })?;
+            let res = invoke_cb(locals, &handle_getter, "RequestSMS", (message, sms_phone)).await?;
+            let sms_code = py_try(|py| res.extract::<Option<String>>(py))?;
 
             if let Some(sms_code) = sms_code {
                 return client
@@ -281,13 +286,20 @@ async fn handle_device_lock(
                 .py_res();
             }
         }
-    py_try(|py| call_state(py, &handle_getter, "DeviceLocked", (message, verify_url)))?;
+    invoke_cb(
+        locals,
+        &handle_getter,
+        "DeviceLocked",
+        (message, verify_url),
+    )
+    .await?;
     make_password_login_req(uin, client, credential)
         .await
         .py_res()
 }
 
 async fn password_login_process(
+    locals: &TaskLocals,
     client: &Client,
     uin: i64,
     credential: PasswordCredential,
@@ -301,38 +313,41 @@ async fn password_login_process(
     loop {
         match resp {
             LoginResponse::Success(LoginSuccess { .. }) => {
-                py_try(|py| call_state(py, &handle_getter, "Success", ()))?;
+                invoke_cb(locals, &handle_getter, "Success", ()).await?;
                 break;
             }
             LoginResponse::DeviceLocked(data) => {
-                resp =
-                    handle_device_lock(&data, uin, client, &credential, handle_getter.clone(), sms)
-                        .await?;
+                resp = handle_device_lock(
+                    locals,
+                    &data,
+                    uin,
+                    client,
+                    &credential,
+                    handle_getter.clone(),
+                    sms,
+                )
+                .await?;
             }
             LoginResponse::NeedCaptcha(LoginNeedCaptcha { ref verify_url, .. }) => {
                 let verify_url = verify_url.as_ref().map_or(
                     Err(exc::RICQError::new_err("无法获取验证地址")),
                     |url| Ok(url.clone()),
                 )?;
-                let ticket = py_try(|py| {
-                    Ok(
-                        call_state(py, &handle_getter, "NeedCaptcha", (verify_url,))?
-                            .downcast::<PyString>(py)?
-                            .to_string(),
-                    )
-                })?;
+                let ticket =
+                    invoke_cb(locals, &handle_getter, "NeedCaptcha", (verify_url,)).await?;
+                let ticket = py_try(|py| ticket.extract::<String>(py))?;
                 resp = client.submit_ticket(&ticket).await.py_res()?;
             }
             LoginResponse::DeviceLockLogin { .. } => {
-                py_try(|py| call_state(py, &handle_getter, "DeviceLockLogin", ()))?;
+                invoke_cb(locals, &handle_getter, "DeviceLockLogin", ()).await?;
                 resp = client.device_lock_login().await.py_res()?;
             }
             LoginResponse::AccountFrozen => {
-                py_try(|py| call_state(py, &handle_getter, "AccountFrozen", ()))?;
+                invoke_cb(locals, &handle_getter, "AccountFrozen", ()).await?;
                 break;
             }
             LoginResponse::TooManySMSRequest => {
-                py_try(|py| call_state(py, &handle_getter, "TooManySMSRequest", ()))?;
+                invoke_cb(locals, &handle_getter, "TooManySMSRequest", ()).await?;
                 break;
             }
             LoginResponse::UnknownStatus(LoginUnknownStatus {
@@ -341,7 +356,7 @@ async fn password_login_process(
                 ..
             }) => {
                 let (status, message) = (*status, message.clone());
-                py_try(|py| call_state(py, &handle_getter, "UnknownStatus", (message, status)))?;
+                invoke_cb(locals, &handle_getter, "UnknownStatus", (message, status)).await?;
                 break;
             }
         }
@@ -374,13 +389,15 @@ pub fn password_login<'py>(
     queues: &'py PyList,       // List[asyncio.Queue[Event]]
     login_callbacks: PyObject, // PasswordLoginCallbacks
 ) -> PyResult<&'py PyAny> {
-    let (protocol, handler, device, token_rw) = parse_login_args(py, uin, protocol, store, queues)?;
+    let (protocol, handler, device, token_rw, locals) =
+        parse_login_args(py, uin, protocol, store, queues)?;
     py_future(py, async move {
         let (client, alive) = prepare_client(device, protocol.clone(), handler).await?;
         if !token_rw.try_login(&client).await? {
             tracing::info!("正在使用密码登录 {}", uin);
             let handle_getter: PyObject = py_try(|py| login_callbacks.getattr(py, "get_handle"))?;
-            password_login_process(&client, uin, credential, use_sms, handle_getter).await?;
+            password_login_process(&locals, &client, uin, credential, use_sms, handle_getter)
+                .await?;
         }
 
         Ok(post_login(client, alive, token_rw).await?)
@@ -422,6 +439,7 @@ fn parse_qrcode(qrcode: &bytes::Bytes) -> PyResult<Vec<Vec<bool>>> {
 }
 
 async fn qrcode_login_process(
+    locals: &TaskLocals,
     client: &Client,
     decl_uin: i64,
     handle_getter: PyObject,
@@ -435,18 +453,18 @@ async fn qrcode_login_process(
         let st_time = Instant::now();
         match resp {
             QRCodeState::WaitingForScan => {
-                py_try(|py| call_state(py, &handle_getter, "WaitingForScan", ()))?;
+                invoke_cb(locals, &handle_getter, "WaitingForScan", ()).await?;
             }
             QRCodeState::WaitingForConfirm => {
-                py_try(|py| call_state(py, &handle_getter, "WaitingForConfirm", ()))?;
+                invoke_cb(locals, &handle_getter, "WaitingForConfirm", ()).await?;
             }
             QRCodeState::Canceled => {
-                py_try(|py| call_state(py, &handle_getter, "Canceled", ()))?;
+                invoke_cb(locals, &handle_getter, "Canceled", ()).await?;
                 resp = client.fetch_qrcode().await.py_res()?;
                 continue;
             }
             QRCodeState::Timeout => {
-                py_try(|py| call_state(py, &handle_getter, "Timeout", ()))?;
+                invoke_cb(locals, &handle_getter, "Timeout", ()).await?;
                 resp = client.fetch_qrcode().await.py_res()?;
                 continue;
             }
@@ -456,14 +474,14 @@ async fn qrcode_login_process(
             }) => {
                 image_sig = sig.clone();
                 let qrcode_data = parse_qrcode(image_data)?;
-                py_try(|py| call_state(py, &handle_getter, "DisplayQRCode", (qrcode_data,)))?;
+                invoke_cb(locals, &handle_getter, "DisplayQRCode", (qrcode_data,)).await?;
             }
             QRCodeState::Confirmed(ricq::QRCodeConfirmed { uin, .. }) => {
                 if uin == decl_uin {
-                    py_try(|py| call_state(py, &handle_getter, "Success", (uin,)))?;
+                    invoke_cb(locals, &handle_getter, "Success", (uin,)).await?;
                     break;
                 }
-                py_try(|py| call_state(py, &handle_getter, "UINMismatch", (decl_uin, uin)))?;
+                invoke_cb(locals, &handle_getter, "UINMismatch", (decl_uin, uin)).await?;
                 resp = client.fetch_qrcode().await.py_res()?;
                 continue;
             }
@@ -483,7 +501,8 @@ pub fn qrcode_login<'py>(
     queues: &'py PyList,       // List[asyncio.Queue[Event]]
     login_callbacks: PyObject, // QRCodeLoginCallbacks
 ) -> PyResult<&'py PyAny> {
-    let (protocol, handler, device, token_rw) = parse_login_args(py, uin, protocol, store, queues)?;
+    let (protocol, handler, device, token_rw, locals) =
+        parse_login_args(py, uin, protocol, store, queues)?;
     py_future(py, async move {
         let (client, alive) = prepare_client(device, protocol.clone(), handler).await?;
         if !token_rw.try_login(&client).await? {
@@ -495,7 +514,7 @@ pub fn qrcode_login<'py>(
                     .extract::<f64>()
             })?;
             let handle_getter: PyObject = py_try(|py| login_callbacks.getattr(py, "get_handle"))?;
-            qrcode_login_process(&client, uin, handle_getter, interval).await?;
+            qrcode_login_process(&locals, &client, uin, handle_getter, interval).await?;
         }
 
         Ok(post_login(client, alive, token_rw).await?)
