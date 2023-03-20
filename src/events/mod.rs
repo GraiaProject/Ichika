@@ -9,8 +9,8 @@ pub mod converter;
 pub mod structs;
 use structs::MessageSource;
 
-use self::structs::{FriendInfo, MemberInfo};
-use crate::client::group::Group;
+use self::structs::FriendInfo;
+use crate::client::group::{Group, Member};
 use crate::utils::py_try;
 
 #[pyclass(get_all)]
@@ -24,15 +24,17 @@ pub struct LoginEvent {
 pub struct GroupMessage {
     source: MessageSource,
     content: PyObject, // PyMessageChain
-    sender: MemberInfo,
+    group: Group,
+    sender: Member,
 }
 
 #[pyclass(get_all)]
 #[derive(PyRepr, Clone)]
 pub struct GroupRecallMessage {
     time: PyObject, // PyDatetime
-    author: MemberInfo,
-    operator: MemberInfo,
+    group: Group,
+    author: Member,
+    operator: Member,
     seq: i32,
 }
 
@@ -57,14 +59,16 @@ pub struct FriendRecallMessage {
 pub struct TempMessage {
     source: MessageSource,
     content: PyObject, // PyMessageChain
-    sender: MemberInfo,
+    group: Group,
+    sender: Member,
 }
 
 #[pyclass(get_all)]
 #[derive(PyRepr, Clone)]
 pub struct GroupNudge {
-    sender: MemberInfo,
-    receiver: MemberInfo,
+    group: Group,
+    sender: Member,
+    receiver: Member,
 }
 
 #[pyclass(get_all)]
@@ -82,7 +86,8 @@ pub struct NewFriend {
 #[pyclass(get_all)]
 #[derive(PyRepr, Clone)]
 pub struct NewMember {
-    member: MemberInfo,
+    group: Group,
+    member: Member,
 }
 
 #[pyclass(get_all)]
@@ -108,8 +113,9 @@ pub struct FriendDeleted {
 #[pyclass(get_all)]
 #[derive(PyRepr, Clone)]
 pub struct MemberMute {
-    target: MemberInfo,
-    operator: MemberInfo,
+    group: Group,
+    target: Member,
+    operator: Member,
     duration: PyObject, // datetime.timedelta | Literal[False]
 }
 
@@ -117,14 +123,15 @@ pub struct MemberMute {
 #[derive(PyRepr, Clone)]
 pub struct GroupMute {
     group: Group,
-    operator: MemberInfo,
+    operator: Member,
     status: bool,
 }
 
 #[pyclass(get_all)]
 #[derive(PyRepr, Clone)]
 pub struct MemberPermissionChange {
-    target: MemberInfo,
+    group: Group,
+    target: Member,
     permission: u8,
 }
 
@@ -132,7 +139,7 @@ pub struct MemberPermissionChange {
 #[derive(PyRepr, Clone)]
 pub struct GroupInfoUpdate {
     group: Group,
-    operator: MemberInfo,
+    operator: Member,
     info: Py<PyDict>, // GroupInfo
 }
 
