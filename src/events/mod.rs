@@ -143,6 +143,40 @@ pub struct GroupInfoUpdate {
     info: Py<PyDict>, // GroupInfo
 }
 
+#[pyclass(get_all)]
+#[derive(PyRepr, Clone)]
+pub struct NewFriendRequest {
+    seq: i64,
+    uin: i64,
+    nickname: String,
+    message: String,
+}
+
+#[pyclass(get_all)]
+#[derive(PyRepr, Clone)]
+pub struct JoinGroupRequest {
+    seq: i64,
+    time: PyObject,
+    group_uin: i64,
+    group_name: String,
+    request_uin: i64,
+    request_nickname: String,
+    suspicious: bool,
+    invitor_uin: Option<i64>,
+    invitor_nickname: Option<String>,
+}
+
+#[pyclass(get_all)]
+#[derive(PyRepr, Clone)]
+pub struct JoinGroupInvitation {
+    seq: i64,
+    time: PyObject,
+    group_uin: i64,
+    group_name: String,
+    invitor_uin: i64,
+    invitor_nickname: String,
+}
+
 #[pyclass]
 #[derive(PyRepr, Clone)]
 pub struct UnknownEvent {

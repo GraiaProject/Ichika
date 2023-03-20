@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Literal, TypedDict
+from typing import Literal, Optional, TypedDict
 
 from graia.amnesia.message import MessageChain
 
@@ -108,6 +108,34 @@ class GroupInfoUpdate:
     group: Group
     operator: Member
     info: __GroupInfo
+
+@dataclass
+class NewFriendRequest:
+    seq: int
+    uin: int
+    nickname: str
+    message: str
+
+@dataclass
+class JoinGroupRequest:
+    seq: int
+    time: datetime
+    group_uin: int
+    group_name: str
+    request_uin: int
+    request_nickname: str
+    suspicious: bool
+    invitor_uin: Optional[int]
+    invitor_nickname: Optional[str]
+
+@dataclass
+class JoinGroupInvitation:
+    seq: int
+    time: datetime
+    group_uin: int
+    group_name: str
+    invitor_uin: int
+    invitor_nickname: str
 
 @internal_repr
 class UnknownEvent: ...
