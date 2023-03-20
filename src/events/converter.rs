@@ -15,11 +15,14 @@ use super::{
     GroupMute,
     GroupNudge,
     GroupRecallMessage,
+    JoinGroupInvitation,
+    JoinGroupRequest,
     LoginEvent,
     MemberLeaveGroup,
     MemberMute,
     MemberPermissionChange,
     NewFriend,
+    NewFriendRequest,
     NewMember,
     TempMessage,
     UnknownEvent,
@@ -50,6 +53,9 @@ pub async fn convert(event: QEvent) -> PyRet {
         QEvent::GroupMute(event) => handle_mute(event).await,
         QEvent::MemberPermissionChange(event) => handle_permission_change(event).await,
         QEvent::GroupNameUpdate(event) => handle_group_info_update(event).await,
+        QEvent::GroupRequest(event) => handle_group_request(event),
+        QEvent::SelfInvited(event) => handle_group_invitation(event),
+        QEvent::NewFriendRequest(event) => Ok(handle_friend_request(event)),
         unknown => Ok(UnknownEvent { inner: unknown }.obj()),
     }
 }
@@ -441,4 +447,44 @@ async fn handle_group_info_update(event: rce::GroupNameUpdateEvent) -> PyRet {
         info: py_use(|py| py_dict!(py, "name" => event.group_name).into_py(py)),
     }
     .obj())
+}
+
+fn handle_group_request(event: rce::JoinGroupRequestEvent) -> PyRet {
+    let event = event.inner;
+    Ok(JoinGroupRequest {
+        seq: event.msg_seq,
+        time: py_try(|py| datetime_from_ts(py, event.msg_time).map(|v| v.into_py(py)))?,
+        group_uin: event.group_code,
+        group_name: event.group_name,
+        request_uin: event.req_uin,
+        request_nickname: event.req_nick,
+        suspicious: event.suspicious,
+        invitor_uin: event.invitor_uin,
+        invitor_nickname: event.invitor_nick,
+    }
+    .obj())
+}
+
+fn handle_group_invitation(event: rce::SelfInvitedEvent) -> PyRet {
+    let event = event.inner;
+    Ok(JoinGroupInvitation {
+        seq: event.msg_seq,
+        time: py_try(|py| datetime_from_ts(py, event.msg_time).map(|v| v.into_py(py)))?,
+        group_uin: event.group_code,
+        group_name: event.group_name,
+        invitor_uin: event.invitor_uin,
+        invitor_nickname: event.invitor_nick,
+    }
+    .obj())
+}
+
+fn handle_friend_request(event: rce::NewFriendRequestEvent) -> PyObject {
+    let event = event.inner;
+    NewFriendRequest {
+        seq: event.msg_seq,
+        uin: event.req_uin,
+        nickname: event.req_nick,
+        message: event.message,
+    }
+    .obj()
 }
