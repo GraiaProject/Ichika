@@ -98,32 +98,30 @@ fn gen_named_impl(ident: String, fields: &FieldsNamed) -> MacroResult {
     core_stream.extend(quote!(
         f.debug_struct(#ident)
     ));
-    'field_iter: for f in fields.named.iter() {
+    for f in fields.named.iter() {
         let field_name_ident = f.ident.as_ref().unwrap();
         let field_name_literal = field_name_ident.to_string();
         let mut py_convert = is_py_ptr(&f.ty);
         for attr in f.attrs.iter() {
-            if let Ok(syn::Meta::List(syn::MetaList { ref nested, .. })) = attr.parse_meta() {
-                for arg in nested.iter() {
-                    if let syn::NestedMeta::Meta(meta) = arg
-                    && let syn::Meta::Path(pth) = meta
-                    && let Some(ident) = pth.get_ident() {
-                        match ident.to_string().as_str() {
-                            "skip" => continue 'field_iter,
-                            "py" => {
-                                py_convert = true;
-                            }
-                            "debug" => {
-                                py_convert = false;
-                            }
-                            _ => return Err(syn::Error::new_spanned(arg, "Unexpected arg")),
-                        }
+            attr.parse_nested_meta(|meta| {
+                let ident = meta.path.get_ident().ok_or_else(|| {
+                    syn::Error::new_spanned(
+                        meta.path.clone(),
+                        "py_repr only supports bare ident as arg.",
+                    )
+                })?;
+                match ident.to_string().as_str() {
+                    "skip" => return Ok(()),
+                    "py" => {
+                        py_convert = true;
                     }
-                    else{
-                        return Err(syn::Error::new_spanned(arg, "py_repr only supports bare ident as arg."))
+                    "debug" => {
+                        py_convert = false;
                     }
+                    _ => return Err(syn::Error::new_spanned(ident, "Unexpected option")),
                 }
-            }
+                Ok(())
+            })?;
         }
         if py_convert {
             core_stream.extend(quote!(
