@@ -15,6 +15,7 @@ use ricq::structs::{ProfileDetailUpdate, Status};
 use structs::*;
 use tokio::task::JoinHandle;
 
+use crate::exc::MapPyErr;
 use crate::login::{reconnect, TokenRW};
 use crate::message::convert::{deserialize_message_chain, serialize_element};
 use crate::utils::{py_future, py_none, py_use, AsPython};
@@ -582,4 +583,81 @@ impl PlumbingClient {
         })
     }
     // TODO: Send audio
+}
+
+#[pymethods]
+impl PlumbingClient {
+    #[allow(clippy::too_many_arguments, reason = "Necessary")]
+    pub fn process_join_group_request<'py>(
+        &self,
+        py: Python<'py>,
+        seq: i64,
+        request_uin: i64,
+        group_uin: i64,
+        accept: bool,
+        block: bool,
+        message: String,
+    ) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            client
+                .solve_group_system_message(
+                    seq,
+                    request_uin,
+                    group_uin,
+                    false,
+                    false,
+                    accept,
+                    block,
+                    message,
+                )
+                .await
+                .py_res()?;
+            Ok(())
+        })
+    }
+
+    pub fn process_group_invitation<'py>(
+        &self,
+        py: Python<'py>,
+        seq: i64,
+        invitor_uin: i64,
+        group_uin: i64,
+        accept: bool,
+    ) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            client
+                .solve_group_system_message(
+                    seq,
+                    invitor_uin,
+                    group_uin,
+                    false,
+                    false,
+                    accept,
+                    false,
+                    "".to_string(),
+                )
+                .await
+                .py_res()?;
+            Ok(())
+        })
+    }
+
+    pub fn process_new_friend_request<'py>(
+        &self,
+        py: Python<'py>,
+        seq: i64,
+        request_uin: i64,
+        accept: bool,
+    ) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            client
+                .solve_friend_system_message(seq, request_uin, accept)
+                .await
+                .py_res()?;
+            Ok(())
+        })
+    }
 }
