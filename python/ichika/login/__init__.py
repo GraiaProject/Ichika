@@ -16,22 +16,14 @@ from .password import PasswordLoginCallbacks as PasswordLoginCallbacks
 from .qrcode import QRCodeLoginCallbacks as QRCodeLoginCallbacks
 
 
-class Protocol(str, Enum):
-    IPad = "IPad"
-    AndroidPhone = "AndroidPhone"
-    AndroidWatch = "AndroidWatch"
-    MacOS = "MacOS"
-    QiDian = "QiDian"
-
-
 class BaseLoginCredentialStore:
-    def get_token(self, uin: int, protocol: Protocol) -> Optional[bytes]:
+    def get_token(self, uin: int, protocol: str) -> Optional[bytes]:
         pass
 
-    def write_token(self, uin: int, protocol: Protocol, token: bytes) -> None:
+    def write_token(self, uin: int, protocol: str, token: bytes) -> None:
         pass
 
-    def get_device(self, uin: int, protocol: Protocol) -> dict:
+    def get_device(self, uin: int, protocol: str) -> dict:
         from dataclasses import asdict
         from random import Random
 
@@ -52,7 +44,7 @@ class PathCredentialStore(BaseLoginCredentialStore):
         path.mkdir(parents=True, exist_ok=True)
         return path
 
-    def get_device(self, uin: int, protocol: Protocol) -> dict:
+    def get_device(self, uin: int, protocol: str) -> dict:
         ricq_device = self.uin_path(uin) / "ricq_device.json"
         if ricq_device.exists():
             log.info("发现 `ricq_device.json`, 读取")
@@ -73,12 +65,12 @@ class PathCredentialStore(BaseLoginCredentialStore):
         ricq_device.write_text(json.dumps(device_content, indent=4), "utf-8")
         return device_content
 
-    def get_token(self, uin: int, protocol: Protocol) -> Optional[bytes]:
-        token = self.uin_path(uin) / f"token-{protocol.value}.bin"
+    def get_token(self, uin: int, protocol: str) -> Optional[bytes]:
+        token = self.uin_path(uin) / f"token-{protocol}.bin"
         return token.read_bytes() if token.exists() else None
 
-    def write_token(self, uin: int, protocol: Protocol, token: bytes) -> None:
-        token_path = self.uin_path(uin) / f"token-{protocol.value}.bin"
+    def write_token(self, uin: int, protocol: str, token: bytes) -> None:
+        token_path = self.uin_path(uin) / f"token-{protocol}.bin"
         token_path.write_bytes(token)
 
 
@@ -87,7 +79,7 @@ async def login_password(
     uin: int,
     password: str,
     /,
-    protocol: Protocol,
+    protocol: str,
     store: BaseLoginCredentialStore,
     queues: list[Queue],
     callbacks: PasswordLoginCallbacks = ...,
@@ -101,7 +93,7 @@ async def login_password(
     uin: int,
     password_md5: bytes,
     /,
-    protocol: Protocol,
+    protocol: str,
     store: BaseLoginCredentialStore,
     queues: list[Queue],
     callbacks: PasswordLoginCallbacks = ...,
@@ -114,7 +106,7 @@ async def login_password(
     uin: int,
     credential: Union[str, bytes],
     /,
-    protocol: Protocol,
+    protocol: str,
     store: BaseLoginCredentialStore,
     queues: list[Queue],
     callbacks: PasswordLoginCallbacks = PasswordLoginCallbacks.default(),
@@ -126,7 +118,7 @@ async def login_password(
 async def login_qrcode(
     uin: int,
     /,
-    protocol: Literal[Protocol.AndroidWatch, Protocol.MacOS],
+    protocol: Literal["AndroidWatch"],
     store: BaseLoginCredentialStore,
     queues: list[Queue],
     callbacks: QRCodeLoginCallbacks = QRCodeLoginCallbacks.default(),
