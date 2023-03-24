@@ -1,6 +1,9 @@
+use std::backtrace::Backtrace;
+
 use pyo3::import_exception;
 use pyo3::prelude::*;
 use ricq::RQError;
+use tracing::error;
 
 import_exception!(ichika.exceptions, IchikaError);
 import_exception!(ichika.exceptions, RICQError);
@@ -32,7 +35,10 @@ where
     fn py_res(self) -> Result<Self::Output, PyErr> {
         match self {
             Ok(output) => Ok(output),
-            Err(e) => Err(e.into_py()),
+            Err(e) => {
+                error!("{}", Backtrace::force_capture());
+                Err(e.into_py())
+            }
         }
     }
 }
