@@ -4,38 +4,15 @@ use ricq::client::event as rce;
 use ricq::handler::QEvent;
 
 use super::structs::{FriendInfo, MessageSource};
-use super::{
-    FriendDeleted,
-    FriendMessage,
-    FriendNudge,
-    FriendRecallMessage,
-    GroupDisband,
-    GroupInfoUpdate,
-    GroupMessage,
-    GroupMute,
-    GroupNudge,
-    GroupRecallMessage,
-    JoinGroupInvitation,
-    JoinGroupRequest,
-    LoginEvent,
-    MemberLeaveGroup,
-    MemberMute,
-    MemberPermissionChange,
-    NewFriend,
-    NewFriendRequest,
-    NewMember,
-    TempMessage,
-    UnknownEvent,
-};
 use crate::client::cache;
 use crate::exc::MapPyErr;
 use crate::message::convert::{serialize_as_py_chain, serialize_audio};
-use crate::utils::{datetime_from_ts, py_none, py_try, py_use, timedelta_from_secs, AsPython};
-use crate::{py_dict, PyRet};
+use crate::utils::{datetime_from_ts, py_none, py_try, timedelta_from_secs};
+use crate::{dict_obj, PyRet};
 
 pub async fn convert(event: QEvent) -> PyRet {
     match event {
-        QEvent::Login(event) => Ok(handle_login(event)),
+        QEvent::Login(event) => handle_login(event),
         QEvent::GroupMessage(event) => handle_group_message(event).await,
         QEvent::GroupAudioMessage(event) => handle_group_audio(event).await,
         QEvent::FriendMessage(event) => handle_friend_message(event),
@@ -45,23 +22,26 @@ pub async fn convert(event: QEvent) -> PyRet {
         QEvent::FriendMessageRecall(event) => handle_friend_recall(event).await,
         QEvent::GroupPoke(event) => handle_group_nudge(event).await,
         QEvent::FriendPoke(event) => handle_friend_nudge(event).await,
-        QEvent::NewFriend(event) => Ok(handle_new_friend(event)),
+        QEvent::NewFriend(event) => handle_new_friend(event),
         QEvent::NewMember(event) => handle_new_member(event).await,
-        QEvent::GroupLeave(event) => Ok(handle_group_leave(event).await),
-        QEvent::GroupDisband(event) => Ok(handle_group_disband(event).await),
-        QEvent::DeleteFriend(event) => Ok(handle_friend_delete(event).await),
+        QEvent::GroupLeave(event) => handle_group_leave(event).await,
+        QEvent::GroupDisband(event) => handle_group_disband(event).await,
+        QEvent::DeleteFriend(event) => handle_friend_delete(event).await,
         QEvent::GroupMute(event) => handle_mute(event).await,
         QEvent::MemberPermissionChange(event) => handle_permission_change(event).await,
         QEvent::GroupNameUpdate(event) => handle_group_info_update(event).await,
         QEvent::GroupRequest(event) => handle_group_request(event),
         QEvent::SelfInvited(event) => handle_group_invitation(event),
-        QEvent::NewFriendRequest(event) => Ok(handle_friend_request(event)),
-        unknown => Ok(UnknownEvent { inner: unknown }.obj()),
+        QEvent::NewFriendRequest(event) => handle_friend_request(event),
+        unknown => dict_obj!(type_name: "UnknownEvent", internal_repr: format!("{:?}", unknown)),
     }
 }
 
-fn handle_login(uin: i64) -> PyObject {
-    LoginEvent { uin }.obj()
+fn handle_login(uin: i64) -> PyRet {
+    dict_obj! {
+        type_name: "LoginAttempt",
+        uin: uin
+    }
 }
 
 // TODO: split `fetch_group` and `fetch_member` into helper functions
@@ -84,15 +64,13 @@ async fn handle_group_message(event: rce::GroupMessageEvent) -> PyRet {
         .clone();
 
     let content = py_try(|py| serialize_as_py_chain(py, msg.elements))?;
-    py_try(|py| {
-        Ok(GroupMessage {
-            source: MessageSource::new(py, &msg.seqs, &msg.rands, msg.time)?,
-            content,
-            group,
-            sender,
-        }
-        .obj())
-    })
+    dict_obj! {py !
+        type_name: "GroupMessage",
+        source: MessageSource::new(py, &msg.seqs, &msg.rands, msg.time)?,
+        content: content,
+        group: group,
+        sender: sender,
+    }
 }
 
 async fn handle_group_recall(event: rce::GroupMessageRecallEvent) -> PyRet {
@@ -117,14 +95,14 @@ async fn handle_group_recall(event: rce::GroupMessageRecallEvent) -> PyRet {
         .as_ref()
         .clone();
     let time = py_try(|py| Ok(datetime_from_ts(py, event.time)?.into_py(py)))?;
-    Ok(GroupRecallMessage {
-        time,
-        group,
-        author,
-        operator,
+    dict_obj! {
+        type_name: "GroupRecallMessage",
+        time: time,
+        group: group,
+        author: author,
+        operator: operator,
         seq: event.msg_seq,
     }
-    .obj())
 }
 
 async fn handle_group_audio(event: rce::GroupAudioMessageEvent) -> PyRet {
@@ -145,31 +123,27 @@ async fn handle_group_audio(event: rce::GroupAudioMessageEvent) -> PyRet {
         .as_ref()
         .clone();
 
-    py_try(|py| {
-        Ok(GroupMessage {
-            source: MessageSource::new(py, &msg.seqs, &msg.rands, msg.time)?,
-            content,
-            group,
-            sender,
-        }
-        .obj())
-    })
+    dict_obj! {py !
+        type_name: "GroupMessage",
+        source: MessageSource::new(py, &msg.seqs, &msg.rands, msg.time)?,
+        content: content,
+        group: group,
+        sender: sender,
+    }
 }
 
 fn handle_friend_message(event: rce::FriendMessageEvent) -> PyRet {
     let msg = event.inner;
     let content = py_try(|py| serialize_as_py_chain(py, msg.elements))?;
-    py_try(|py| {
-        Ok(FriendMessage {
-            source: MessageSource::new(py, &msg.seqs, &msg.rands, msg.time)?,
-            content,
-            sender: FriendInfo {
-                uin: msg.from_uin,
-                nickname: msg.from_nick,
-            },
-        }
-        .obj())
-    })
+    dict_obj! {py !
+        type_name: "FriendMessage",
+        source: MessageSource::new(py, &msg.seqs, &msg.rands, msg.time)?,
+        content: content,
+        sender: FriendInfo {
+            uin: msg.from_uin,
+            nickname: msg.from_nick,
+        },
+    }
 }
 
 async fn handle_friend_recall(event: rce::FriendMessageRecallEvent) -> PyRet {
@@ -184,32 +158,30 @@ async fn handle_friend_recall(event: rce::FriendMessageRecallEvent) -> PyRet {
             PyValueError::new_err(format!("Unable to find friend {}", event.friend_uin))
         })?;
     let time = py_try(|py| Ok(datetime_from_ts(py, event.time)?.into_py(py)))?;
-    Ok(FriendRecallMessage {
-        time,
+    dict_obj! {
+        type_name: "FriendRecallMessage",
+        time: time,
         author: FriendInfo {
             uin: friend.uin,
             nickname: friend.nick,
         },
         seq: event.msg_seq,
     }
-    .obj())
 }
 
 async fn handle_friend_audio(event: rce::FriendAudioMessageEvent) -> PyRet {
     let url = event.url().await.py_res()?;
     let msg = event.inner;
     let content = py_try(|py| serialize_audio(py, url, &msg.audio.0))?;
-    py_try(|py| {
-        Ok(FriendMessage {
-            source: MessageSource::new(py, &msg.seqs, &msg.rands, msg.time)?,
-            content,
-            sender: FriendInfo {
-                uin: msg.from_uin,
-                nickname: msg.from_nick,
-            },
-        }
-        .obj())
-    })
+    dict_obj! {py !
+        type_name: "FriendMessage",
+        source: MessageSource::new(py, &msg.seqs, &msg.rands, msg.time)?,
+        content: content,
+        sender: FriendInfo {
+            uin: msg.from_uin,
+            nickname: msg.from_nick,
+        },
+    }
 }
 
 async fn handle_temp_message(event: rce::GroupTempMessageEvent) -> PyRet {
@@ -230,15 +202,13 @@ async fn handle_temp_message(event: rce::GroupTempMessageEvent) -> PyRet {
         .as_ref()
         .clone();
 
-    py_try(|py| {
-        Ok(TempMessage {
-            source: MessageSource::new(py, &msg.seqs, &msg.rands, msg.time)?,
-            content,
-            group,
-            sender,
-        }
-        .obj())
-    })
+    dict_obj! {py !
+        type_name: "TempMessage",
+        source: MessageSource::new(py, &msg.seqs, &msg.rands, msg.time)?,
+        content: content,
+        group: group,
+        sender: sender,
+    }
 }
 
 async fn handle_group_nudge(event: rce::GroupPokeEvent) -> PyRet {
@@ -263,12 +233,12 @@ async fn handle_group_nudge(event: rce::GroupPokeEvent) -> PyRet {
         .as_ref()
         .clone();
 
-    Ok(GroupNudge {
-        group,
-        sender,
-        receiver,
+    dict_obj! {
+        type_name: "GroupNudge",
+        group: group,
+        sender: sender,
+        receiver: receiver,
     }
-    .obj())
 }
 
 async fn handle_friend_nudge(event: rce::FriendPokeEvent) -> PyRet {
@@ -284,23 +254,23 @@ async fn handle_friend_nudge(event: rce::FriendPokeEvent) -> PyRet {
         .py_res()?
         .find_friend(event.sender)
         .ok_or_else(|| PyValueError::new_err(format!("Unable to find friend {}", event.sender)))?;
-    Ok(FriendNudge {
+    dict_obj! {
+        type_name: "FriendNudge",
         sender: FriendInfo {
             uin: friend.uin,
             nickname: friend.nick,
         },
     }
-    .obj())
 }
 
-fn handle_new_friend(event: rce::NewFriendEvent) -> PyObject {
-    NewFriend {
+fn handle_new_friend(event: rce::NewFriendEvent) -> PyRet {
+    dict_obj! {
+        type_name: "NewFriend",
         friend: FriendInfo {
             uin: event.inner.uin,
             nickname: event.inner.nick,
         },
     }
-    .obj()
 }
 async fn handle_new_member(event: rce::NewMemberEvent) -> PyRet {
     let mut cache = cache(event.client).await;
@@ -317,39 +287,43 @@ async fn handle_new_member(event: rce::NewMemberEvent) -> PyRet {
         .py_res()?
         .as_ref()
         .clone();
-    Ok(NewMember { group, member }.obj())
+    dict_obj! {
+        type_name: "NewMember",
+        group: group,
+        member: member,
+    }
 }
 
-async fn handle_group_leave(event: rce::GroupLeaveEvent) -> PyObject {
+async fn handle_group_leave(event: rce::GroupLeaveEvent) -> PyRet {
     let mut cache = cache(event.client).await;
     let event = event.inner;
     cache.flush_member(event.group_code, event.member_uin).await;
 
-    MemberLeaveGroup {
+    dict_obj! {
+        type_name: "MemberLeaveGroup",
         group_uin: event.group_code,
         member_uin: event.member_uin,
     }
-    .obj()
 }
 
-async fn handle_group_disband(event: rce::GroupDisbandEvent) -> PyObject {
+async fn handle_group_disband(event: rce::GroupDisbandEvent) -> PyRet {
     let mut cache = cache(event.client).await;
     let event = event.inner;
     cache.flush_group(event.group_code).await;
-    GroupDisband {
+    dict_obj! {
+        type_name: "GroupDisband",
         group_uin: event.group_code,
         operator_uin: event.operator_uin,
     }
-    .obj()
 }
 
-async fn handle_friend_delete(event: rce::DeleteFriendEvent) -> PyObject {
+async fn handle_friend_delete(event: rce::DeleteFriendEvent) -> PyRet {
     let mut cache = cache(event.client).await;
     cache.flush_friend_list().await;
-    FriendDeleted {
+    dict_obj! {
+        type_name: "FriendDeleted",
         friend_uin: event.inner.uin,
     }
-    .obj()
 }
 
 async fn handle_mute(event: rce::GroupMuteEvent) -> PyRet {
@@ -371,12 +345,12 @@ async fn handle_mute(event: rce::GroupMuteEvent) -> PyRet {
         .clone();
 
     if event.target_uin == 0 {
-        return Ok(GroupMute {
-            group,
-            operator,
-            status: event.duration.as_secs() == 0,
-        }
-        .obj());
+        return dict_obj! {
+            type_name: "MemberMute",
+            group: group,
+            operator: operator,
+            duration: event.duration.as_secs() == 0
+        };
     }
     let duration = event.duration.as_secs();
     let duration = py_try(|py| {
@@ -392,13 +366,13 @@ async fn handle_mute(event: rce::GroupMuteEvent) -> PyRet {
         .py_res()?
         .as_ref()
         .clone();
-    Ok(MemberMute {
-        group,
-        operator,
-        target,
-        duration,
+    dict_obj! {
+        type_name: "MemberMute",
+        group: group,
+        operator: operator,
+        target: target,
+        duration: duration,
     }
-    .obj())
 }
 
 async fn handle_permission_change(event: rce::MemberPermissionChangeEvent) -> PyRet {
@@ -417,12 +391,12 @@ async fn handle_permission_change(event: rce::MemberPermissionChangeEvent) -> Py
         .py_res()?
         .as_ref()
         .clone();
-    Ok(MemberPermissionChange {
-        group,
-        target,
+    dict_obj! {
+        type_name: "MemberPermissionChange",
+        group: group,
+        target: target,
         permission: event.new_permission as u8,
     }
-    .obj())
 }
 
 async fn handle_group_info_update(event: rce::GroupNameUpdateEvent) -> PyRet {
@@ -441,19 +415,22 @@ async fn handle_group_info_update(event: rce::GroupNameUpdateEvent) -> PyRet {
         .py_res()?
         .as_ref()
         .clone();
-    Ok(GroupInfoUpdate {
-        group,
-        operator,
-        info: py_use(|py| py_dict!(py, "name" => event.group_name).into_py(py)),
+    dict_obj! {
+        type_name: "GroupInfoUpdate",
+        group: group,
+        operator: operator,
+        info: dict_obj! {
+            name: event.group_name
+        }?,
     }
-    .obj())
 }
 
 fn handle_group_request(event: rce::JoinGroupRequestEvent) -> PyRet {
     let event = event.inner;
-    Ok(JoinGroupRequest {
+    dict_obj! {py !
+        type_name: "JoinGroupRequest",
         seq: event.msg_seq,
-        time: py_try(|py| datetime_from_ts(py, event.msg_time).map(|v| v.into_py(py)))?,
+        time: datetime_from_ts(py, event.msg_time).map(|v| v.into_py(py))?,
         group_uin: event.group_code,
         group_name: event.group_name,
         request_uin: event.req_uin,
@@ -462,29 +439,28 @@ fn handle_group_request(event: rce::JoinGroupRequestEvent) -> PyRet {
         invitor_uin: event.invitor_uin,
         invitor_nickname: event.invitor_nick,
     }
-    .obj())
 }
 
 fn handle_group_invitation(event: rce::SelfInvitedEvent) -> PyRet {
     let event = event.inner;
-    Ok(JoinGroupInvitation {
+    dict_obj! {py !
+        type_name: "JoinGroupInvitation",
         seq: event.msg_seq,
-        time: py_try(|py| datetime_from_ts(py, event.msg_time).map(|v| v.into_py(py)))?,
+        time: datetime_from_ts(py, event.msg_time).map(|v| v.into_py(py))?,
         group_uin: event.group_code,
         group_name: event.group_name,
         invitor_uin: event.invitor_uin,
         invitor_nickname: event.invitor_nick,
     }
-    .obj())
 }
 
-fn handle_friend_request(event: rce::NewFriendRequestEvent) -> PyObject {
+fn handle_friend_request(event: rce::NewFriendRequestEvent) -> PyRet {
     let event = event.inner;
-    NewFriendRequest {
+    dict_obj! {
+        type_name: "NewFriendRequest",
         seq: event.msg_seq,
         uin: event.req_uin,
         nickname: event.req_nick,
         message: event.message,
     }
-    .obj()
 }

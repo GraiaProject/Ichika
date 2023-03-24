@@ -61,29 +61,6 @@ pub fn core(py: Python, m: &PyModule) -> PyResult<()> {
 
 fn register_event_module(py: Python, parent: &PyModule) -> PyResult<()> {
     let m = PyModule::new(py, "ichika.core.events")?;
-    add_batch!(@cls m,
-        crate::events::GroupMessage,
-        crate::events::GroupMessage,
-        crate::events::GroupRecallMessage,
-        crate::events::TempMessage,
-        crate::events::FriendMessage,
-        crate::events::FriendRecallMessage,
-        crate::events::GroupNudge,
-        crate::events::FriendNudge,
-        crate::events::NewFriend,
-        crate::events::NewMember,
-        crate::events::MemberLeaveGroup,
-        crate::events::GroupDisband,
-        crate::events::FriendDeleted,
-        crate::events::GroupMute,
-        crate::events::MemberMute,
-        crate::events::MemberPermissionChange,
-        crate::events::GroupInfoUpdate,
-        crate::events::NewFriendRequest,
-        crate::events::JoinGroupRequest,
-        crate::events::JoinGroupInvitation,
-        crate::events::UnknownEvent
-    );
     parent.add_submodule(m)?;
     parent.add("events", m)?;
     // See https://github.com/PyO3/pyo3/issues/759
