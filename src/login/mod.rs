@@ -1,13 +1,17 @@
+mod connector;
+mod version;
+
 use std::sync::Arc;
 
+use connector::IchikaConnector;
 use pyo3::exceptions::*;
 use pyo3::prelude::*;
 use pyo3::types::*;
 use pyo3_asyncio::{into_future_with_locals, TaskLocals};
 use pythonize::depythonize;
-use ricq::client::{Client, Connector, DefaultConnector, NetworkStatus, Token};
+use ricq::client::{Client, Connector, NetworkStatus, Token};
 use ricq::ext::common::after_login;
-use ricq::version::get_version;
+use ricq::version::Version;
 use ricq::{
     Device,
     LoginDeviceLocked,
@@ -15,26 +19,25 @@ use ricq::{
     LoginResponse,
     LoginSuccess,
     LoginUnknownStatus,
-    Protocol,
     QRCodeState,
 };
 use tokio::task::JoinHandle;
+use version::get_version;
 
 use crate::events::PyHandler;
 use crate::exc::MapPyErr;
 use crate::utils::{partial, py_bytes, py_future, py_try, py_use};
 use crate::{exc, import_call, PyRet};
-
 async fn prepare_client(
     device: Device,
-    protocol: Protocol,
+    app_ver: Version,
     handler: PyHandler,
 ) -> PyResult<(Arc<Client>, JoinHandle<()>)> {
-    let client = Arc::new(Client::new(device, get_version(protocol), handler));
+    let client = Arc::new(Client::new(device, app_ver, handler));
     let alive = tokio::spawn({
         let client = client.clone();
         // 连接最快的服务器
-        let stream = DefaultConnector
+        let stream = IchikaConnector
             .connect(&client)
             .await
             .map_err(|e| PyIOError::new_err(e.to_string()))?;
@@ -58,17 +61,6 @@ pub enum PasswordCredential {
     String(Py<PyString>),
     #[pyo3(transparent, annotation = "bytes")]
     MD5(Py<PyBytes>),
-}
-
-fn protocol_from_str(protocol: &str) -> PyResult<Protocol> {
-    match protocol {
-        "IPad" => Ok(Protocol::IPad),
-        "AndroidPhone" => Ok(Protocol::AndroidPhone),
-        "AndroidWatch" => Ok(Protocol::AndroidWatch),
-        "MacOS" => Ok(Protocol::MacOS),
-        "QiDian" => Ok(Protocol::QiDian),
-        _ => Err(exc::LoginError::new_err("未知协议")),
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -133,26 +125,22 @@ impl TokenRW {
 fn parse_login_args<'py>(
     py: Python<'py>,
     uin: i64,
-    protocol: &'py PyAny,
+    protocol: String,
     store: &'py PyAny,
     queues: &'py PyList,
-) -> PyResult<(Protocol, PyHandler, Device, TokenRW, TaskLocals)> {
+) -> PyResult<(Version, PyHandler, Device, TokenRW, TaskLocals)> {
     let task_locals = TaskLocals::with_running_loop(py)?; // Necessary since retrieving task locals at handling time is already insufficient
     let handler = PyHandler::new(queues.into_py(py), task_locals.clone());
 
-    let get_token = partial(py).call1((store.getattr("get_token")?, uin, protocol))?;
-    let write_token = partial(py).call1((store.getattr("write_token")?, uin, protocol))?;
+    let get_token = partial(py).call1((store.getattr("get_token")?, uin, &protocol))?;
+    let write_token = partial(py).call1((store.getattr("write_token")?, uin, &protocol))?;
 
-    let device = store.getattr("get_device")?.call1((uin, protocol))?; // JSON
+    let device = store.getattr("get_device")?.call1((uin, &protocol))?; // JSON
     let device: Device = depythonize(device)
         .map_err(|e| exc::LoginError::new_err(format!("无法解析传入的设备信息: {e:?}")))?;
 
-    // Extract Protocol
-    let protocol = protocol.getattr("value")?.extract::<String>()?;
-    let protocol = protocol_from_str(&protocol)?;
-
     Ok((
-        protocol,
+        get_version(protocol)?,
         handler,
         device,
         TokenRW {
@@ -202,7 +190,7 @@ pub async fn reconnect(
             let alive = tokio::spawn({
                 let client = client.clone();
                 // 连接最快的服务器
-                let stream = DefaultConnector.connect(&client).await?;
+                let stream = IchikaConnector.connect(&client).await?;
 
                 #[allow(
                     clippy::redundant_async_block,
@@ -384,7 +372,7 @@ pub fn password_login<'py>(
     uin: i64,
     credential: PasswordCredential,
     use_sms: bool,
-    protocol: &'py PyAny,
+    protocol: String,
     store: &'py PyAny,
     queues: &'py PyList,       // List[asyncio.Queue[Event]]
     login_callbacks: PyObject, // PasswordLoginCallbacks
@@ -496,7 +484,7 @@ async fn qrcode_login_process(
 pub fn qrcode_login<'py>(
     py: Python<'py>,
     uin: i64,
-    protocol: &'py PyAny,
+    protocol: String,
     store: &'py PyAny,
     queues: &'py PyList,       // List[asyncio.Queue[Event]]
     login_callbacks: PyObject, // QRCodeLoginCallbacks

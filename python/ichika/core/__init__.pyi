@@ -8,7 +8,6 @@ from ..client import Client
 from ..login import (
     BaseLoginCredentialStore,
     PasswordLoginCallbacks,
-    Protocol,
     QRCodeLoginCallbacks,
 )
 from . import events as events
@@ -64,14 +63,14 @@ async def password_login(
     uin: int,
     credential: str | bytes,
     use_sms: bool,
-    protocol: Protocol,
+    protocol: str,
     store: BaseLoginCredentialStore,
     event_callbacks: list[asyncio.Queue[T_Event]],
     login_callbacks: PasswordLoginCallbacks,
 ) -> Client: ...
 async def qrcode_login(
     uin: int,
-    protocol: Protocol,
+    protocol: str,
     store: BaseLoginCredentialStore,
     event_callbacks: list[asyncio.Queue[T_Event]],
     login_callbacks: QRCodeLoginCallbacks,
