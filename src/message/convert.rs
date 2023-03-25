@@ -8,16 +8,23 @@ use ricq_core::msg::elem::{At, Dice, Face, FingerGuessing, Text};
 use super::elements::*;
 use crate::{py_dict, static_py_fn};
 
+pub fn serialize_audio_dict<'py>(
+    py: Python<'py>,
+    url: String,
+    ptt: &ricq_core::pb::msg::Ptt,
+) -> &'py PyDict {
+    py_dict!(py,
+        "type" => "Audio",
+        "url" => url,
+        "raw" => (SealedAudio {inner: ptt.clone()}).into_py(py)
+    )
+}
 pub fn serialize_audio(
     py: Python,
     url: String,
     ptt: &ricq_core::pb::msg::Ptt,
 ) -> PyResult<PyObject> {
-    let audio_data = py_dict!(py,
-        "type" => "Audio",
-        "url" => url,
-        "raw" => (SealedAudio {inner: ptt.clone()}).into_py(py)
-    );
+    let audio_data = serialize_audio_dict(py, url, ptt);
     let py_fn: &PyAny = py_deserialize(py);
     Ok(py_fn.call1((vec![audio_data],))?.into_py(py))
 }
