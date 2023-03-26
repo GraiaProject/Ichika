@@ -4,17 +4,8 @@ from __future__ import annotations
 from graia.amnesia.message import Element, MessageChain
 
 from .core import PlumbingClient, RawMessageReceipt
-from .message import serialize_message as _serialize_msg
-from .message.elements import (
-    At,
-    AtAll,
-    Audio,
-    Face,
-    FlashImage,
-    Image,
-    SealedAudio,
-    Text,
-)
+from .message import _serialize_message as _serialize_msg
+from .message.elements import At, AtAll, Audio, Face, FlashImage, Image, Reply, Text
 
 
 class Client(PlumbingClient):
@@ -39,10 +30,9 @@ class Client(PlumbingClient):
         return Audio(**audio_dict)
 
     async def _validate_chain(self, chain: MessageChain) -> MessageChain | Element:
-        # Rich message types are: Reply, At, AtAll, Text, Face, Image / FlashImage
         if not chain:
             raise ValueError("无法发送空消息！")
-        if any(not isinstance(elem, (At, AtAll, Text, Image, Face)) for elem in chain):
+        if any(not isinstance(elem, (Reply, At, AtAll, Text, Image, Face)) for elem in chain):
             if len(chain) > 1:
                 raise ValueError("消息内混合了富文本和非富文本型消息！")
             return chain[0]

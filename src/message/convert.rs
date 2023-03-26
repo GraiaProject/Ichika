@@ -1,61 +1,60 @@
-use pyo3::exceptions::PyValueError;
+use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::*;
-use ricq::msg::elem::{FlashImage, RQElem};
+use ricq::msg::elem::{FlashImage, RQElem, Reply};
 use ricq::msg::MessageChain;
 use ricq_core::msg::elem::{At, Dice, Face, FingerGuessing, Text};
 
 use super::elements::*;
-use crate::{py_dict, static_py_fn};
+use crate::utils::datetime_from_ts;
+use crate::{dict, static_py_fn};
 
 pub fn serialize_audio_dict<'py>(
     py: Python<'py>,
     url: String,
     ptt: &ricq_core::pb::msg::Ptt,
-) -> &'py PyDict {
-    py_dict!(py,
-        "type" => "Audio",
-        "url" => url,
-        "raw" => (SealedAudio {inner: ptt.clone()}).into_py(py)
-    )
+) -> PyResult<&'py PyDict> {
+    Ok(dict! {py,
+        type: "Audio",
+        url: url,
+        raw: SealedAudio {inner: ptt.clone()}.into_py(py),
+    })
 }
 pub fn serialize_audio(
     py: Python,
     url: String,
     ptt: &ricq_core::pb::msg::Ptt,
 ) -> PyResult<PyObject> {
-    let audio_data = serialize_audio_dict(py, url, ptt);
+    let audio_data = serialize_audio_dict(py, url, ptt)?;
     let py_fn: &PyAny = py_deserialize(py);
     Ok(py_fn.call1((vec![audio_data],))?.into_py(py))
 }
 
-pub fn serialize_element(py: Python, e: RQElem) -> Option<&PyDict> {
+pub fn serialize_element(py: Python, e: RQElem) -> PyResult<Option<&PyDict>> {
     let data = match e {
         RQElem::At(a) => match a.target {
             0 => {
-                py_dict!(py,
-                    "type" => "AtAll"
-                )
+                dict! {py, type: "AtAll"}
             }
             target => {
-                py_dict!(py,
-                    "type" => "At",
-                    "target" => target,
-                    "display" => a.display
-                )
+                dict! {py,
+                    type: "At",
+                    target: target,
+                    display: a.display,
+                }
             }
         },
         RQElem::Text(t) => {
-            py_dict!(py,
-                "type" => "Text",
-                "text" => t.content
-            )
+            dict! {py,
+                type: "Text",
+                text: t.content,
+            }
         }
         RQElem::Dice(d) => {
-            py_dict!(py,
-                "type" => "Dice",
-                "value" => d.value
-            )
+            dict! {py,
+                type: "Dice",
+                value: d.value,
+            }
         }
         RQElem::FingerGuessing(f) => {
             let choice = match f {
@@ -63,73 +62,94 @@ pub fn serialize_element(py: Python, e: RQElem) -> Option<&PyDict> {
                 FingerGuessing::Paper => "Paper",
                 FingerGuessing::Scissors => "Scissors",
             };
-            py_dict!(py,
-                "type" => "FingerGuessing",
-                "choice" => choice
-            )
+            dict! {py,
+                type: "FingerGuessing",
+                choice: choice
+            }
         }
         RQElem::Face(f) => {
-            py_dict!(py,
-            "type" => "Face",
-            "index" => f.index,
-            "name" => f.name
-            )
+            dict! {py,
+                type: "Face",
+                index: f.index,
+                name: f.name
+            }
         }
         RQElem::MarketFace(m) => {
             let f = SealedMarketFace { inner: m };
-            py_dict!(py,
-            "type" => "MarketFace",
-            "raw" => f.into_py(py)
-            )
+            dict! {py,
+            type: "MarketFace",
+            raw: f.into_py(py)
+            }
         }
         RQElem::GroupImage(i) => {
-            py_dict!(py,
-            "type" => "Image",
-            "url" => i.url(),
-            "raw" => (SealedGroupImage {inner: i}).into_py(py)
-            )
+            dict! {py,
+            type: "Image",
+            url: i.url(),
+            raw: (SealedGroupImage {inner: i}).into_py(py)
+            }
         }
         RQElem::FriendImage(i) => {
-            py_dict!(py,
-            "type" => "Image",
-            "url" => i.url(),
-            "raw" => (SealedFriendImage {inner: i}).into_py(py)
-            )
+            dict! {py,
+            type: "Image",
+            url: i.url(),
+            raw: (SealedFriendImage {inner: i}).into_py(py)
+            }
         }
         RQElem::FlashImage(i) => match i {
             FlashImage::GroupImage(i) => {
-                py_dict!(py,
-                "type" => "FlashImage",
-                "url" => i.url(),
-                "raw" => (SealedGroupImage {inner: i}).into_py(py)
-                )
+                dict! {py,
+                type: "FlashImage",
+                url: i.url(),
+                raw: (SealedGroupImage {inner: i}).into_py(py)
+                }
             }
             FlashImage::FriendImage(i) => {
-                py_dict!(py,
-                "type" => "FlashImage",
-                "url" => i.url(),
-                "raw" => (SealedFriendImage {inner: i}).into_py(py)
-                )
+                dict! {py,
+                type: "FlashImage",
+                url: i.url(),
+                raw: (SealedFriendImage {inner: i}).into_py(py)
+                }
             }
         },
         RQElem::Other(_) => {
-            return None;
+            return Ok(None);
         }
         unhandled => {
-            py_dict!(py,
-                "type" => "Unknown",
-                "raw" => format!("{unhandled:?}")
-            )
+            dict! {py,
+                type: "Unknown",
+                raw: format!("{unhandled:?}")
+            }
         }
     };
-    Some(data)
+    Ok(Some(data))
+}
+
+// Reply + Bot Image = skip message ???
+// Needs testing
+pub fn serialize_reply(py: Python, reply: Reply) -> PyResult<&PyDict> {
+    Ok(dict! {py,
+        type: "Reply",
+        seq: reply.reply_seq,
+        sender: reply.sender,
+        time: datetime_from_ts(py, reply.time)?,
+        content: reply.elements.to_string()
+    })
 }
 
 pub fn serialize_message_chain(py: Python, chain: MessageChain) -> PyResult<Py<PyList>> {
+    use ricq_core::msg::MessageElem as BaseElem;
     let res = PyList::empty(py);
-    for e in chain {
-        if let Some(data) = serialize_element(py, e) {
-            res.append(data)?;
+    for e in chain.0 {
+        match e {
+            BaseElem::SrcMsg(reply) => {
+                res.append(serialize_reply(py, reply.into())?)?;
+            }
+            BaseElem::AnonGroupMsg(_) => {} // Anonymous information, TODO
+            elem => {
+                if let Some(data) = serialize_element(py, RQElem::from(elem))? {
+                    res.append(data)?;
+                }
+            }
         }
     }
     Ok(res.into_py(py))
@@ -150,61 +170,64 @@ pub fn serialize_as_py_chain(py: Python, chain: MessageChain) -> PyResult<PyObje
         .into_py(py))
 }
 
-pub fn deserialize_element(chain: &mut MessageChain, ident: &str, store: &PyDict) -> PyResult<()> {
+pub fn deserialize_element(chain: &mut MessageChain, ident: &str, store: &PyAny) -> PyResult<()> {
     match ident {
         "AtAll" => chain.push(At::new(0)),
         "At" => {
-            if let Some(t) = store.get_item("target") {
-                chain.push(At::new(t.extract::<i64>()?));
-            }
+            chain.push(At::new(store.get_item("target")?.extract::<i64>()?));
         }
         "Text" => {
-            if let Some(t) = store.get_item("text") {
-                chain.push(Text::new(t.extract::<String>()?));
-            }
+            chain.push(Text::new(store.get_item("text")?.extract::<String>()?));
         }
         "Dice" => {
-            if let Some(t) = store.get_item("value") {
-                chain.push(Dice::new(t.extract::<i32>()?));
-            }
+            chain.push(Dice::new(store.get_item("value")?.extract::<i32>()?));
         }
         "FingerGuessing" => {
-            if let Some(t) = store.get_item("choice") {
-                chain.push(match t.extract::<&str>()? {
-                    "Rock" => FingerGuessing::Rock,
-                    "Paper" => FingerGuessing::Paper,
-                    "Scissors" => FingerGuessing::Scissors,
-                    _ => return Ok(()),
-                });
-            }
+            chain.push(match store.get_item("choice")?.extract::<&str>()? {
+                "Rock" => FingerGuessing::Rock,
+                "Paper" => FingerGuessing::Paper,
+                "Scissors" => FingerGuessing::Scissors,
+                _ => return Ok(()),
+            });
         }
         "MarketFace" => {
-            if let Some(t) = store.get_item("raw") {
-                chain.push(t.extract::<SealedMarketFace>()?.inner);
-            }
+            chain.push(store.get_item("raw")?.extract::<SealedMarketFace>()?.inner);
         }
         "Face" => {
-            if let Some(t) = store.get_item("index") {
-                chain.push(Face::new(t.extract::<i32>()?));
-            }
+            chain.push(Face::new(store.get_item("index")?.extract::<i32>()?));
         }
         "Image" => {
-            if let Some(t) = store.get_item("raw") {
-                match t.extract::<SealedFriendImage>() {
-                    Ok(i) => chain.push(i.inner),
-                    Err(_) => chain.push(t.extract::<SealedGroupImage>()?.inner),
-                };
-            }
+            let raw = store.get_item("raw")?;
+            match raw.extract::<SealedFriendImage>() {
+                Ok(i) => chain.push(i.inner),
+                Err(_) => chain.push(raw.extract::<SealedGroupImage>()?.inner),
+            };
         }
         "FlashImage" => {
-            if let Some(t) = store.get_item("raw") {
-                match t.extract::<SealedFriendImage>() {
-                    Ok(i) => chain.push(FlashImage::from(i.inner)),
-                    Err(_) => chain.push(FlashImage::from(t.extract::<SealedGroupImage>()?.inner)),
-                };
-            }
+            let raw = store.get_item("raw")?;
+            match raw.extract::<SealedFriendImage>() {
+                Ok(i) => chain.push(FlashImage::from(i.inner)),
+                Err(_) => chain.push(FlashImage::from(raw.extract::<SealedGroupImage>()?.inner)),
+            };
         }
-        _ => {}
+        "Reply" => {
+            let seq: i32 = store.get_item("seq")?.extract()?;
+            let sender: i64 = store.get_item("sender")?.extract()?;
+            let time: i32 = store.get_item("time")?.extract()?;
+            let content: String = store.get_item("content")?.extract()?;
+            chain.push(vec![Reply {
+                reply_seq: seq,
+                sender,
+                time,
+                elements: MessageChain::new(Text::new(content)),
+            }
+            .into()]);
+        }
+        _ => {
+            return Err(PyTypeError::new_err(format!(
+                "无法处理元素 {ident} {store}"
+            )))
+        }
     }
     Ok(())
 }
@@ -217,7 +240,8 @@ pub fn deserialize_message_chain(list: &PyList) -> PyResult<MessageChain> {
             .get_item("type")
             .ok_or_else(|| PyValueError::new_err("Missing `type`!"))?
             .extract::<&str>()?;
-        deserialize_element(&mut chain, name, elem_d)?;
+        deserialize_element(&mut chain, name, elem_d.into())?;
     }
+    tracing::info!("{:?}", chain);
     Ok(chain)
 }

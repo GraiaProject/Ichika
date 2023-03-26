@@ -16,6 +16,7 @@ from .elements import (
     FlashImage,
     Image,
     MarketFace,
+    Reply,
 )
 
 SERIALIZE_INV: dict[type, Callable[[Any], dict[str, Any]]] = {}
@@ -39,6 +40,7 @@ def _serialize(
     return func_register
 
 
+_serialize(Reply)(lambda t: {"seq": t.seq, "sender": t.sender, "time": int(t.time.timestamp()), "content": t.content})
 _serialize(Text)(lambda t: {"text": t.text})
 _serialize(AtAll)(lambda _: {})
 _serialize(At)(lambda t: {"target": t.target})
