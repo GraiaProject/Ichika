@@ -48,7 +48,6 @@ impl LoguruLayer {
         let log_fn = Python::with_gil(|py| -> PyResult<PyObject> {
             let loguru = py.import("loguru")?;
             let logger = loguru.getattr("logger")?;
-            // let logger = logger.call_method("opt", (), kwargs!(py, "depth" => -1))?;
             let log_fn = logger.getattr("log")?;
             Ok(log_fn.into())
         })?;

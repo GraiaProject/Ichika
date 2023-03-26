@@ -11,7 +11,7 @@ use structs::MessageSource;
 
 use self::structs::FriendInfo;
 use crate::client::group::{Group, Member};
-use crate::utils::py_try;
+use crate::utils::{py_try, py_use};
 
 #[pyclass(get_all)]
 #[derive(PyRepr, Clone)]
@@ -208,7 +208,8 @@ impl Handler for PyHandler {
         let py_event = match self::converter::convert(event).await {
             Ok(obj) => obj,
             Err(e) => {
-                tracing::error!("转换事件 {} 时失败: {}", event_repr, e);
+                tracing::error!("转换事件失败: {}", event_repr);
+                py_use(|py| e.print_and_set_sys_last_vars(py));
                 return;
             }
         };

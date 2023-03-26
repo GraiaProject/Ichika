@@ -19,7 +19,7 @@ use crate::exc::MapPyErr;
 use crate::login::{reconnect, TokenRW};
 use crate::message::convert::{deserialize_message_chain, serialize_audio_dict, serialize_element};
 use crate::message::elements::SealedAudio;
-use crate::utils::{py_future, py_none, py_use, AsPython};
+use crate::utils::{py_future, py_none, py_try, py_use, AsPython};
 #[pyclass(subclass)]
 pub struct PlumbingClient {
     client: Arc<ricq::client::Client>,
@@ -472,9 +472,9 @@ impl PlumbingClient {
         py_future(py, async move {
             let data: Vec<u8> = py_use(|py| data.as_bytes(py).into());
             let image = client.upload_friend_image(uin, &data).await?;
-            Ok(py_use(|py| {
-                serialize_element(py, RQElem::FriendImage(image)).into_py(py)
-            }))
+            Ok(py_try(|py| {
+                Ok(serialize_element(py, RQElem::FriendImage(image))?.into_py(py))
+            })?)
         })
     }
 
@@ -496,7 +496,9 @@ impl PlumbingClient {
                 .get_friend_audio_url(client_uin, audio.clone())
                 .await
                 .py_res()?;
-            Ok(py_use(|py| serialize_audio_dict(py, url, &audio.0).obj()))
+            Ok(py_try(|py| {
+                Ok(serialize_audio_dict(py, url, &audio.0)?.obj())
+            })?)
         })
     }
 
@@ -510,9 +512,9 @@ impl PlumbingClient {
         py_future(py, async move {
             let data: Vec<u8> = py_use(|py| data.as_bytes(py).into());
             let image = client.upload_group_image(uin, &data).await?;
-            Ok(py_use(|py| {
-                serialize_element(py, RQElem::GroupImage(image)).into_py(py)
-            }))
+            Ok(py_try(|py| {
+                Ok(serialize_element(py, RQElem::GroupImage(image))?.into_py(py))
+            })?)
         })
     }
 
@@ -530,7 +532,9 @@ impl PlumbingClient {
                 .get_group_audio_url(uin, audio.clone())
                 .await
                 .py_res()?;
-            Ok(py_use(|py| serialize_audio_dict(py, url, &audio.0).obj()))
+            Ok(py_try(|py| {
+                Ok(serialize_audio_dict(py, url, &audio.0)?.obj())
+            })?)
         })
     }
 }
