@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import pathlib
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum
 from functools import total_ordering
 from io import BytesIO
@@ -15,6 +16,14 @@ from graia.amnesia.message.element import Text as Text
 
 from .. import core
 from ._sealed import SealedAudio, SealedImage, SealedMarketFace
+
+
+@dataclass
+class Reply(Element):
+    seq: int
+    sender: int
+    time: datetime
+    content: str
 
 
 @dataclass
@@ -268,5 +277,19 @@ class MarketFace(Element):
 
 TYPE_MAP = {
     cls.__name__: cls
-    for cls in (Text, At, AtAll, FingerGuessing, Dice, Face, LightApp, Audio, Image, FlashImage, MarketFace, Audio)
+    for cls in (
+        Reply,
+        Text,
+        At,
+        AtAll,
+        FingerGuessing,
+        Dice,
+        Face,
+        LightApp,
+        Audio,
+        Image,
+        FlashImage,
+        MarketFace,
+        Audio,
+    )
 }

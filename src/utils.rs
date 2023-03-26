@@ -42,12 +42,17 @@ macro_rules! py_dict {
     };
 }
 
-/// 等价于 `Some(py_dict!(..))`，用于指定 kwargs。
 #[macro_export]
 #[doc(hidden)]
-macro_rules! kwargs {
-    ($py:expr, $($name:expr => $value:expr),*) => {
-        Some($crate::py_dict!($py, $($name => $value),*))
+macro_rules! dict {
+    {$py:expr, $($name:ident : $value:expr),* $(,)?} => {
+        {
+            let dict = ::pyo3::types::PyDict::new($py);
+            $(
+                dict.set_item(stringify!($name), $value)?;
+            )*
+            dict
+        }
     };
 }
 
@@ -181,7 +186,7 @@ static_py_fn!(
 );
 
 pub fn timedelta_from_secs(py: Python<'_>, delta: impl IntoPy<PyObject>) -> PyResult<&PyAny> {
-    _timedelta_from_secs(py).call((), kwargs!(py, "seconds" => delta.into_py(py)))
+    _timedelta_from_secs(py).call((), Some(dict!(py, seconds: delta.into_py(py))))
 }
 
 static_py_fn!(partial, __PARTIAL_CELL, "functools", ["partial"]);
