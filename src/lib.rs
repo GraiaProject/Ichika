@@ -7,8 +7,8 @@
 #![feature(result_flattening)]
 
 use pyo3::prelude::*;
-use pyo3_built::pyo3_built;
 
+mod build_info;
 pub mod client;
 mod events;
 pub(crate) mod exc;
@@ -17,10 +17,6 @@ mod loguru;
 pub mod message;
 mod utils;
 type PyRet = PyResult<PyObject>;
-
-pub mod build_info {
-    include!(concat!(env!("OUT_DIR"), "/build-info.rs"));
-}
 
 macro_rules! add_batch {
     (@fun $m: ident, $($func: ty),*) => {
@@ -35,7 +31,7 @@ macro_rules! add_batch {
 #[doc(hidden)]
 pub fn core(py: Python, m: &PyModule) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
-    m.add("__build__", pyo3_built!(py, build_info))?;
+    m.add("__build__", build_info::get_info(py)?)?;
     add_batch!(@fun m,
         loguru::getframe,
         message::elements::face_id_from_name,

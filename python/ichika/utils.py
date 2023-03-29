@@ -11,6 +11,8 @@ AsyncFn: TypeAlias = Callable[P, Awaitable[T]]
 
 
 class AutoEnum(Enum):
+    """以名字为值的自动枚举"""
+
     _value_: str
     value: str
 
