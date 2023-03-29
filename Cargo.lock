@@ -713,7 +713,6 @@ dependencies = [
  "once_cell",
  "pyo3",
  "pyo3-asyncio",
- "pyo3-built",
  "pyo3-repr",
  "pythonize",
  "qrcode",
@@ -1275,12 +1274,6 @@ dependencies = [
  "once_cell",
  "target-lexicon",
 ]
-
-[[package]]
-name = "pyo3-built"
-version = "0.4.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be6d574e0f8cab2cdd1eeeb640cbf845c974519fa9e9b62fa9c08ecece0ca5de"
 
 [[package]]
 name = "pyo3-ffi"
