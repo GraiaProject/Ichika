@@ -25,7 +25,7 @@ jobs:
       - name: Run Black
         uses: psf/black@stable
       - name: Run ISort
-        uses: isort/isort-action@master
+        uses: isort/isort-action@v1
 
   lint-rust:
     name: Lint Rust
@@ -43,6 +43,37 @@ jobs:
       - name: Run cargo clippy
         run: cargo clippy -- -D warnings
 
+  build-docs:
+    name: Build Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: pdm-project/setup-pdm@v3
+        name: Setup PDM
+      - name: Install Dependencies
+        run: pdm install --no-self
+      - name: Sphinx Build
+        run: pdm run build-docs
+      - name: Upload Documentation to Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: sphinx-docs
+          path: build
+      - name: Deploy to Netlify
+        uses: nwtgck/actions-netlify@v2.0
+        with:
+          publish-dir: './build'
+          production-branch: master
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "Deploy from GitHub Actions"
+          enable-pull-request-comment: false
+          enable-commit-comment: true
+          overwrites-pull-request-comment: true
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+
+
   build-matrix:
     name: Create Build Matrix
     runs-on: ubuntu-latest
@@ -51,8 +82,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
-        with:
-          python-version: 3.11
       - name: Install Actions Toolkit
         run: pip install actions_toolkit
       - name: Configure Build Matrix
@@ -108,23 +137,17 @@ jobs:
           name: ${{ matrix.name }}
           path: dist
 
-      - name: Conclusion
-        if: ${{ always() }}
-        run: python ./.github/scripts/build_conclusion.py
-        env:
-          MATRIX: ${{ toJSON(matrix) }}
-          RESULT: ${{ steps.build-wheel.outcome }}
-
   release:
     name: Release
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'workflow_dispatch' }}
-    needs: [lint-python, lint-rust, build]
+    needs: [lint-python, lint-rust, build, build-docs]
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: pdm-project/setup-pdm@v3
+        name: Setup PDM
       - name: Install Dependencies
-        run: pip install -r ./dev-dependencies.txt
+        run: pdm install --no-self
       - name: Extract Version
         id: extract-version
         run: python ./.github/scripts/extract_version.py
@@ -133,6 +156,11 @@ jobs:
         with:
           name: wheels
           path: dist
+      - name: Download Sphinx Documentation # TODO: rezip and include in release
+        uses: actions/download-artifact@v3
+        with:
+          name: sphinx-docs
+          path: build
 
       - name: Towncrier Extract Release Notes
         run: towncrier build --version ${{ env.VERSION }} --keep --config ./towncrier_release.toml

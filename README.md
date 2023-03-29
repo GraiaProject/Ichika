@@ -15,6 +15,8 @@
 
 </div>
 
+<!-- start docs-include -->
+
 ## 鸣谢
 
 - [AWR](https://github.com/wybxc/awr): Ichika 的前身和部分代码来源
@@ -26,3 +28,5 @@
 ## 许可证
 
 `Ichika` 使用 [`GNU AGPL-3.0`](https://choosealicense.com/licenses/agpl-3.0/) 作为许可证，这意味着你需要遵守相应的规则。
+
+<!-- end docs-include -->

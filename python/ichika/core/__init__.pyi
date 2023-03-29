@@ -1,7 +1,6 @@
 import asyncio
-import datetime
 from dataclasses import dataclass
-from typing import Literal, TypedDict, TypeVar
+from typing import Literal, TypeVar
 from typing_extensions import Any, TypeAlias
 
 from ..client import Client
@@ -13,50 +12,10 @@ from ..login import (
 from ..message._sealed import SealedAudio as _SealedAudio
 from . import events as events
 
-# region: build info
-
-__Build_RustInfo = TypedDict(
-    "_RustInfo",
-    {
-        "rustc": str,
-        "rustc-version": str,
-        "opt-level": str,
-        "debug": bool,
-        "jobs": int,
-    },
-)
-__Build_HostInfo = TypedDict("__Build_HostInfo", {"triple": str})
-__Build_TargetInfo = TypedDict(
-    "__Build_TargetInfo",
-    {
-        "arch": str,
-        "os": str,
-        "family": str,
-        "env": str,
-        "triple": str,
-        "endianness": str,
-        "pointer-width": str,
-        "profile": str,
-    },
-)
-__BuildInfo = TypedDict(
-    "_BuildInfo",
-    {
-        "build": __Build_RustInfo,
-        "info-time": datetime.datetime,
-        "dependencies": dict[str, str],
-        "features": list[str],
-        "host": __Build_HostInfo,
-        "target": __Build_TargetInfo,
-    },
-)
-
 __version__: str
-__build__: __BuildInfo
+__build__: Any
 
-# endregion: build info
-
-T_Event: TypeAlias = Any  # TODO
+_T_Event: TypeAlias = Any  # TODO
 
 # Here, outside wrapper "login_XXX" ensures that a "task locals" can be acquired for event task execution.
 
@@ -66,16 +25,39 @@ async def password_login(
     use_sms: bool,
     protocol: str,
     store: BaseLoginCredentialStore,
-    event_callbacks: list[asyncio.Queue[T_Event]],
+    event_callbacks: list[asyncio.Queue[_T_Event]],
     login_callbacks: PasswordLoginCallbacks,
-) -> Client: ...
+) -> Client:
+    """使用密码登录。
+
+    :param uin: 账号
+    :param credential: 登录凭据，str 为密码，bytes 为 MD5 数据
+    :param use_sms: 是否使用短信验证码验证设备锁
+    :param protocol: 登录协议，为 AndroidPhone, AndroidPad, AndroidWatch, IPad, MacOS, QiDian 中的一个
+    :param store: 登录凭据存储器
+    :param event_callbacks: 事件队列
+    :param login_callbacks: 用于解析登录的回调
+    :return: 可操作的客户端
+    """
+    ...
+
 async def qrcode_login(
     uin: int,
     protocol: str,
     store: BaseLoginCredentialStore,
-    event_callbacks: list[asyncio.Queue[T_Event]],
+    event_callbacks: list[asyncio.Queue[_T_Event]],
     login_callbacks: QRCodeLoginCallbacks,
-) -> Client: ...
+) -> Client:
+    """使用二维码登录。
+
+    :param uin: 账号
+    :param protocol: 登录协议，只能使用 AndroidWatch
+    :param store: 登录凭据存储器
+    :param event_callbacks: 事件队列
+    :param login_callbacks: 用于解析登录的回调
+    :return: 可操作的客户端
+    """
+    ...
 
 # region: client
 
@@ -83,70 +65,153 @@ _internal_repr = dataclass(frozen=True, init=False)
 
 @_internal_repr
 class AccountInfo:
+    """机器人账号信息"""
+
     nickname: str
+    """机器人昵称"""
     age: int
-    gender: int
+    """机器人年龄"""
+    gender: int  # TODO: note
+    """机器人标注的性别"""
 
 @_internal_repr
 class OtherClientInfo:
+    """获取到的其他客户端信息"""
+
     app_id: int
+    """应用 ID"""
     instance_id: int
+    """实例 ID"""
     sub_platform: str
+    """子平台"""
     device_kind: str
+    """设备类型"""
 
 @_internal_repr
 class Friend:
+    """好友信息"""
+
     uin: int
+    """账号 ID"""
     nick: str
+    """好友昵称"""
     remark: str
+    """好友备注"""
     face_id: int
+    """未知"""
     group_id: int
+    """好友分组 ID"""
 
 @_internal_repr
 class FriendGroup:
+    """好友组"""
+
     group_id: int
+    """分组 ID"""
     name: str
+    """组名"""
     total_count: int
+    """组内总好友数"""
     online_count: int
+    """组内在线好友数"""
     seq_id: int
+    """SEQ ID"""
 
 @_internal_repr
 class FriendList:
+    """好友列表，你通过 API 获取到的顶层数据结构"""
+
     total_count: int
+    """所有好友数"""
     online_count: int
-    def friends(self) -> tuple[Friend, ...]: ...
-    def find_friend(self, uin: int) -> Friend | None: ...
-    def friend_groups(self) -> tuple[FriendGroup, ...]: ...
-    def find_friend_group(self, group_id: int) -> FriendGroup | None: ...
+    """在线好友数"""
+    def friends(self) -> tuple[Friend, ...]:
+        """获取好友列表。
+
+        :return: 好友列表
+        """
+        ...
+    def find_friend(self, uin: int) -> Friend | None:
+        """查找好友。
+
+        :param uin: 好友账号
+        :return: 好友信息
+        """
+        ...
+    def friend_groups(self) -> tuple[FriendGroup, ...]:
+        """获取好友分组列表。
+
+        :return: 好友分组列表
+        """
+        ...
+    def find_friend_group(self, group_id: int) -> FriendGroup | None:
+        """查找好友分组。
+
+        :param group_id: 好友分组 ID
+        :return: 好友分组信息
+        """
+        ...
 
 @_internal_repr
 class Group:
+    """群组信息，请注意通过缓存获取的数据可能不精确"""
+
     uin: int
+    """群号"""
     name: str
+    """群名"""
     memo: str
+    """群公告"""
     owner_uin: int
-    create_time: int
+    """群主账号"""
+    create_time: int  # TODO: datetime
+    """群创建时间戳"""
     level: int
+    """群等级"""
     member_count: int
+    """群成员数量"""
     max_member_count: int
-    global_mute_timestamp: int
-    mute_timestamp: int
+    """群最大成员数量"""
+    global_mute_timestamp: int  # TODO: datetime
+    """全局禁言时间戳"""
+    mute_timestamp: int  # TODO: datetime
+    """群禁言时间戳"""
     last_msg_seq: int
+    """最后一条消息序列号"""
 
 @_internal_repr
 class Member:
+    """群成员信息"""
+
     group_uin: int
+    """群号"""
     uin: int
+    """账号"""
     gender: int
+    """性别"""
     nickname: str
+    """昵称"""
     card_name: str
+    """群名片"""
     level: int
+    """成员等级"""
     join_time: int
+    """加入时间"""
     last_speak_time: int
+    """最后发言时间"""
     special_title: str
+    """特殊头衔"""
     special_title_expire_time: int
+    """特殊头衔过期时间"""
     mute_timestamp: int
-    permission: int
+    """禁言时间戳"""
+    permission: int  # TODO: Enum
+    """权限
+
+    - 0: 群员
+    - 1: 管理员
+    - 2: 群主
+    """
 
 _T = TypeVar("_T")
 
@@ -155,10 +220,15 @@ VTuple = tuple[_T, ...]
 @_internal_repr
 class RawMessageReceipt:
     seqs: VTuple[int]
+    """消息 SEQ ID"""
     rands: VTuple[int]
+    """消息随机数"""
     time: int
+    """发送时间戳"""
     kind: str
+    """消息类型，为 `group` 与 `friend` 中一个"""
     target: int
+    """发送目标"""
 
 __OnlineStatus: TypeAlias = (  # TODO: Wrapper
     tuple[int, str]  # (face_index, wording)
