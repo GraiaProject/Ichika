@@ -62,7 +62,7 @@ jobs:
       - name: Deploy to Netlify
         uses: nwtgck/actions-netlify@v2.0
         with:
-          publish-dir: './build'
+          publish-dir: './build/html'
           production-branch: master
           github-token: ${{ secrets.GITHUB_TOKEN }}
           deploy-message: "Deploy from GitHub Actions"
@@ -82,6 +82,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
       - name: Install Actions Toolkit
         run: pip install actions_toolkit
       - name: Configure Build Matrix
