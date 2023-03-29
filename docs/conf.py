@@ -4,10 +4,10 @@ from typing import Any
 
 import tomlkit
 
-CURRENT_DIR = Path(__file__, "..").absolute()
+CURRENT_DIR = Path(__file__, "..").resolve()
 sys.path.append(CURRENT_DIR.as_posix())
 
-cargo: Any = tomlkit.loads(Path(CURRENT_DIR, "./../Cargo.toml").read_text("utf-8"))
+cargo: Any = tomlkit.loads(Path(CURRENT_DIR, "./../Cargo.toml").resolve().read_text("utf-8"))
 
 # Configuration file for the Sphinx documentation builder.
 #
@@ -80,7 +80,7 @@ autodoc2_output_dir = "api"
 autodoc2_hidden_objects = {"private", "inherited"}
 
 autodoc2_class_docstring = "both"
-autodoc2_index_template = Path(__file__, "..", "./_templates/api-doc-index.rst").read_text("utf-8")
+autodoc2_index_template = Path(__file__, "..", "./_templates/api-doc-index.rst").resolve().read_text("utf-8")
 autodoc2_render_plugin = "api_renderer.APIRenderer"
 
 ogp_site_url = "https://hoshino-ichika.netlify.app/"

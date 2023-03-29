@@ -58,7 +58,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: sphinx-docs
-          path: build
+          path: build/html
       - name: Deploy to Netlify
         uses: nwtgck/actions-netlify@v2.0
         with:
@@ -161,6 +161,8 @@ jobs:
         with:
           name: sphinx-docs
           path: build
+      - name: Compress Sphinx Documentation
+        run: zip -9 ./sphinx-docs.zip -r ./build
 
       - name: Towncrier Extract Release Notes
         run: towncrier build --version ${{ env.VERSION }} --keep --config ./towncrier_release.toml
@@ -174,7 +176,7 @@ jobs:
           git add .
           git diff-index --quiet HEAD || git commit -m "chore(release): ${{ env.VERSION }}"
           git push
-          gh release create "${{ env.VERSION }}" dist/* --notes-file ./release-notes.md --title "${{ env.VERSION }}"
+          gh release create "${{ env.VERSION }}" dist/* './sphinx-docs.zip#Documentation Archive' --notes-file ./release-notes.md --title "${{ env.VERSION }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
