@@ -181,6 +181,23 @@ impl PlumbingClient {
             Ok(())
         })
     }
+
+    pub fn image_ocr<'py>(
+        &self,
+        py: Python<'py>,
+        url: String,
+        md5: String,
+        weight: i32,
+        height: i32,
+    ) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            let resp = client
+                .image_ocr(url, md5, weight * height, weight, height)
+                .await?;
+            Ok(OCRResult::from(resp).obj())
+        })
+    }
 }
 
 #[pymethods]
@@ -537,6 +554,86 @@ impl PlumbingClient {
             })?)
         })
     }
+
+    pub fn send_friend_audio<'py>(
+        &self,
+        py: Python<'py>,
+        uin: i64,
+        audio: PyObject,
+    ) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        let ptt = audio.extract::<SealedAudio>(py)?.inner;
+        py_future(py, async move {
+            let ricq::structs::MessageReceipt { seqs, rands, time } =
+                client.send_friend_audio(uin, FriendAudio(ptt)).await?;
+            Ok(Python::with_gil(|py| RawMessageReceipt {
+                seqs: PyTuple::new(py, seqs).into_py(py),
+                rands: PyTuple::new(py, rands).into_py(py),
+                time,
+                kind: "friend".into(),
+                target: uin,
+            }))
+        })
+    }
+
+    pub fn send_group_audio<'py>(
+        &self,
+        py: Python<'py>,
+        uin: i64,
+        audio: PyObject,
+    ) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        let ptt = audio.extract::<SealedAudio>(py)?.inner;
+        py_future(py, async move {
+            let ricq::structs::MessageReceipt { seqs, rands, time } =
+                client.send_group_audio(uin, GroupAudio(ptt)).await?;
+            Ok(Python::with_gil(|py| RawMessageReceipt {
+                seqs: PyTuple::new(py, seqs).into_py(py),
+                rands: PyTuple::new(py, rands).into_py(py),
+                time,
+                kind: "group".into(),
+                target: uin,
+            }))
+        })
+    }
+
+    pub fn send_friend_music_share<'py>(
+        &self,
+        py: Python<'py>,
+        uin: i64,
+        share: MusicShareParam,
+    ) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        let (music_share, music_version) = share.try_into()?;
+        py_future(py, async move {
+            client
+                .send_friend_music_share(uin, music_share, music_version)
+                .await
+                .py_res()?;
+            Ok(())
+        })
+    }
+
+    pub fn send_group_music_share<'py>(
+        &self,
+        py: Python<'py>,
+        uin: i64,
+        share: MusicShareParam,
+    ) -> PyResult<&'py PyAny> {
+        // TODO: Allow returning MessageSource
+
+        let client = self.client.clone();
+        let (music_share, music_version) = share.try_into()?;
+        py_future(py, async move {
+            client
+                .send_group_music_share(uin, music_share, music_version)
+                .await
+                .py_res()?;
+            // TODO: Immediate listen hook
+            // LINK: https://github.com/Mrs4s/MiraiGo/blob/f8d9841755b579f7c95ed918d23b767e3854553a/client/richmsg.go#L71
+            Ok(())
+        })
+    }
 }
 
 #[pymethods]
@@ -562,27 +659,6 @@ impl PlumbingClient {
         })
     }
 
-    pub fn send_friend_audio<'py>(
-        &self,
-        py: Python<'py>,
-        uin: i64,
-        audio: PyObject,
-    ) -> PyResult<&'py PyAny> {
-        let client = self.client.clone();
-        let ptt = audio.extract::<SealedAudio>(py)?.inner;
-        py_future(py, async move {
-            let ricq::structs::MessageReceipt { seqs, rands, time } =
-                client.send_friend_audio(uin, FriendAudio(ptt)).await?;
-            Ok(Python::with_gil(|py| RawMessageReceipt {
-                seqs: PyTuple::new(py, seqs).into_py(py),
-                rands: PyTuple::new(py, rands).into_py(py),
-                time,
-                kind: "friend".into(),
-                target: uin,
-            }))
-        })
-    }
-
     pub fn send_group_message<'py>(
         &self,
         py: Python<'py>,
@@ -594,27 +670,6 @@ impl PlumbingClient {
         py_future(py, async move {
             let ricq::structs::MessageReceipt { seqs, rands, time } =
                 client.send_group_message(uin, chain).await?;
-            Ok(Python::with_gil(|py| RawMessageReceipt {
-                seqs: PyTuple::new(py, seqs).into_py(py),
-                rands: PyTuple::new(py, rands).into_py(py),
-                time,
-                kind: "group".into(),
-                target: uin,
-            }))
-        })
-    }
-
-    pub fn send_group_audio<'py>(
-        &self,
-        py: Python<'py>,
-        uin: i64,
-        audio: PyObject,
-    ) -> PyResult<&'py PyAny> {
-        let client = self.client.clone();
-        let ptt = audio.extract::<SealedAudio>(py)?.inner;
-        py_future(py, async move {
-            let ricq::structs::MessageReceipt { seqs, rands, time } =
-                client.send_group_audio(uin, GroupAudio(ptt)).await?;
             Ok(Python::with_gil(|py| RawMessageReceipt {
                 seqs: PyTuple::new(py, seqs).into_py(py),
                 rands: PyTuple::new(py, rands).into_py(py),
@@ -672,7 +727,6 @@ impl PlumbingClient {
             Ok(())
         })
     }
-    // TODO: Send audio
 }
 
 #[pymethods]

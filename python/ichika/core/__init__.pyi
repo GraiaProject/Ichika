@@ -1,7 +1,10 @@
 import asyncio
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Literal, TypeVar
 from typing_extensions import Any, TypeAlias
+
+from ichika.message.elements import MusicShare
 
 from ..client import Client
 from ..login import (
@@ -230,6 +233,18 @@ class RawMessageReceipt:
     target: int
     """发送目标"""
 
+@_internal_repr
+class OCRText:
+    detected_text: str
+    confidence: int
+    polygon: VTuple[tuple[int, int]] | None
+    advanced_info: str
+
+@_internal_repr
+class OCRResult:
+    texts: VTuple[OCRText]
+    language: str
+
 __OnlineStatus: TypeAlias = (  # TODO: Wrapper
     tuple[int, str]  # (face_index, wording)
     | tuple[
@@ -291,6 +306,7 @@ class PlumbingClient:
     ) -> None: ...
     async def get_other_clients(self) -> VTuple[OtherClientInfo]: ...
     async def modify_online_status(self, status: __OnlineStatus) -> None: ...
+    async def image_ocr(self, url: str, md5: str, width: int, height: int) -> OCRResult: ...
     # [impl 2]
     async def get_friend_list(self) -> FriendList: ...
     async def get_friend_list_raw(self) -> FriendList: ...
@@ -323,11 +339,13 @@ class PlumbingClient:
     async def upload_friend_audio(self, uin: int, data: bytes) -> dict[str, Any]: ...
     async def upload_group_image(self, uin: int, data: bytes) -> dict[str, Any]: ...
     async def upload_group_audio(self, uin: int, data: bytes) -> dict[str, Any]: ...
+    async def send_friend_audio(self, uin: int, audio: _SealedAudio) -> RawMessageReceipt: ...
+    async def send_group_audio(self, uin: int, audio: _SealedAudio) -> RawMessageReceipt: ...
+    async def send_friend_music_share(self, uin: int, share: MusicShare) -> None: ...
+    async def send_group_music_share(self, uin: int, share: MusicShare) -> None: ...
     # [impl 6]
     async def send_friend_message(self, uin: int, chain: list[dict[str, Any]]) -> RawMessageReceipt: ...
-    async def send_friend_audio(self, uin: int, audio: _SealedAudio) -> RawMessageReceipt: ...
     async def send_group_message(self, uin: int, chain: list[dict[str, Any]]) -> RawMessageReceipt: ...
-    async def send_group_audio(self, uin: int, audio: _SealedAudio) -> RawMessageReceipt: ...
     async def recall_friend_message(self, uin: int, time: int, seq: int, rand: int) -> None: ...
     async def recall_group_message(self, uin: int, seq: int, rand: int) -> None: ...
     async def modify_group_essence(self, uin: int, seq: int, rand: int, flag: bool) -> None: ...
@@ -342,3 +360,24 @@ class PlumbingClient:
 
 def face_id_from_name(name: str) -> int | None: ...
 def face_name_from_id(id: int) -> str: ...
+@_internal_repr
+class MessageSource:
+    """消息元信息"""
+
+    seqs: tuple[int, ...]
+    """消息的 SEQ
+    建议搭配聊天类型与上下文 ID （例如 `("group", 123456, seq)`）作为索引的键
+    """
+    rands: tuple[int, ...]
+    """消息的随机信息，撤回需要"""
+    time: datetime
+    """消息发送时间"""
+
+@_internal_repr
+class FriendInfo:
+    """事件中的好友信息"""
+
+    uin: int
+    """好友账号"""
+    nickname: str
+    """好友实际昵称"""

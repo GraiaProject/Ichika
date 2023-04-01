@@ -5,7 +5,17 @@ from graia.amnesia.message import Element, MessageChain
 
 from .core import PlumbingClient, RawMessageReceipt
 from .message import _serialize_message as _serialize_msg
-from .message.elements import At, AtAll, Audio, Face, FlashImage, Image, Reply, Text
+from .message.elements import (
+    At,
+    AtAll,
+    Audio,
+    Face,
+    FlashImage,
+    Image,
+    MusicShare,
+    Reply,
+    Text,
+)
 
 
 class Client(PlumbingClient):
@@ -39,13 +49,16 @@ class Client(PlumbingClient):
         return chain
 
     async def _send_special_element(self, uin: int, kind: str, element: Element) -> RawMessageReceipt:
-        method = getattr(self, f"send_{kind}_{element.__class__.__name__.lower()}")
         if Audio._check(element):
             if element.raw is None:
-                sealed = (await getattr(self, f"upload_{kind}_audio")(uin, await element.fetch())).raw
+                uploader = self.upload_friend_audio if kind == "friend" else self.upload_group_audio
+                sealed = (await uploader(uin, await element.fetch())).raw
             else:
                 sealed = element.raw
-            return await method(uin, sealed)
+            sender = self.send_friend_audio if kind == "friend" else self.send_group_audio
+            return await sender(uin, sealed)
+        if isinstance(element, MusicShare):
+            raise TypeError("音乐分享无法因发送后无法获得消息元数据，无法使用 send_xxx_message API 发送，请直接调用底层 API")
         raise TypeError(f"无法发送元素: {element!r}")
 
     async def send_group_message(self, uin: int, chain: MessageChain) -> RawMessageReceipt:

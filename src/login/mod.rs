@@ -252,8 +252,8 @@ async fn handle_device_lock(
         .message
         .as_ref()
         .map_or_else(|| "请解锁设备锁进行验证", |msg| msg.as_str());
-    let verify_url = data.verify_url.as_ref().map_or(
-        Err(exc::RICQError::new_err("无法获取验证地址")),
+    let verify_url = data.verify_url.as_ref().map_or_else(
+        || Err(exc::RICQError::new_err("无法获取验证地址")),
         |url| Ok(url.clone()),
     )?;
     tracing::info!("{:?}", data.clone());
@@ -317,8 +317,8 @@ async fn password_login_process(
                 .await?;
             }
             LoginResponse::NeedCaptcha(LoginNeedCaptcha { ref verify_url, .. }) => {
-                let verify_url = verify_url.as_ref().map_or(
-                    Err(exc::RICQError::new_err("无法获取验证地址")),
+                let verify_url = verify_url.as_ref().map_or_else(
+                    || Err(exc::RICQError::new_err("无法获取验证地址")),
                     |url| Ok(url.clone()),
                 )?;
                 let ticket =

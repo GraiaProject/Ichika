@@ -6,14 +6,14 @@ from graia.amnesia.message import MessageChain
 from graia.amnesia.message.element import Element, Unknown
 from loguru import logger
 
-from .elements import TYPE_MAP
+from .elements import DESERIALIZE_INV
 from .serializer import SERIALIZE_INV
 
 
-def deserialize_message(elements: list[dict[str, Any]]) -> MessageChain:
+def _deserialize_message(elements: list[dict[str, Any]]) -> MessageChain:
     elem_seq: list[Element] = []
     for e_data in elements:
-        cls = TYPE_MAP.get(e_data.pop("type"), None)
+        cls = DESERIALIZE_INV.get(e_data.pop("type"), None)
         if cls is None:
             logger.warning(f"未知元素: {e_data!r}")
             elem_seq.append(Unknown("Unknown", e_data))

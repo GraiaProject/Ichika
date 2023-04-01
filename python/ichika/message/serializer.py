@@ -15,6 +15,7 @@ from .elements import (
     FingerGuessing,
     FlashImage,
     Image,
+    LightApp,
     MarketFace,
     Reply,
 )
@@ -48,17 +49,18 @@ _serialize(Dice)(lambda t: {"value": t.value})
 _serialize(FingerGuessing)(lambda t: {"choice": t.choice.name})
 _serialize(Face)(lambda t: {"index": t.index})
 _serialize(MarketFace)(lambda t: {"raw": t.raw})
+_serialize(LightApp)(lambda t: {"content": t.content})
 
 
 @_serialize(Image)
-def _(i: Image):
-    if i.raw is None:
+def _serialize_image(elem: Image):
+    if elem.raw is None:
         raise ValueError
-    return {"raw": i.raw}
+    return {"raw": elem.raw}
 
 
 @_serialize(FlashImage)
-def _(i: FlashImage):
-    if i.raw is None:
+def _serialize_flash_image(elem: FlashImage):
+    if elem.raw is None:
         raise ValueError
-    return {"raw": i.raw}
+    return {"raw": elem.raw}
