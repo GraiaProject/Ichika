@@ -111,6 +111,12 @@ pub fn serialize_element(py: Python, e: RQElem) -> PyResult<Option<&PyDict>> {
                 }
             }
         },
+        RQElem::LightApp(app) => {
+            dict! {py,
+                type: "LightApp",
+                content: app.content
+            }
+        }
         RQElem::Other(_) => {
             return Ok(None);
         }
@@ -159,7 +165,7 @@ static_py_fn!(
     py_deserialize,
     __py_deserialize_cell,
     "ichika.message",
-    ["deserialize_message"]
+    ["_deserialize_message"]
 );
 
 pub fn serialize_as_py_chain(py: Python, chain: MessageChain) -> PyResult<PyObject> // PyMessageChain

@@ -48,36 +48,12 @@ pub fn core(py: Python, m: &PyModule) -> PyResult<()> {
         client::group::Member,
         client::structs::AccountInfo,
         client::structs::OtherClientInfo,
-        client::structs::RawMessageReceipt
+        client::structs::RawMessageReceipt,
+        client::structs::OCRResult,
+        client::structs::OCRText,
+        events::structs::MessageSource,
+        events::structs::FriendInfo
     );
-    register_event_module(py, m)?;
     loguru::init(m)?;
-    Ok(())
-}
-
-fn register_event_module(py: Python, parent: &PyModule) -> PyResult<()> {
-    let m = PyModule::new(py, "ichika.core.events")?;
-    parent.add_submodule(m)?;
-    parent.add("events", m)?;
-    // See https://github.com/PyO3/pyo3/issues/759
-    py.import("sys")?
-        .getattr("modules")?
-        .set_item("ichika.core.events", m)?;
-    register_event_structs_module(py, m)?;
-    Ok(())
-}
-
-fn register_event_structs_module(py: Python, parent: &PyModule) -> PyResult<()> {
-    let m = PyModule::new(py, "ichika.core.events.structs")?;
-    add_batch!(@cls m,
-        crate::events::structs::MessageSource,
-        crate::events::structs::FriendInfo
-    );
-    parent.add_submodule(m)?;
-    parent.add("structs", m)?;
-    // See https://github.com/PyO3/pyo3/issues/759
-    py.import("sys")?
-        .getattr("modules")?
-        .set_item("ichika.core.events.structs", m)?;
     Ok(())
 }

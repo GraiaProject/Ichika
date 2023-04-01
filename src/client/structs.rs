@@ -1,6 +1,11 @@
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::*;
 use pyo3_repr::PyRepr;
+use ricq::structs::{MusicShare, MusicVersion};
+use ricq_core::command::oidb_svc::OcrResponse;
+
+use crate::utils::py_use;
 #[pyclass(get_all)]
 #[derive(PyRepr, Clone)]
 pub struct AccountInfo {
@@ -26,6 +31,52 @@ pub struct RawMessageReceipt {
     pub time: i64,
     pub kind: String,
     pub target: i64,
+}
+
+#[pyclass(get_all)]
+#[derive(PyRepr, Clone)]
+pub struct OCRResult {
+    pub texts: Py<PyTuple>, // PyTuple<OCRText>
+    pub language: String,
+}
+
+#[pyclass(get_all)]
+#[derive(PyRepr, Clone)]
+pub struct OCRText {
+    pub detected_text: String,
+    pub confidence: i32,
+    pub polygon: Option<Py<PyTuple>>, // PyTuple<(i32, i32))>
+    pub advanced_info: String,
+}
+
+impl From<OcrResponse> for OCRResult {
+    fn from(value: OcrResponse) -> Self {
+        py_use(|py| {
+            let OcrResponse { texts, language } = value;
+            let text_iter = texts.into_iter().map(|txt| {
+                let polygon = txt.polygon.map(|poly| {
+                    PyTuple::new(
+                        py,
+                        poly.coordinates
+                            .into_iter()
+                            .map(|coord| (coord.x, coord.y).to_object(py)),
+                    )
+                    .into_py(py)
+                });
+                OCRText {
+                    detected_text: txt.detected_text,
+                    confidence: txt.confidence,
+                    polygon,
+                    advanced_info: txt.advanced_info,
+                }
+                .into_py(py)
+            });
+            OCRResult {
+                texts: PyTuple::new(py, text_iter).into_py(py),
+                language,
+            }
+        })
+    }
 }
 
 #[derive(FromPyObject)]
@@ -54,5 +105,60 @@ impl From<OnlineStatusParam> for ricq::structs::Status {
                 custom_status: None,
             },
         }
+    }
+}
+
+#[derive(FromPyObject)]
+pub struct MusicShareParam {
+    #[pyo3(attribute)]
+    kind: String,
+    #[pyo3(attribute)]
+    title: String,
+    #[pyo3(attribute)]
+    summary: String,
+    #[pyo3(attribute)]
+    jump_url: String,
+    #[pyo3(attribute)]
+    picture_url: String,
+    #[pyo3(attribute)]
+    music_url: String,
+    #[pyo3(attribute)]
+    brief: String,
+}
+
+impl TryFrom<MusicShareParam> for (MusicShare, MusicVersion) {
+    type Error = PyErr;
+
+    fn try_from(value: MusicShareParam) -> Result<Self, Self::Error> {
+        let MusicShareParam {
+            kind,
+            title,
+            summary,
+            jump_url,
+            picture_url,
+            music_url,
+            brief,
+        } = value;
+        let version = match kind.as_str() {
+            "QQ" => MusicVersion::QQ,
+            "Netease" => MusicVersion::NETEASE,
+            "Migu" => MusicVersion::MIGU,
+            "Kugou" => MusicVersion::KUGOU,
+            "Kuwo" => MusicVersion::KUWO,
+            platform => {
+                return Err(PyValueError::new_err(format!(
+                    "无法识别的音乐平台: {platform}"
+                )))
+            }
+        };
+        let share = MusicShare {
+            title,
+            brief,
+            summary,
+            url: jump_url,
+            picture_url,
+            music_url,
+        };
+        Ok((share, version))
     }
 }
