@@ -4,8 +4,7 @@ from typing_extensions import TypeGuard, TypeVar
 
 from graia.amnesia.message import MessageChain
 
-from ichika.core import Group, Member
-from ichika.core.events.structs import FriendInfo, MessageSource
+from ichika.core import FriendInfo, Group, Member, MessageSource
 
 
 class LoginEvent(TypedDict):

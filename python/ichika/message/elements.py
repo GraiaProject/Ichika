@@ -7,7 +7,7 @@ from datetime import datetime
 from enum import Enum
 from functools import total_ordering
 from io import BytesIO
-from typing import Generic, Literal, Optional
+from typing import Callable, Generic, Literal, Optional
 from typing_extensions import Self, TypeAlias, TypeGuard, TypeVar
 
 import aiohttp
@@ -109,8 +109,32 @@ class Face(Element):
 
 
 @dataclass
+class MusicShare(Element):
+    """音乐分享
+
+    音乐分享本质为 “小程序”
+    但是可以用不同方式发送
+    并且风控几率较小
+    """
+
+    kind: Literal["QQ", "Netease", "Migu", "Kugou", "Kuwo"]
+    title: str
+    summary: str
+    jump_url: str
+    picture_url: str
+    music_url: str
+    brief: str
+
+
+@dataclass
 class LightApp(Element):
+    """小程序
+
+    本框架不辅助音乐分享外的小程序构造与发送
+    """
+
     content: str
+    """JSON 内容"""
 
     def __str__(self) -> str:
         return "[小程序]"
@@ -275,7 +299,7 @@ class MarketFace(Element):
         return f"MarketFace(name={self.name})"
 
 
-TYPE_MAP = {
+DESERIALIZE_INV: dict[str, Callable[..., Element]] = {
     cls.__name__: cls
     for cls in (
         Reply,
@@ -293,3 +317,36 @@ TYPE_MAP = {
         Audio,
     )
 }
+
+__MUSIC_SHARE_APPID_MAP: dict[int, Literal["QQ", "Netease", "Migu", "Kugou", "Kuwo"]] = {
+    100497308: "QQ",
+    100495085: "Netease",
+    1101053067: "Migu",
+    205141: "Kugou",
+    100243533: "Kuwo",
+}
+
+
+def _light_app_deserializer(**data) -> Element:
+    import json
+    from contextlib import suppress
+
+    with suppress(ValueError, KeyError):
+        # MusicShare resolver
+        # https://github.com/mamoe/mirai/blob/893fb3e9f653623056f9c4bff73b4dac957cd2a2/mirai-core/src/commonMain/kotlin/message/data/lightApp.kt
+        app_data = json.loads(data["content"])
+        music_info = app_data["meta"]["music"]
+        return MusicShare(
+            kind=__MUSIC_SHARE_APPID_MAP[app_data["extra"]["appid"]],
+            title=music_info["title"],
+            summary=music_info["desc"],
+            jump_url=music_info["jumpUrl"],
+            picture_url=music_info["preview"],
+            music_url=music_info["musicUrl"],
+            brief=data["prompt"],
+        )
+
+    return LightApp(content=data["content"])
+
+
+DESERIALIZE_INV["LightApp"] = _light_app_deserializer
