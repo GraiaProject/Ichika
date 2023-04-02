@@ -28,12 +28,12 @@ dependencies = [
 dynamic = ["version"]
 
 [build-system]
-requires = ["maturin>=0.14,<0.15"]
+requires = ["maturin>=0.14.16,<0.15"]
 build-backend = "maturin"
 
 [tool.maturin]
 python-source = "python"
-name = "ichika.core"
+module-name = "ichika.core"
 
 [tool.black]
 line-length = 120
@@ -112,6 +112,10 @@ docs = [
     "sphinxcontrib-mermaid>=0.8.1",
     "sphinx-autodoc2>=0.4.2",
     "furo>=2023.3.27",
+]
+dev = [
+    "maturin>=0.14.16",
+    "pip>=23.0.1",
 ]
 [tool.pdm.scripts]
 develop.cmd = "maturin develop"
