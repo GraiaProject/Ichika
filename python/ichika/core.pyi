@@ -6,14 +6,14 @@ from typing_extensions import Any, TypeAlias
 
 from ichika.message.elements import MusicShare
 
-from ..client import Client
-from ..login import (
+from . import events as events
+from .client import Client
+from .login import (
     BaseLoginCredentialStore,
     PasswordLoginCallbacks,
     QRCodeLoginCallbacks,
 )
-from ..message._sealed import SealedAudio as _SealedAudio
-from . import events as events
+from .message._sealed import SealedAudio as _SealedAudio
 
 __version__: str
 __build__: Any
