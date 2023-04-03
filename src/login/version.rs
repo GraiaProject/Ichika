@@ -60,7 +60,7 @@ pub const ANDROID_WATCH: Version = Version {
 };
 
 pub const ANDROID_PAD: Version = Version {
-    apk_id: "com.tencent.qqlite",
+    apk_id: "com.tencent.mobileqq",
     app_id: 537152242,
     sub_app_id: 537152242,
     sort_version_name: "8.9.35.10440",

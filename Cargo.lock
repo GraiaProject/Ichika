@@ -1436,7 +1436,7 @@ checksum = "456c603be3e8d448b072f410900c09faf164fbce2d480456f50eea6e25f9c848"
 [[package]]
 name = "ricq"
 version = "0.1.20"
-source = "git+https://github.com/BlueGlassBlock/ricq.git?branch=sms_phone_resolve#8c32150ffe12fbb430dfb76ce885e4f3e9f670cc"
+source = "git+https://github.com/lz1998/ricq.git?rev=912028dac8824e4842392dc42c89110c0ea960ff#912028dac8824e4842392dc42c89110c0ea960ff"
 dependencies = [
  "async-trait",
  "bytes",
@@ -1459,7 +1459,7 @@ dependencies = [
 [[package]]
 name = "ricq-core"
 version = "0.1.20"
-source = "git+https://github.com/BlueGlassBlock/ricq.git?branch=sms_phone_resolve#8c32150ffe12fbb430dfb76ce885e4f3e9f670cc"
+source = "git+https://github.com/lz1998/ricq.git?rev=912028dac8824e4842392dc42c89110c0ea960ff#912028dac8824e4842392dc42c89110c0ea960ff"
 dependencies = [
  "byteorder",
  "bytes",
