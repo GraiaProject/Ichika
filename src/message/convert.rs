@@ -117,6 +117,13 @@ pub fn serialize_element(py: Python, e: RQElem) -> PyResult<Option<&PyDict>> {
                 content: app.content
             }
         }
+        RQElem::RichMsg(rich) => {
+            dict! {py,
+                type: "RichMessage",
+                service_id: rich.service_id,
+                content: rich.template1
+            }
+        }
         RQElem::Other(_) => {
             return Ok(None);
         }

@@ -125,6 +125,9 @@ class MusicShare(Element):
     music_url: str
     brief: str
 
+    def __str__(self) -> str:
+        return f"[{self.kind}音乐分享: {self.title}]"
+
 
 @dataclass
 class LightApp(Element):
@@ -138,6 +141,41 @@ class LightApp(Element):
 
     def __str__(self) -> str:
         return "[小程序]"
+
+
+_T_Forward = TypeVar("_T_Forward", bound=Optional[str], default=str)
+
+
+@dataclass(init=False)
+class ForwardMessage(Generic[_T_Forward], Element):
+    """合并转发消息，本质为 XML 卡片"""
+
+    # TODO: download from ForwardMessage
+
+    res_id: _T_Forward
+    file_name: _T_Forward
+    brief: _T_Forward
+
+    def __init__(self, res_id: _T_Forward = None, file_name: _T_Forward = None, brief: _T_Forward = None) -> None:
+        self.res_id = res_id
+        self.file_name = file_name
+        self.brief = brief
+
+    def __str__(self) -> str:
+        return "[合并转发]"
+
+
+@dataclass
+class RichMessage(Element):
+    """卡片消息"""
+
+    service_id: int
+    """服务 ID"""
+    content: str
+    """卡片内容"""
+
+    def __str__(self) -> str:
+        return "[富文本卡片]"
 
 
 T_Audio = TypeVar("T_Audio", bound=Optional[SealedAudio], default=SealedAudio)
@@ -349,4 +387,24 @@ def _light_app_deserializer(**data) -> Element:
     return LightApp(content=data["content"])
 
 
+def _rich_msg_deserializer(**data) -> Element:
+    from contextlib import suppress
+
+    service_id: int = data["service_id"]
+    content: str = data["content"]
+
+    with suppress(IndexError, KeyError, ValueError, AttributeError):
+        from xml.dom import minidom
+
+        root: minidom.Document = minidom.parseString(data["content"])
+        if isinstance(msg_elem := root.getElementsByTagName("msg")[0], minidom.Element):
+            res_id: str = msg_elem.getAttribute("m_resid")
+            file_name: str = msg_elem.getAttribute("m_fileName")
+            brief: str = msg_elem.getAttribute("brief")
+            return ForwardMessage(res_id=res_id, file_name=file_name, brief=brief)
+
+    return RichMessage(service_id=service_id, content=content)
+
+
 DESERIALIZE_INV["LightApp"] = _light_app_deserializer
+DESERIALIZE_INV["RichMessage"] = _rich_msg_deserializer
