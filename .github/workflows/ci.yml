@@ -64,6 +64,7 @@ jobs:
         with:
           publish-dir: './build/html'
           production-branch: master
+          production-deploy: ${{ env.RELEASE == 'true' }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           deploy-message: "Deploy from GitHub Actions"
           enable-pull-request-comment: false
