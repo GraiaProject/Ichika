@@ -101,17 +101,12 @@ release = [
     "actions-toolkit>=0.1.15",
 ]
 docs = [
-    "sphinx>=6.1.3",
-    "myst-parser>=1.0.0",
-    "sphinxext-opengraph>=0.8.1",
-    "sphinx-inline-tabs>=2022.1.2b11",
-    "sphinx-autobuild>=2021.3.14",
-    "sphinx-copybutton>=0.5.1",
-    "sphinx-togglebutton>=0.3.2",
-    "sphinx-prompt>=1.5.0",
-    "sphinxcontrib-mermaid>=0.8.1",
-    "sphinx-autodoc2>=0.4.2",
-    "furo>=2023.3.27",
+    "mkdocs-material~=9.1",
+    "mkdocstrings[python]~=0.21",
+    "mkdocs-exclude~=1.0",
+    "mkdocs-gen-files~=0.4",
+    "mkdocs-section-index~=0.3",
+    "mkdocs-literate-nav~=0.6",
 ]
 dev = [
     "maturin>=0.14.16",
@@ -119,5 +114,5 @@ dev = [
 ]
 [tool.pdm.scripts]
 develop.cmd = "maturin develop"
-view-docs.cmd = "sphinx-autobuild docs build --watch ./docs --watch ./python --ignore ./docs/api/**"
-build-docs.cmd = "sphinx-build -M html docs build -a"
+build-docs.cmd = "mkdocs build"
+view-docs.cmd = "mkdocs serve"

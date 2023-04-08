@@ -1,0 +1,64 @@
+.md-social__link {
+    font-size: auto;
+    width: auto;
+}
+
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+
+    /* Font with fallback for code */
+    --md-code-font-family: var(--md-code-font, _), SFMono-Regular, Consolas,
+        Menlo, var(--md-text-font, _);
+
+}
+
+ul.clear-list {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+.mdx-switch button>code {
+    cursor: pointer;
+    transition: opacity 250ms;
+    display: block;
+    color: var(--md-primary-bg-color);
+    background-color: var(--md-primary-fg-color);
+}
+
+:root {
+    --md-admonition-icon--graiax: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160.48 160.36"><defs><style>.a,.b,.c{fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:13px;}.a{stroke:#84c0be;}.b{stroke:#1e7a73;}.c{stroke:#73adaa;}</style></defs><line class="a" x1="73.34" y1="120.5" x2="39.86" y2="153.86"/><polyline class="b" points="87.14 41.39 120.5 6.5 73.34 6.5 39.86 41.39 39.86 87.14 73.34 120.5 120.5 120.5 153.98 87.14 153.98 41.39 120.5 6.5"/><polyline class="c" points="39.86 153.86 87.14 153.86 120.5 120.5 120.5 73.22 87.14 41.39 39.86 41.39 6.5 73.22 6.5 120.5 39.86 153.86"/></svg>')
+}
+
+.md-typeset .admonition.graiax,
+.md-typeset details.graiax {
+    border-color: #1e7a73;
+}
+
+.md-typeset .graiax>.admonition-title,
+.md-typeset .graiax>summary {
+    background-color: #fd9bac0f;
+    border-color: #1e7a73;
+}
+
+.md-typeset .graiax>.admonition-title::before,
+.md-typeset .graiax>summary::before {
+    background-color: #1e7a73;
+    -webkit-mask-image: var(--md-admonition-icon--graiax);
+    mask-image: var(--md-admonition-icon--graiax);
+}
+
+/* Indentation. */
+div.doc-contents:not(.first) {
+    padding-left: 25px;
+    border-left: .05rem solid var(--md-default-fg-color--lightest);
+    margin-bottom: 80px;
+}
+
+
+.highlight .gp,
+.highlight .go {
+    /* Generic.Prompt, Generic.Output */
+    user-select: none;
+}
