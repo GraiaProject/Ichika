@@ -1,0 +1,116 @@
+site_name: Ichika
+site_description: 轻量，完备的 Python QQ 自动化框架。
+site_author: BlueGlassBlock
+
+watch:
+  - python/
+
+theme:
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.expand
+    - navigation.top
+
+  name: material
+  language: zh
+  icon:
+    repo: fontawesome/brands/git-alt
+    logo: material/file-document-multiple-outline
+
+  font:
+    text: Noto Sans Simplified Chinese
+    code: JetBrains Mono
+
+  custom_dir: docs/overrides
+
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: 黑暗模式
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/toggle-switch
+        name: 明亮模式
+
+extra_css:
+  - "assets/chat.css"
+  - "assets/extra.css"
+  - "assets/curtain.css"
+
+extra_javascript:
+  - "assets/admonition.js"
+
+site_url: https://hoshino-ichika.netlify.app/
+repo_url: https://github.com/BlueGlassBlock/Ichika
+repo_name: BlueGlassBlock/Ichika
+edit_uri: blob/master/
+site_dir: build
+
+copyright: Copyright &copy; BlueGlassBlock 2023 - present.
+
+extra:
+  social:
+    - icon: graiax
+      link: https://graiax.cn/
+      name: GraiaX
+    - icon: fontawesome/brands/github
+      link: https://github.com/BlueGlassBlock
+      name: GitHub
+
+markdown_extensions:
+  - attr_list
+  - md_in_html
+  - admonition
+  - footnotes # 脚注
+  - meta # 定义元数据, 通过文章上下文控制, 如disqus
+  - pymdownx.caret # 下划线上标
+  - pymdownx.tilde # 删除线下标
+  - pymdownx.critic # 增加删除修改高亮注释, 可修饰行内或段落
+  - pymdownx.details # 提示块可折叠
+  - pymdownx.inlinehilite # 行内代码高亮
+  - pymdownx.highlight
+  - pymdownx.snippets
+  - pymdownx.mark # 文本高亮
+  - pymdownx.smartsymbols # 符号转换
+  - pymdownx.superfences # 代码嵌套在列表里
+  - pymdownx.keys
+  - codehilite: # 代码高亮, 显示行号
+      guess_lang: false
+      linenums: true
+  - toc: # 锚点
+      permalink: 🔗
+  - pymdownx.arithmatex # 数学公式
+  - pymdownx.tasklist: # 复选框checklist
+      custom_checkbox: true
+  - pymdownx.tabbed:
+      alternate_style: true
+
+plugins:
+  - search
+  - gen-files:
+      scripts:
+        - docs/gen_ref.py
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [./python]
+          import:
+            - https://docs.python.org/zh-cn/3/objects.inv
+            - https://docs.aiohttp.org/en/stable/objects.inv
+          options:
+            docstring_style: sphinx
+            show_submodules: false
+            show_signature_annotations: true
+            separate_signature: true
+            show_if_no_docstring: true
+            docstring_section_style: list
+            line_length: 110
+  - literate-nav:
+      nav_file: INDEX.nav
+  - section-index
+  - offline:
+      enabled: !ENV [OFFLINE, true]
