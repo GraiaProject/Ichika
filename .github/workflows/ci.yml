@@ -52,17 +52,14 @@ jobs:
         name: Setup PDM
       - name: Install Dependencies
         run: pdm install --no-self
-      - name: Sphinx Build
+      - name: MkDocs Build
         run: pdm run build-docs
-      - name: Upload Documentation to Artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: sphinx-docs
-          path: build/html
+        env:
+          OFFLINE: false
       - name: Deploy to Netlify
         uses: nwtgck/actions-netlify@v2.0
         with:
-          publish-dir: './build/html'
+          publish-dir: './build'
           production-branch: master
           production-deploy: ${{ env.RELEASE == 'true' }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -159,13 +156,10 @@ jobs:
         with:
           name: wheels
           path: dist
-      - name: Download Sphinx Documentation # TODO: rezip and include in release
-        uses: actions/download-artifact@v3
-        with:
-          name: sphinx-docs
-          path: build
-      - name: Compress Sphinx Documentation
-        run: zip -9 ./sphinx-docs.zip -r ./build
+      - name: Build Offline Docs
+        run: pdm run build-docs
+      - name: Compress Documentation Archive
+        run: zip -9 ./docs.zip -r ./build
 
       - name: Towncrier Extract Release Notes
         run: towncrier build --version ${{ env.VERSION }} --keep --config ./towncrier_release.toml
@@ -179,7 +173,7 @@ jobs:
           git add .
           git diff-index --quiet HEAD || git commit -m "chore(release): ${{ env.VERSION }}"
           git push
-          gh release create "${{ env.VERSION }}" dist/* './sphinx-docs.zip#Documentation Archive' --notes-file ./release-notes.md --title "${{ env.VERSION }}"
+          gh release create "${{ env.VERSION }}" dist/* './docs.zip#Documentation Archive' --notes-file ./release-notes.md --title "${{ env.VERSION }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
