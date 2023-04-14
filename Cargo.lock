@@ -718,7 +718,6 @@ dependencies = [
 name = "ichika"
 version = "0.0.5"
 dependencies = [
- "anyhow",
  "async-trait",
  "built",
  "bytes",

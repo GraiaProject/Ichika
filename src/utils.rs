@@ -1,4 +1,3 @@
-use anyhow::Result;
 use futures_util::Future;
 use pyo3::prelude::*;
 use pyo3::types::PyBytes;
@@ -88,10 +87,10 @@ macro_rules! props {
 /// 将 [`tokio`] 的 Future 包装为 Python 的 Future。
 pub fn py_future<F, T>(py: Python, future: F) -> PyResult<&PyAny>
 where
-    F: Future<Output = Result<T, anyhow::Error>> + Send + 'static,
+    F: Future<Output = Result<T, crate::exc::Error>> + Send + 'static,
     T: IntoPy<PyObject>,
 {
-    pyo3_asyncio::tokio::future_into_py(py, async move { Ok(future.await?) })
+    pyo3_asyncio::tokio::future_into_py(py, async move { future.await.map_err(|e| e.into()) })
 }
 
 /// 自动重试直到得到 `Ok(..)`。
