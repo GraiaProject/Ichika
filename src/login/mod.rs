@@ -1,5 +1,4 @@
 mod connector;
-mod version;
 
 use std::sync::Arc;
 
@@ -22,7 +21,6 @@ use ricq::{
     QRCodeState,
 };
 use tokio::task::JoinHandle;
-use version::get_version;
 
 use crate::events::PyHandler;
 use crate::exc::MapPyErr;
@@ -140,7 +138,10 @@ fn parse_login_args<'py>(
         .map_err(|e| exc::LoginError::new_err(format!("无法解析传入的设备信息: {e:?}")))?;
 
     Ok((
-        get_version(protocol)?,
+        ricq::version::get_version(
+            ricq::Protocol::try_from(protocol.as_ref())
+                .map_err(|_| PyValueError::new_err(format!("无法找到协议 {protocol}")))?,
+        ),
         handler,
         device,
         TokenRW {
