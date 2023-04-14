@@ -5,6 +5,7 @@
 #![feature(async_closure)]
 #![feature(lint_reasons)]
 #![feature(result_flattening)]
+#![feature(iterator_try_collect)]
 
 use pyo3::prelude::*;
 
