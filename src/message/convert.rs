@@ -3,6 +3,7 @@ use pyo3::prelude::*;
 use pyo3::types::*;
 use ricq::msg::elem::{FlashImage, RQElem, Reply};
 use ricq::msg::MessageChain;
+use ricq::structs::ForwardMessage;
 use ricq_core::msg::elem::{At, Dice, Face, FingerGuessing, Text};
 
 use super::elements::*;
@@ -146,6 +147,27 @@ pub fn serialize_reply(py: Python, reply: Reply) -> PyResult<&PyDict> {
         sender: reply.sender,
         time: datetime_from_ts(py, reply.time)?,
         content: reply.elements.to_string()
+    })
+}
+
+pub fn serialize_forward(py: Python, forward: ForwardMessage) -> PyResult<&PyDict> {
+    Ok(match forward {
+        ForwardMessage::Message(msg) => {
+            dict! {py,
+                sender_id: msg.sender_id,
+                time: datetime_from_ts(py, msg.time)?,
+                sender_name: msg.sender_name,
+                elements: serialize_as_py_chain(py, msg.elements)?,
+            }
+        }
+        ForwardMessage::Forward(fwd) => {
+            dict! {py,
+                sender_id: fwd.sender_id,
+                time: datetime_from_ts(py, fwd.time)?,
+                sender_name: fwd.sender_name,
+                elements: fwd.nodes.into_iter().map(|node| serialize_forward(py, node).map(|ok| ok.into_py(py))).try_collect::<Vec<PyObject>>()?,
+            }
+        }
     })
 }
 

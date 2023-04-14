@@ -1,12 +1,14 @@
 mod cached;
 pub mod friend;
 pub mod group;
+mod http;
 pub mod structs;
 use std::sync::Arc;
 use std::time::Duration;
 
 pub use cached::cache;
 use group::Group;
+use http::get_rust_client;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::*;
@@ -17,7 +19,12 @@ use tokio::task::JoinHandle;
 
 use crate::exc::MapPyErr;
 use crate::login::{reconnect, TokenRW};
-use crate::message::convert::{deserialize_message_chain, serialize_audio_dict, serialize_element};
+use crate::message::convert::{
+    deserialize_message_chain,
+    serialize_audio_dict,
+    serialize_element,
+    serialize_forward,
+};
 use crate::message::elements::SealedAudio;
 use crate::utils::{py_future, py_none, py_try, py_use, AsPython};
 #[pyclass(subclass)]
@@ -632,6 +639,28 @@ impl PlumbingClient {
             // TODO: Immediate listen hook
             // LINK: https://github.com/Mrs4s/MiraiGo/blob/f8d9841755b579f7c95ed918d23b767e3854553a/client/richmsg.go#L71
             Ok(())
+        })
+    }
+
+    pub fn download_forward_msg<'py>(
+        &self,
+        py: Python<'py>,
+        downloader: &'py PyAny,
+        res_id: String,
+    ) -> PyResult<&'py PyAny> {
+        let mut http_client = get_rust_client(py, downloader)?;
+        let client = self.client.clone();
+
+        py_future(py, async move {
+            let msgs = client
+                .download_msgs(res_id, &mut http_client)
+                .await
+                .py_res()?;
+            Ok(py_try(|py| {
+                msgs.into_iter()
+                    .map(|msg| serialize_forward(py, msg).map(|ok| ok.into_py(py)))
+                    .try_collect::<Vec<PyObject>>()
+            })?)
         })
     }
 }
