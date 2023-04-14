@@ -113,7 +113,6 @@ jobs:
 
       - name: Build Wheel
         id: build-wheel
-        continue-on-error: true
         uses: PyO3/maturin-action@v1
         with:
           rust-toolchain: nightly
