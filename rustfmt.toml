@@ -2,6 +2,7 @@ edition = "2021"
 reorder_impl_items = true
 format_macro_matchers = true
 format_macro_bodies = true
+blank_lines_upper_bound = 2
 control_brace_style = "AlwaysSameLine"
 imports_granularity = "Module"
 group_imports = "StdExternalCrate"

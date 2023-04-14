@@ -17,7 +17,6 @@ use ricq::structs::{FriendAudio, GroupAudio, ProfileDetailUpdate, Status};
 use structs::*;
 use tokio::task::JoinHandle;
 
-use crate::exc::MapPyErr;
 use crate::login::{reconnect, TokenRW};
 use crate::message::convert::{
     deserialize_message_chain,
@@ -27,6 +26,7 @@ use crate::message::convert::{
 };
 use crate::message::elements::SealedAudio;
 use crate::utils::{py_future, py_none, py_try, py_use, AsPython};
+
 #[pyclass(subclass)]
 pub struct PlumbingClient {
     client: Arc<ricq::client::Client>,
@@ -70,7 +70,9 @@ impl PlumbingClient {
         py_future(py, async move {
             if let Some(mut alive) = alive {
                 loop {
-                    alive.await?;
+                    alive
+                        .await
+                        .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
 
                     // 断线重连
                     if let Some(handle) = reconnect(&client, &token_rw).await? {
@@ -513,13 +515,11 @@ impl PlumbingClient {
             let data: Vec<u8> = py_use(|py| data.as_bytes(py).into());
             let audio = client
                 .upload_friend_audio(uin, &data, std::time::Duration::from_secs(0))
-                .await
-                .py_res()?;
+                .await?;
             let client_uin = client.uin().await;
             let url = client
                 .get_friend_audio_url(client_uin, audio.clone())
-                .await
-                .py_res()?;
+                .await?;
             Ok(py_try(|py| {
                 Ok(serialize_audio_dict(py, url, &audio.0)?.obj())
             })?)
@@ -551,11 +551,8 @@ impl PlumbingClient {
         let client = self.client.clone();
         py_future(py, async move {
             let data: Vec<u8> = py_use(|py| data.as_bytes(py).into());
-            let audio = client.upload_group_audio(uin, &data, 1).await.py_res()?;
-            let url = client
-                .get_group_audio_url(uin, audio.clone())
-                .await
-                .py_res()?;
+            let audio = client.upload_group_audio(uin, &data, 1).await?;
+            let url = client.get_group_audio_url(uin, audio.clone()).await?;
             Ok(py_try(|py| {
                 Ok(serialize_audio_dict(py, url, &audio.0)?.obj())
             })?)
@@ -615,8 +612,7 @@ impl PlumbingClient {
         py_future(py, async move {
             client
                 .send_friend_music_share(uin, music_share, music_version)
-                .await
-                .py_res()?;
+                .await?;
             Ok(())
         })
     }
@@ -634,8 +630,7 @@ impl PlumbingClient {
         py_future(py, async move {
             client
                 .send_group_music_share(uin, music_share, music_version)
-                .await
-                .py_res()?;
+                .await?;
             // TODO: Immediate listen hook
             // LINK: https://github.com/Mrs4s/MiraiGo/blob/f8d9841755b579f7c95ed918d23b767e3854553a/client/richmsg.go#L71
             Ok(())
@@ -652,10 +647,7 @@ impl PlumbingClient {
         let client = self.client.clone();
 
         py_future(py, async move {
-            let msgs = client
-                .download_msgs(res_id, &mut http_client)
-                .await
-                .py_res()?;
+            let msgs = client.download_msgs(res_id, &mut http_client).await?;
             Ok(py_try(|py| {
                 msgs.into_iter()
                     .map(|msg| serialize_forward(py, msg).map(|ok| ok.into_py(py)))
@@ -784,8 +776,7 @@ impl PlumbingClient {
                     block,
                     message,
                 )
-                .await
-                .py_res()?;
+                .await?;
             Ok(())
         })
     }
@@ -811,8 +802,7 @@ impl PlumbingClient {
                     false,
                     "".to_string(),
                 )
-                .await
-                .py_res()?;
+                .await?;
             Ok(())
         })
     }
@@ -828,8 +818,7 @@ impl PlumbingClient {
         py_future(py, async move {
             client
                 .solve_friend_system_message(seq, request_uin, accept)
-                .await
-                .py_res()?;
+                .await?;
             Ok(())
         })
     }
