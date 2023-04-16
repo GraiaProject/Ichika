@@ -1471,7 +1471,7 @@ checksum = "f162c6dd7b008981e4d40210aca20b4bd0f9b60ca9271061b07f78537722f2e1"
 [[package]]
 name = "ricq"
 version = "0.1.20"
-source = "git+https://github.com/BlueGlassBlock/ricq.git?branch=ichika-snapshot#baa57213883fd990150b48870f935e25819add46"
+source = "git+https://github.com/BlueGlassBlock/ricq.git?branch=ichika-snapshot#637203cbd700626905cb089fc38bd056769abe9c"
 dependencies = [
  "async-trait",
  "bytes",
@@ -1494,7 +1494,7 @@ dependencies = [
 [[package]]
 name = "ricq-core"
 version = "0.1.20"
-source = "git+https://github.com/BlueGlassBlock/ricq.git?branch=ichika-snapshot#baa57213883fd990150b48870f935e25819add46"
+source = "git+https://github.com/BlueGlassBlock/ricq.git?branch=ichika-snapshot#637203cbd700626905cb089fc38bd056769abe9c"
 dependencies = [
  "byteorder",
  "bytes",
