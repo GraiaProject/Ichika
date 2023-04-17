@@ -253,6 +253,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "markdown-exec"
+version = "1.4.0"
+requires_python = ">=3.7"
+summary = "Utilities to execute code blocks in Markdown files."
+dependencies = [
+    "pymdown-extensions>=9",
+]
+
+[[package]]
+name = "markdown-exec"
+version = "1.4.0"
+extras = ["ansi"]
+requires_python = ">=3.7"
+summary = "Utilities to execute code blocks in Markdown files."
+dependencies = [
+    "markdown-exec==1.4.0",
+    "pygments-ansi-color",
+]
+
+[[package]]
 name = "markupsafe"
 version = "2.1.2"
 requires_python = ">=3.7"
@@ -479,6 +499,15 @@ requires_python = ">=3.6"
 summary = "Pygments is a syntax highlighting package written in Python."
 
 [[package]]
+name = "pygments-ansi-color"
+version = "0.2.0"
+requires_python = ">=3.7"
+summary = "UNKNOWN"
+dependencies = [
+    "pygments!=2.7.3",
+]
+
+[[package]]
 name = "pyjwt"
 version = "2.6.0"
 requires_python = ">=3.7"
@@ -659,7 +688,7 @@ summary = "Backport of pathlib-compatible object wrapper for zip files"
 
 [metadata]
 lock_version = "4.1"
-content_hash = "sha256:bc27461a87c890d2b120afd7a0ddf0fdc63dd710ce25ff97f1b7c12df1c907f2"
+content_hash = "sha256:b787b79d7fac290d291ce5a3235e6df4c085fd61490cf21c21ccbb3dcdd90a32"
 
 [metadata.files]
 "actions-toolkit 0.1.15" = [
@@ -1117,6 +1146,10 @@ content_hash = "sha256:bc27461a87c890d2b120afd7a0ddf0fdc63dd710ce25ff97f1b7c12df
     {url = "https://files.pythonhosted.org/packages/d6/58/79df20de6e67a83f0d0bbfe6c19bb82adf68cdf362885257eb01099f930a/Markdown-3.3.7.tar.gz", hash = "sha256:cbb516f16218e643d8e0a95b309f77eb118cb138d39a4f27851e6a63581db874"},
     {url = "https://files.pythonhosted.org/packages/f3/df/ca72f352e15b6f8ce32b74af029f1189abffb906f7c137501ffe69c98a65/Markdown-3.3.7-py3-none-any.whl", hash = "sha256:f5da449a6e1c989a4cea2631aa8ee67caa5a2ef855d551c88f9e309f4634c621"},
 ]
+"markdown-exec 1.4.0" = [
+    {url = "https://files.pythonhosted.org/packages/1c/b4/fb4d3d3696582a435e49c2020e5e2c16699b6b70208cfa45f1f5cc706134/markdown_exec-1.4.0-py3-none-any.whl", hash = "sha256:aaf6d8e67424e4162993ad8e50035ea549193e699d5ce4b4313383a5c20e1c91"},
+    {url = "https://files.pythonhosted.org/packages/73/06/9823a954f5c42dd5a93013a1a1a06934fd3eba1f0ed7d4d982e6b5cec90f/markdown-exec-1.4.0.tar.gz", hash = "sha256:af95b3bbe3c7bae14edf0e3845cf1ff3edf80ed876de7efa938ddba0bd1b357c"},
+]
 "markupsafe 2.1.2" = [
     {url = "https://files.pythonhosted.org/packages/02/2c/18d55e5df6a9ea33709d6c33e08cb2e07d39e20ad05d8c6fbf9c9bcafd54/MarkupSafe-2.1.2-cp310-cp310-win_amd64.whl", hash = "sha256:835fb5e38fd89328e9c81067fd642b3593c33e1e17e2fdbf77f5676abb14a156"},
     {url = "https://files.pythonhosted.org/packages/04/cf/9464c3c41b7cdb8df660cda75676697e7fb49ce1be7691a1162fc88da078/MarkupSafe-2.1.2-cp311-cp311-musllinux_1_1_i686.whl", hash = "sha256:085fd3201e7b12809f9e6e9bc1e5c96a368c8523fad5afb02afe3c051ae4afcc"},
@@ -1342,6 +1375,10 @@ content_hash = "sha256:bc27461a87c890d2b120afd7a0ddf0fdc63dd710ce25ff97f1b7c12df
 "pygments 2.14.0" = [
     {url = "https://files.pythonhosted.org/packages/0b/42/d9d95cc461f098f204cd20c85642ae40fbff81f74c300341b8d0e0df14e0/Pygments-2.14.0-py3-none-any.whl", hash = "sha256:fa7bd7bd2771287c0de303af8bfdfc731f51bd2c6a47ab69d117138893b82717"},
     {url = "https://files.pythonhosted.org/packages/da/6a/c427c06913204e24de28de5300d3f0e809933f376e0b7df95194b2bb3f71/Pygments-2.14.0.tar.gz", hash = "sha256:b3ed06a9e8ac9a9aae5a6f5dbe78a8a58655d17b43b93c078f094ddc476ae297"},
+]
+"pygments-ansi-color 0.2.0" = [
+    {url = "https://files.pythonhosted.org/packages/93/77/c118437ec3c86ff2da640fc4ab7642e344a0768d0ef3c965f756878e96c5/pygments_ansi_color-0.2.0-py3-none-any.whl", hash = "sha256:29d7c56e1bf143df4b0ccc03cd313488bb580c5aa207992ed5548e88fccc0a68"},
+    {url = "https://files.pythonhosted.org/packages/b2/93/af2feb6f3f436a44fbe20c0b6861641ad01f00139d96ae27a2649149bad3/pygments-ansi-color-0.2.0.tar.gz", hash = "sha256:8e2f9a57873b4b28d6b95a8f1c9f346be5fc0f9e4f4a316594584a0684aa7959"},
 ]
 "pyjwt 2.6.0" = [
     {url = "https://files.pythonhosted.org/packages/40/46/505f0dd53c14096f01922bf93a7abb4e40e29a06f858abbaa791e6954324/PyJWT-2.6.0-py3-none-any.whl", hash = "sha256:d83c3d892a77bbb74d3e1a2cfa90afaadb60945205d1095d9221f04466f64c14"},

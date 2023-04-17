@@ -107,6 +107,7 @@ docs = [
     "mkdocs-gen-files~=0.4",
     "mkdocs-section-index~=0.3",
     "mkdocs-literate-nav~=0.6",
+    "markdown-exec[ansi]>=1.4.0",
 ]
 dev = [
     "maturin>=0.14.16",
