@@ -35,7 +35,7 @@ jobs:
       - name: Install Rust nightly
         uses: dtolnay/rust-toolchain@nightly
         with:
-            components: rustfmt, clippy
+          components: rustfmt, clippy
 
       - name: Run cargo fmt
         run: cargo fmt --all -- --check
@@ -59,18 +59,16 @@ jobs:
       - name: Deploy to Netlify
         uses: nwtgck/actions-netlify@v2.0
         with:
-          publish-dir: './build'
-          production-branch: master
+          publish-dir: "./build"
           production-deploy: ${{ env.RELEASE == 'true' }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           deploy-message: "Deploy from GitHub Actions"
-          enable-pull-request-comment: false
-          enable-commit-comment: true
+          enable-pull-request-comment: true
+          enable-commit-comment: false
           overwrites-pull-request-comment: true
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
-
 
   build-matrix:
     name: Create Build Matrix
@@ -172,7 +170,7 @@ jobs:
           git add .
           git diff-index --quiet HEAD || git commit -m "chore(release): ${{ env.VERSION }}"
           git push
-          gh release create "${{ env.VERSION }}" dist/* './docs.zip#Documentation Archive' --notes-file ./release-notes.md --title "${{ env.VERSION }}"
+          gh release create "${{ env.VERSION }}" dist/* "./docs.zip#Documentation Archive" --notes-file ./release-notes.md --title "${{ env.VERSION }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
