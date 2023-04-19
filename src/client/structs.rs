@@ -1,11 +1,11 @@
-use pyo3::exceptions::PyValueError;
+use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::*;
 use pyo3_repr::PyRepr;
-use ricq::structs::{MusicShare, MusicVersion};
+use ricq::structs::{ForwardMessage, MusicShare, MusicVersion};
 use ricq_core::command::oidb_svc::OcrResponse;
 
-use crate::utils::py_use;
+use crate::utils::{py_try, py_use};
 #[pyclass(get_all)]
 #[derive(PyRepr, Clone)]
 pub struct AccountInfo {
@@ -160,5 +160,68 @@ impl TryFrom<MusicShareParam> for (MusicShare, MusicVersion) {
             music_url,
         };
         Ok((share, version))
+    }
+}
+
+pub struct PyForwardMessage {
+    sender_id: i64,
+    time: i32,
+    sender_name: String,
+    content: PyInnerForward,
+}
+
+
+impl TryFrom<PyForwardMessage> for ForwardMessage {
+    type Error = PyErr;
+
+    fn try_from(value: PyForwardMessage) -> PyResult<Self> {
+        use ricq::structs::{ForwardNode, MessageNode};
+
+        use crate::message::convert::deserialize_message_chain;
+
+        let PyForwardMessage {
+            sender_id,
+            time,
+            sender_name,
+            content,
+        } = value;
+        Ok(match content {
+            PyInnerForward::Message(msg) => Self::Message(MessageNode {
+                sender_id,
+                time,
+                sender_name,
+                elements: py_try(|py| deserialize_message_chain(msg.as_ref(py)))?,
+            }),
+            PyInnerForward::Forward(fwd) => Self::Forward(ForwardNode {
+                sender_id,
+                time,
+                sender_name,
+                nodes: fwd.into_iter().map(|v| v.try_into()).try_collect()?,
+            }),
+        })
+    }
+}
+
+pub enum PyInnerForward {
+    Forward(Vec<PyForwardMessage>),
+    Message(Py<PyList>),
+}
+
+impl<'s> FromPyObject<'s> for PyForwardMessage {
+    fn extract(obj: &'s PyAny) -> PyResult<Self> {
+        let typ: String = obj.get_item("type")?.extract()?;
+        let content: &PyList = obj.get_item("content")?.extract()?;
+        Ok(Self {
+            sender_id: obj.get_item("sender_id")?.extract()?,
+            time: obj.get_item("time")?.extract()?,
+            sender_name: obj.get_item("sender_name")?.extract()?,
+            content: match typ.as_str() {
+                "Forward" => {
+                    PyInnerForward::Forward(content.into_iter().map(|o| o.extract()).try_collect()?)
+                }
+                "Message" => PyInnerForward::Message(content.into_py(content.py())),
+                _ => Err(PyTypeError::new_err("Invalid forward content type"))?,
+            },
+        })
     }
 }

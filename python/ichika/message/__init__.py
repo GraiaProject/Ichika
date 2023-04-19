@@ -6,14 +6,14 @@ from graia.amnesia.message import MessageChain
 from graia.amnesia.message.element import Element, Unknown
 from loguru import logger
 
-from .elements import DESERIALIZE_INV
-from .serializer import SERIALIZE_INV
+from .elements import _DESERIALIZE_INV
+from .serializer import _SERIALIZE_INV
 
 
 def _deserialize_message(elements: list[dict[str, Any]]) -> MessageChain:
     elem_seq: list[Element] = []
     for e_data in elements:
-        cls = DESERIALIZE_INV.get(e_data.pop("type"), None)
+        cls = _DESERIALIZE_INV.get(e_data.pop("type"), None)
         if cls is None:
             logger.warning(f"未知元素: {e_data!r}")
             elem_seq.append(Unknown("Unknown", e_data))
@@ -25,7 +25,7 @@ def _deserialize_message(elements: list[dict[str, Any]]) -> MessageChain:
 def _serialize_message(chain: MessageChain) -> list[dict[str, Any]]:
     res: list[dict[str, Any]] = []
     for elem in chain:
-        if serializer := SERIALIZE_INV.get(elem.__class__):
+        if serializer := _SERIALIZE_INV.get(elem.__class__):
             res.append(serializer(elem))
         else:
             raise TypeError(f"无法转换元素 {elem!r}")

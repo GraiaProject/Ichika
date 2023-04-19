@@ -51,17 +51,13 @@ impl From<Box<dyn std::error::Error>> for Error {
 }
 
 impl IntoPy<PyErr> for Error {
-    fn into_py(self, py: Python<'_>) -> PyErr {
-        let py_err = match self.inner {
-            InnerError::RQ(e) => RICQError::new_err(format!("RICQ 发生错误: {e:?}")),
+    fn into_py(self, _: Python) -> PyErr {
+        let bt = self.backtrace;
+        match self.inner {
+            InnerError::RQ(e) => RICQError::new_err(format!("RICQ 发生错误: {e:?}\n{bt}")),
             InnerError::Python(e) => e,
-            InnerError::Other(e) => IchikaError::new_err(format!("未知错误: {e:?}")),
-        };
-        py_err.set_cause(
-            py,
-            Some(IchikaError::new_err(format!("{}", self.backtrace))),
-        );
-        py_err
+            InnerError::Other(e) => IchikaError::new_err(format!("未知错误: {e:?}\n{bt}")),
+        }
     }
 }
 

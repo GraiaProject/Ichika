@@ -1,7 +1,7 @@
 use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::*;
-use ricq::msg::elem::{FlashImage, RQElem, Reply};
+use ricq::msg::elem::{FlashImage, LightApp, RQElem, Reply, RichMsg};
 use ricq::msg::MessageChain;
 use ricq::structs::ForwardMessage;
 use ricq_core::msg::elem::{At, Dice, Face, FingerGuessing, Text};
@@ -150,22 +150,30 @@ pub fn serialize_reply(py: Python, reply: Reply) -> PyResult<&PyDict> {
     })
 }
 
+pub fn render_forward(file_name: &str, res_id: &str, preview: &str, summary: &str) -> String {
+    format!(
+        r##"<?xml version='1.0' encoding='UTF-8'?><msg serviceID="35" templateID="1" action="viewMultiMsg" brief="[聊天记录]"  m_resid="{res_id}" m_fileName="{file_name}" tSum="3" sourceMsgId="0" url="" flag="3" adverSign="0" multiMsgFlag="0"><item layout="1"><title color="#000000" size="34">群聊的聊天记录</title>{preview}<hr></hr><summary size="26" color="#808080">{summary}</summary></item><source name="聊天记录"></source></msg>"##
+    )
+}
+
 pub fn serialize_forward(py: Python, forward: ForwardMessage) -> PyResult<&PyDict> {
     Ok(match forward {
         ForwardMessage::Message(msg) => {
             dict! {py,
+                type: "Message",
                 sender_id: msg.sender_id,
                 time: datetime_from_ts(py, msg.time)?,
                 sender_name: msg.sender_name,
-                elements: serialize_as_py_chain(py, msg.elements)?,
+                content: serialize_as_py_chain(py, msg.elements)?,
             }
         }
         ForwardMessage::Forward(fwd) => {
             dict! {py,
+                type: "Forward",
                 sender_id: fwd.sender_id,
                 time: datetime_from_ts(py, fwd.time)?,
                 sender_name: fwd.sender_name,
-                elements: fwd.nodes.into_iter().map(|node| serialize_forward(py, node).map(|ok| ok.into_py(py))).try_collect::<Vec<PyObject>>()?,
+                content: fwd.nodes.into_iter().map(|node| serialize_forward(py, node).map(|ok| ok.into_py(py))).try_collect::<Vec<PyObject>>()?,
             }
         }
     })
@@ -250,13 +258,24 @@ pub fn deserialize_element(chain: &mut MessageChain, ident: &str, store: &PyAny)
             let sender: i64 = store.get_item("sender")?.extract()?;
             let time: i32 = store.get_item("time")?.extract()?;
             let content: String = store.get_item("content")?.extract()?;
-            chain.push(vec![Reply {
+            chain.with_reply(Reply {
                 reply_seq: seq,
                 sender,
                 time,
                 elements: MessageChain::new(Text::new(content)),
-            }
-            .into()]);
+            });
+        }
+        "LightApp" => {
+            let content: String = store.get_item("content")?.extract()?;
+            chain.push(LightApp { content });
+        }
+        "ForwardCard" | "RichMessage" => {
+            let service_id: i32 = store.get_item("service_id")?.extract()?;
+            let content: String = store.get_item("content")?.extract()?;
+            chain.push(RichMsg {
+                service_id,
+                template1: content,
+            });
         }
         _ => {
             return Err(PyTypeError::new_err(format!(
@@ -277,6 +296,5 @@ pub fn deserialize_message_chain(list: &PyList) -> PyResult<MessageChain> {
             .extract::<&str>()?;
         deserialize_element(&mut chain, name, elem_d.into())?;
     }
-    tracing::info!("{:?}", chain);
     Ok(chain)
 }
