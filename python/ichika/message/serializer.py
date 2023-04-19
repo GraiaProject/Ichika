@@ -14,13 +14,15 @@ from .elements import (
     Face,
     FingerGuessing,
     FlashImage,
+    ForwardCard,
     Image,
     LightApp,
     MarketFace,
     Reply,
+    RichMessage,
 )
 
-SERIALIZE_INV: dict[type, Callable[[Any], dict[str, Any]]] = {}
+_SERIALIZE_INV: dict[type, Callable[[Any], dict[str, Any]]] = {}
 
 Elem_T = TypeVar("Elem_T", bound=Element)
 
@@ -35,7 +37,7 @@ def _serialize(
             res.setdefault("type", elem.__class__.__name__)
             return res
 
-        SERIALIZE_INV[elem_type] = wrapper
+        _SERIALIZE_INV[elem_type] = wrapper
         return func
 
     return func_register
@@ -50,6 +52,8 @@ _serialize(FingerGuessing)(lambda t: {"choice": t.choice.name})
 _serialize(Face)(lambda t: {"index": t.index})
 _serialize(MarketFace)(lambda t: {"raw": t.raw})
 _serialize(LightApp)(lambda t: {"content": t.content})
+_serialize(RichMessage)(lambda t: {"service_id": t.service_id, "content": t.content})
+_serialize(ForwardCard)(lambda t: {"service_id": 35, "content": t.content})
 
 
 @_serialize(Image)

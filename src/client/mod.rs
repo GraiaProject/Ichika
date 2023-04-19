@@ -13,13 +13,14 @@ use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::*;
 use ricq::msg::elem::RQElem;
-use ricq::structs::{FriendAudio, GroupAudio, ProfileDetailUpdate, Status};
+use ricq::structs::{ForwardMessage, FriendAudio, GroupAudio, ProfileDetailUpdate, Status};
 use structs::*;
 use tokio::task::JoinHandle;
 
 use crate::login::{reconnect, TokenRW};
 use crate::message::convert::{
     deserialize_message_chain,
+    render_forward,
     serialize_audio_dict,
     serialize_element,
     serialize_forward,
@@ -634,6 +635,27 @@ impl PlumbingClient {
             // TODO: Immediate listen hook
             // LINK: https://github.com/Mrs4s/MiraiGo/blob/f8d9841755b579f7c95ed918d23b767e3854553a/client/richmsg.go#L71
             Ok(())
+        })
+    }
+
+    pub fn upload_forward_msg<'py>(
+        &self,
+        py: Python<'py>,
+        group_uin: i64,
+        msgs: Vec<PyForwardMessage>,
+    ) -> PyResult<&'py PyAny> {
+        use ricq_core::command::multi_msg::gen_forward_preview;
+
+        let client = self.client.clone();
+        let msgs: Vec<ForwardMessage> = msgs.into_iter().map(|v| v.try_into()).try_collect()?;
+        let preview = gen_forward_preview(&msgs);
+        let summary = format!("查看 {} 条转发消息", msgs.len());
+        let file_name: String = "MultiMsg".into();
+
+        py_future(py, async move {
+            let res_id = client.upload_msgs(group_uin, msgs, false).await?;
+            let content = render_forward(&file_name, &res_id, &preview, &summary);
+            Ok((res_id, file_name, content))
         })
     }
 

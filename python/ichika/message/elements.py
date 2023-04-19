@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import pathlib
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -11,7 +12,7 @@ from typing import Callable, Generic, Literal, Optional
 from typing_extensions import Self, TypeAlias, TypeGuard, TypeVar
 
 import aiohttp
-from graia.amnesia.message import Element
+from graia.amnesia.message import Element, MessageChain
 from graia.amnesia.message.element import Text as Text
 
 from .. import core
@@ -143,26 +144,28 @@ class LightApp(Element):
         return "[小程序]"
 
 
-_T_Forward = TypeVar("_T_Forward", bound=Optional[str], default=str)
-
-
-@dataclass(init=False)
-class ForwardMessage(Generic[_T_Forward], Element):
-    """合并转发消息，本质为 XML 卡片"""
+@dataclass
+class ForwardCard(Element):
+    """未下载的合并转发消息，本质为 XML 卡片"""
 
     # TODO: download from ForwardMessage
 
-    res_id: _T_Forward
-    file_name: _T_Forward
-    brief: _T_Forward
-
-    def __init__(self, res_id: _T_Forward = None, file_name: _T_Forward = None, brief: _T_Forward = None) -> None:
-        self.res_id = res_id
-        self.file_name = file_name
-        self.brief = brief
+    res_id: str
+    file_name: str
+    content: str
 
     def __str__(self) -> str:
         return "[合并转发]"
+
+
+@dataclass
+class ForwardMessage:
+    """已下载的合并转发消息"""
+
+    sender_id: int
+    time: datetime
+    sender_name: str
+    content: MessageChain | list[ForwardMessage]
 
 
 @dataclass
@@ -337,23 +340,8 @@ class MarketFace(Element):
         return f"MarketFace(name={self.name})"
 
 
-DESERIALIZE_INV: dict[str, Callable[..., Element]] = {
-    cls.__name__: cls
-    for cls in (
-        Reply,
-        Text,
-        At,
-        AtAll,
-        FingerGuessing,
-        Dice,
-        Face,
-        LightApp,
-        Audio,
-        Image,
-        FlashImage,
-        MarketFace,
-        Audio,
-    )
+_DESERIALIZE_INV: dict[str, Callable[..., Element]] = {
+    cls.__name__: cls for cls in Element.__subclasses__() if cls.__module__.startswith(("ichika", "graia.amnesia"))
 }
 
 __MUSIC_SHARE_APPID_MAP: dict[int, Literal["QQ", "Netease", "Migu", "Kugou", "Kuwo"]] = {
@@ -387,24 +375,19 @@ def _light_app_deserializer(**data) -> Element:
     return LightApp(content=data["content"])
 
 
-def _rich_msg_deserializer(**data) -> Element:
-    from contextlib import suppress
+__RES_ID_PAT = re.compile(r"m_resid=\"(.*?)\"")
+__FILE_NAME_PAT = re.compile(r"m_fileName=\"(.*?)\"")
 
+
+def _rich_msg_deserializer(**data) -> Element:
     service_id: int = data["service_id"]
     content: str = data["content"]
 
-    with suppress(IndexError, KeyError, ValueError, AttributeError):
-        from xml.dom import minidom
-
-        root: minidom.Document = minidom.parseString(data["content"])
-        if isinstance(msg_elem := root.getElementsByTagName("msg")[0], minidom.Element):
-            res_id: str = msg_elem.getAttribute("m_resid")
-            file_name: str = msg_elem.getAttribute("m_fileName")
-            brief: str = msg_elem.getAttribute("brief")
-            return ForwardMessage(res_id=res_id, file_name=file_name, brief=brief)
+    if (res_id_match := __RES_ID_PAT.search(content)) and (file_name_match := __FILE_NAME_PAT.search(content)):
+        return ForwardCard(res_id=res_id_match[0], file_name=file_name_match[0], content=content)
 
     return RichMessage(service_id=service_id, content=content)
 
 
-DESERIALIZE_INV["LightApp"] = _light_app_deserializer
-DESERIALIZE_INV["RichMessage"] = _rich_msg_deserializer
+_DESERIALIZE_INV["LightApp"] = _light_app_deserializer
+_DESERIALIZE_INV["RichMessage"] = _rich_msg_deserializer
