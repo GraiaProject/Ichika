@@ -1,5 +1,7 @@
 ci:
   skip: [fmt, clippy]
+  autoupdate_commit_msg: "chore(deps-pre-commit): pre-commit auto update"
+  autofix_commit_msg: "chore(fix, ci): apply auto fixes"
 repos:
 - repo: local
   hooks:
