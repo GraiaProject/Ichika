@@ -53,7 +53,7 @@ class Client(PlumbingClient):
     @classmethod
     def _parse_downloaded_fwd(cls, content: dict) -> ForwardMessage:
         if content.pop("type") == "Forward":
-            content["content"] = cls._parse_downloaded_fwd(content.pop("content"))
+            content["content"] = [cls._parse_downloaded_fwd(sub) for sub in content.pop("content")]
         return ForwardMessage(**content)
 
     async def download_forward_msg(self, downloader: HttpClientProto, res_id: str) -> list[ForwardMessage]:
