@@ -1,11 +1,11 @@
-use pyo3::exceptions::{PyTypeError, PyValueError};
+use pyo3::exceptions::{PyIndexError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::*;
 use pyo3_repr::PyRepr;
-use ricq::structs::{ForwardMessage, MusicShare, MusicVersion};
+use ricq::structs::{ForwardMessage, MessageReceipt, MusicShare, MusicVersion};
 use ricq_core::command::oidb_svc::OcrResponse;
 
-use crate::utils::{py_try, py_use};
+use crate::utils::{datetime_from_ts, py_try, py_use};
 #[pyclass(get_all)]
 #[derive(PyRepr, Clone)]
 pub struct AccountInfo {
@@ -26,11 +26,50 @@ pub struct OtherClientInfo {
 #[pyclass(get_all)]
 #[derive(PyRepr, Clone)]
 pub struct RawMessageReceipt {
-    pub seqs: Py<PyTuple>,
-    pub rands: Py<PyTuple>,
-    pub time: i64,
+    pub seq: i32,
+    pub rand: i32,
+    pub raw_seqs: Py<PyTuple>,
+    pub raw_rands: Py<PyTuple>,
+    pub time: PyObject, // datetime
     pub kind: String,
     pub target: i64,
+}
+
+impl RawMessageReceipt {
+    pub fn new(origin: MessageReceipt, kind: impl Into<String>, target: i64) -> PyResult<Self> {
+        let kind: String = kind.into();
+        let MessageReceipt { seqs, rands, time } = origin;
+        let seq: i32 = *seqs
+            .first()
+            .ok_or_else(|| PyIndexError::new_err("Empty returning seqs"))?;
+        let rand: i32 = *rands
+            .first()
+            .ok_or_else(|| PyIndexError::new_err("Empty returning rands"))?;
+        py_try(|py| {
+            let time = datetime_from_ts(py, time)?.to_object(py);
+            Ok(Self {
+                seq,
+                rand,
+                raw_seqs: PyTuple::new(py, seqs).into_py(py),
+                raw_rands: PyTuple::new(py, rands).into_py(py),
+                time,
+                kind,
+                target,
+            })
+        })
+    }
+
+    pub fn empty(kind: impl Into<String>, target: i64) -> PyResult<Self> {
+        Self::new(
+            MessageReceipt {
+                seqs: vec![0],
+                rands: vec![0],
+                time: chrono::offset::Utc::now().timestamp(),
+            },
+            kind,
+            target,
+        )
+    }
 }
 
 #[pyclass(get_all)]

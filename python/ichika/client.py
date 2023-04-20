@@ -115,8 +115,11 @@ class Client(PlumbingClient):
                 sealed = element.raw
             sender = self.send_friend_audio if kind == "friend" else self.send_group_audio
             return await sender(uin, sealed)
+
         if isinstance(element, MusicShare):
-            raise TypeError("音乐分享无法因发送后无法获得消息元数据，无法使用 send_xxx_message API 发送，请直接调用底层 API")
+            sender = self.send_friend_music_share if kind == "friend" else self.send_group_music_share
+            return await sender(uin, element)
+
         raise TypeError(f"无法发送元素: {element!r}")
 
     async def send_group_message(self, uin: int, chain: MessageChain) -> RawMessageReceipt:
