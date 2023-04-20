@@ -384,7 +384,7 @@ def _rich_msg_deserializer(**data) -> Element:
     content: str = data["content"]
 
     if (res_id_match := __RES_ID_PAT.search(content)) and (file_name_match := __FILE_NAME_PAT.search(content)):
-        return ForwardCard(res_id=res_id_match[0], file_name=file_name_match[0], content=content)
+        return ForwardCard(res_id=res_id_match[1], file_name=file_name_match[1], content=content)
 
     return RichMessage(service_id=service_id, content=content)
 
