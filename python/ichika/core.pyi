@@ -222,9 +222,11 @@ VTuple = tuple[_T, ...]
 
 @_internal_repr
 class RawMessageReceipt:
-    seqs: VTuple[int]
+    seq: int
+    rand: int
+    raw_seqs: VTuple[int]
     """消息 SEQ ID"""
-    rands: VTuple[int]
+    rwa_rands: VTuple[int]
     """消息随机数"""
     time: int
     """发送时间戳"""
@@ -341,8 +343,8 @@ class PlumbingClient:
     async def upload_group_audio(self, uin: int, data: bytes) -> dict[str, Any]: ...
     async def send_friend_audio(self, uin: int, audio: _SealedAudio) -> RawMessageReceipt: ...
     async def send_group_audio(self, uin: int, audio: _SealedAudio) -> RawMessageReceipt: ...
-    async def send_friend_music_share(self, uin: int, share: MusicShare) -> None: ...
-    async def send_group_music_share(self, uin: int, share: MusicShare) -> None: ...
+    async def send_friend_music_share(self, uin: int, share: MusicShare) -> RawMessageReceipt: ...
+    async def send_group_music_share(self, uin: int, share: MusicShare) -> RawMessageReceipt: ...
     async def download_forward_msg(self, downloader: HttpClientProto, res_id: str) -> list[dict]: ...
     async def upload_forward_msg(self, group_uin: int, msg: list[dict]) -> tuple[str, str, str]: ...
     # [impl 6]
@@ -366,12 +368,17 @@ def face_name_from_id(id: int) -> str: ...
 class MessageSource:
     """消息元信息"""
 
-    seqs: tuple[int, ...]
+    seq: int
     """消息的 SEQ
     建议搭配聊天类型与上下文 ID （例如 `("group", 123456, seq)`）作为索引的键
     """
-    rands: tuple[int, ...]
-    """消息的随机信息，撤回需要"""
+    rand: int
+    """消息的随机序列号，撤回需要"""
+
+    raw_seqs: VTuple[int]
+
+    raw_rands: VTuple[int]
+
     time: datetime
     """消息发送时间"""
 

@@ -569,15 +569,8 @@ impl PlumbingClient {
         let client = self.client.clone();
         let ptt = audio.extract::<SealedAudio>(py)?.inner;
         py_future(py, async move {
-            let ricq::structs::MessageReceipt { seqs, rands, time } =
-                client.send_friend_audio(uin, FriendAudio(ptt)).await?;
-            Ok(Python::with_gil(|py| RawMessageReceipt {
-                seqs: PyTuple::new(py, seqs).into_py(py),
-                rands: PyTuple::new(py, rands).into_py(py),
-                time,
-                kind: "friend".into(),
-                target: uin,
-            }))
+            let receipt = client.send_friend_audio(uin, FriendAudio(ptt)).await?;
+            Ok(RawMessageReceipt::new(receipt, "friend", uin)?)
         })
     }
 
@@ -590,15 +583,8 @@ impl PlumbingClient {
         let client = self.client.clone();
         let ptt = audio.extract::<SealedAudio>(py)?.inner;
         py_future(py, async move {
-            let ricq::structs::MessageReceipt { seqs, rands, time } =
-                client.send_group_audio(uin, GroupAudio(ptt)).await?;
-            Ok(Python::with_gil(|py| RawMessageReceipt {
-                seqs: PyTuple::new(py, seqs).into_py(py),
-                rands: PyTuple::new(py, rands).into_py(py),
-                time,
-                kind: "group".into(),
-                target: uin,
-            }))
+            let receipt = client.send_group_audio(uin, GroupAudio(ptt)).await?;
+            Ok(RawMessageReceipt::new(receipt, "group", uin)?)
         })
     }
 
@@ -614,7 +600,7 @@ impl PlumbingClient {
             client
                 .send_friend_music_share(uin, music_share, music_version)
                 .await?;
-            Ok(())
+            Ok(RawMessageReceipt::empty("group", uin)?)
         })
     }
 
@@ -624,8 +610,6 @@ impl PlumbingClient {
         uin: i64,
         share: MusicShareParam,
     ) -> PyResult<&'py PyAny> {
-        // TODO: Allow returning MessageSource
-
         let client = self.client.clone();
         let (music_share, music_version) = share.try_into()?;
         py_future(py, async move {
@@ -634,7 +618,7 @@ impl PlumbingClient {
                 .await?;
             // TODO: Immediate listen hook
             // LINK: https://github.com/Mrs4s/MiraiGo/blob/f8d9841755b579f7c95ed918d23b767e3854553a/client/richmsg.go#L71
-            Ok(())
+            Ok(RawMessageReceipt::empty("group", uin)?)
         })
     }
 
@@ -690,15 +674,8 @@ impl PlumbingClient {
         let client = self.client.clone();
         let chain = deserialize_message_chain(chain)?;
         py_future(py, async move {
-            let ricq::structs::MessageReceipt { seqs, rands, time } =
-                client.send_friend_message(uin, chain).await?;
-            Ok(Python::with_gil(|py| RawMessageReceipt {
-                seqs: PyTuple::new(py, seqs).into_py(py),
-                rands: PyTuple::new(py, rands).into_py(py),
-                time,
-                kind: "friend".into(),
-                target: uin,
-            }))
+            let receipt = client.send_friend_message(uin, chain).await?;
+            Ok(RawMessageReceipt::new(receipt, "friend", uin)?)
         })
     }
 
@@ -711,15 +688,8 @@ impl PlumbingClient {
         let client = self.client.clone();
         let chain = deserialize_message_chain(chain)?;
         py_future(py, async move {
-            let ricq::structs::MessageReceipt { seqs, rands, time } =
-                client.send_group_message(uin, chain).await?;
-            Ok(Python::with_gil(|py| RawMessageReceipt {
-                seqs: PyTuple::new(py, seqs).into_py(py),
-                rands: PyTuple::new(py, rands).into_py(py),
-                time,
-                kind: "group".into(),
-                target: uin,
-            }))
+            let receipt = client.send_group_message(uin, chain).await?;
+            Ok(RawMessageReceipt::new(receipt, "group", uin)?)
         })
     }
 

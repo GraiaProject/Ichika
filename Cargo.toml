@@ -39,6 +39,7 @@ serde = "1.0"
 pythonize = "0.18"
 pyo3-repr = { version = "0.1.0", path = "pyo3-repr" }
 once_cell = "1.17.1"
+chrono = "0.4.24"
 
 [patch.crates-io]
 ricq = { git = "https://github.com/BlueGlassBlock/ricq.git", branch = "ichika-snapshot"}
