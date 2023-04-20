@@ -1,7 +1,0 @@
-black
-isort
-pre-commit
-maturin
-tomlkit
-actions-toolkit
-towncrier
