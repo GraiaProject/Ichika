@@ -190,10 +190,17 @@ pub fn timedelta_from_secs(py: Python<'_>, delta: impl IntoPy<PyObject>) -> PyRe
 
 static_py_fn!(partial, __PARTIAL_CELL, "functools", ["partial"]);
 
+static_py_fn!(
+    py_client_refs,
+    __CLIENT_WEAKREFS_CELL,
+    "ichika.client",
+    ["CLIENT_REFS"]
+);
+
 #[macro_export]
 macro_rules! dict_obj {
     {$py:ident ! $($key:ident : $val:expr),* $(,)?} => {
-        ::pyo3::Python::with_gil(|$py| -> ::pyo3::PyResult<::pyo3::PyObject> {
+        ::pyo3::Python::with_gil(|$py| -> ::pyo3::PyResult<_> {
             let dict = ::pyo3::types::PyDict::new($py);
             $(
                 let _val: ::pyo3::PyObject = $val.into_py($py);

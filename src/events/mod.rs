@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use pyo3::exceptions::PyIndexError;
 use pyo3::prelude::*;
 use pyo3::types::*;
 use pyo3_asyncio::{into_future_with_locals, TaskLocals};
@@ -6,198 +7,50 @@ use pyo3_repr::PyRepr;
 use ricq::handler::{Handler, QEvent};
 
 pub mod converter;
-pub mod structs;
-use structs::MessageSource;
 
-use self::structs::FriendInfo;
-use crate::client::group::{Group, Member};
-use crate::utils::{py_try, py_use};
+use crate::utils::{datetime_from_ts, py_client_refs, py_try, py_use};
 
 #[pyclass(get_all)]
 #[derive(PyRepr, Clone)]
-pub struct LoginEvent {
-    uin: i64,
+pub struct MessageSource {
+    pub seq: i32,
+    pub rand: i32,
+    pub raw_seqs: Py<PyTuple>,
+    pub raw_rands: Py<PyTuple>,
+    pub time: PyObject,
 }
 
-#[pyclass(get_all)]
-#[derive(PyRepr, Clone)]
-pub struct GroupMessage {
-    source: MessageSource,
-    content: PyObject, // PyMessageChain
-    group: Group,
-    sender: Member,
-}
-
-#[pyclass(get_all)]
-#[derive(PyRepr, Clone)]
-pub struct GroupRecallMessage {
-    time: PyObject, // PyDatetime
-    group: Group,
-    author: Member,
-    operator: Member,
-    seq: i32,
-}
-
-#[pyclass(get_all)]
-#[derive(PyRepr, Clone)]
-pub struct FriendMessage {
-    source: MessageSource,
-    content: PyObject, // PyMessageChain
-    sender: FriendInfo,
-}
-
-#[pyclass(get_all)]
-#[derive(PyRepr, Clone)]
-pub struct FriendRecallMessage {
-    time: PyObject, // PyDatetime
-    author: FriendInfo,
-    seq: i32,
-}
-
-#[pyclass(get_all)]
-#[derive(PyRepr, Clone)]
-pub struct TempMessage {
-    source: MessageSource,
-    content: PyObject, // PyMessageChain
-    group: Group,
-    sender: Member,
-}
-
-#[pyclass(get_all)]
-#[derive(PyRepr, Clone)]
-pub struct GroupNudge {
-    group: Group,
-    sender: Member,
-    receiver: Member,
-}
-
-#[pyclass(get_all)]
-#[derive(PyRepr, Clone)]
-pub struct FriendNudge {
-    sender: FriendInfo,
-}
-
-#[pyclass(get_all)]
-#[derive(PyRepr, Clone)]
-pub struct NewFriend {
-    friend: FriendInfo,
-}
-
-#[pyclass(get_all)]
-#[derive(PyRepr, Clone)]
-pub struct NewMember {
-    group: Group,
-    member: Member,
-}
-
-#[pyclass(get_all)]
-#[derive(PyRepr, Clone)]
-pub struct MemberLeaveGroup {
-    group_uin: i64,
-    member_uin: i64,
-}
-
-#[pyclass(get_all)]
-#[derive(PyRepr, Clone)]
-pub struct GroupDisband {
-    group_uin: i64,
-    operator_uin: i64,
-}
-
-#[pyclass(get_all)]
-#[derive(PyRepr, Clone)]
-pub struct FriendDeleted {
-    friend_uin: i64,
-}
-
-#[pyclass(get_all)]
-#[derive(PyRepr, Clone)]
-pub struct MemberMute {
-    group: Group,
-    target: Member,
-    operator: Member,
-    duration: PyObject, // datetime.timedelta | Literal[False]
-}
-
-#[pyclass(get_all)]
-#[derive(PyRepr, Clone)]
-pub struct GroupMute {
-    group: Group,
-    operator: Member,
-    status: bool,
-}
-
-#[pyclass(get_all)]
-#[derive(PyRepr, Clone)]
-pub struct MemberPermissionChange {
-    group: Group,
-    target: Member,
-    permission: u8,
-}
-
-#[pyclass(get_all)]
-#[derive(PyRepr, Clone)]
-pub struct GroupInfoUpdate {
-    group: Group,
-    operator: Member,
-    info: Py<PyDict>, // GroupInfo
-}
-
-#[pyclass(get_all)]
-#[derive(PyRepr, Clone)]
-pub struct NewFriendRequest {
-    seq: i64,
-    uin: i64,
-    nickname: String,
-    message: String,
-}
-
-#[pyclass(get_all)]
-#[derive(PyRepr, Clone)]
-pub struct JoinGroupRequest {
-    seq: i64,
-    time: PyObject,
-    group_uin: i64,
-    group_name: String,
-    request_uin: i64,
-    request_nickname: String,
-    suspicious: bool,
-    invitor_uin: Option<i64>,
-    invitor_nickname: Option<String>,
-}
-
-#[pyclass(get_all)]
-#[derive(PyRepr, Clone)]
-pub struct JoinGroupInvitation {
-    seq: i64,
-    time: PyObject,
-    group_uin: i64,
-    group_name: String,
-    invitor_uin: i64,
-    invitor_nickname: String,
-}
-
-#[pyclass]
-#[derive(PyRepr, Clone)]
-pub struct UnknownEvent {
-    inner: QEvent,
-}
-
-#[pymethods]
-impl UnknownEvent {
-    fn inner_repr(&self) -> String {
-        format!("{:?}", self.inner)
+impl MessageSource {
+    pub fn new(py: Python, seqs: &[i32], rands: &[i32], time: i32) -> PyResult<Self> {
+        let seq = *seqs
+            .first()
+            .ok_or_else(|| PyIndexError::new_err("Empty returning rands"))?;
+        let rand = *rands
+            .first()
+            .ok_or_else(|| PyIndexError::new_err("Empty returning rands"))?;
+        Ok(Self {
+            seq,
+            rand,
+            raw_seqs: PyTuple::new(py, seqs).into_py(py),
+            raw_rands: PyTuple::new(py, rands).into_py(py),
+            time: datetime_from_ts(py, time)?.into_py(py),
+        })
     }
 }
 
 pub struct PyHandler {
     queues: Py<PyList>,
     locals: TaskLocals,
+    uin: i64,
 }
 
 impl PyHandler {
-    pub fn new(queues: Py<PyList>, locals: TaskLocals) -> Self {
-        Self { queues, locals }
+    pub fn new(queues: Py<PyList>, locals: TaskLocals, uin: i64) -> Self {
+        Self {
+            queues,
+            locals,
+            uin,
+        }
     }
 }
 
@@ -215,13 +68,29 @@ impl Handler for PyHandler {
         };
         let mut handles: Vec<tokio::task::JoinHandle<Result<(), PyErr>>> = vec![];
         Python::with_gil(|py| {
-            if py_event.is_none(py) {
+            if py_event.as_ref(py).is_empty() {
                 return;
             }
+            let client = match py_client_refs(py).get_item(self.uin) {
+                Ok(client) => client,
+                Err(e) => {
+                    tracing::error!("获取 client 引用失败: {}", event_repr);
+                    e.print_and_set_sys_last_vars(py);
+                    return;
+                }
+            };
+            match py_event.as_ref(py).set_item("client", client) {
+                Ok(_) => {}
+                Err(e) => {
+                    tracing::error!("设置 client 引用失败: {}", event_repr);
+                    e.print_and_set_sys_last_vars(py);
+                    return;
+                }
+            };
             let args: Py<PyTuple> = (py_event,).into_py(py);
             for q in self.queues.as_ref(py).iter().map(|q| q.into_py(py)) {
                 let locals = self.locals.clone();
-                let args = args.clone();
+                let args = args.clone_ref(py);
                 handles.push(tokio::spawn(async move {
                     py_try(|py| {
                         into_future_with_locals(

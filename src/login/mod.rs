@@ -24,7 +24,7 @@ use tokio::task::JoinHandle;
 
 use crate::events::PyHandler;
 use crate::exc::MapPyErr;
-use crate::utils::{partial, py_bytes, py_future, py_try, py_use};
+use crate::utils::{partial, py_bytes, py_client_refs, py_future, py_try, py_use};
 use crate::{exc, import_call, PyRet};
 async fn prepare_client(
     device: Device,
@@ -128,7 +128,7 @@ fn parse_login_args<'py>(
     queues: &'py PyList,
 ) -> PyResult<(Version, PyHandler, Device, TokenRW, TaskLocals)> {
     let task_locals = TaskLocals::with_running_loop(py)?; // Necessary since retrieving task locals at handling time is already insufficient
-    let handler = PyHandler::new(queues.into_py(py), task_locals.clone());
+    let handler = PyHandler::new(queues.into_py(py), task_locals.clone(), uin);
 
     let get_token = partial(py).call1((store.getattr("get_token")?, uin, &protocol))?;
     let write_token = partial(py).call1((store.getattr("write_token")?, uin, &protocol))?;
@@ -357,13 +357,18 @@ async fn password_login_process(
 async fn post_login(client: Arc<Client>, alive: JoinHandle<()>, token_rw: TokenRW) -> PyRet {
     after_login(&client).await;
     token_rw.set(&client).await?;
+    let uin = client.uin().await;
     let init = crate::client::ClientInitializer {
-        uin: client.uin().await,
+        uin,
         client,
         alive: Arc::new(std::sync::Mutex::new(Some(alive))),
         token_rw,
     };
-    py_try(|py| Ok(import_call!(py, "ichika.client" => "Client" => init)?.into_py(py)))
+    py_try(|py| {
+        let client = import_call!(py, "ichika.client" => "Client" => init)?.into_py(py);
+        py_client_refs(py).set_item(uin, client.clone_ref(py))?;
+        Ok(client)
+    })
 }
 
 #[pyfunction]

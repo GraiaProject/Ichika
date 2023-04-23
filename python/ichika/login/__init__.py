@@ -5,7 +5,7 @@ import os
 from asyncio import Queue
 from enum import Enum
 from pathlib import Path
-from typing import Literal, Optional, Union, overload
+from typing import Literal, Optional, Sequence, Union, overload
 
 from loguru import logger as log
 
@@ -81,7 +81,7 @@ async def login_password(
     /,
     protocol: str,
     store: BaseLoginCredentialStore,
-    queues: list[Queue],
+    queues: Sequence[_core.EventCallback],
     callbacks: PasswordLoginCallbacks = ...,
     use_sms: bool = ...,
 ) -> Client:
@@ -95,7 +95,7 @@ async def login_password(
     /,
     protocol: str,
     store: BaseLoginCredentialStore,
-    queues: list[Queue],
+    queues: Sequence[_core.EventCallback],
     callbacks: PasswordLoginCallbacks = ...,
     use_sms: bool = ...,
 ) -> Client:
@@ -108,7 +108,7 @@ async def login_password(
     /,
     protocol: str,
     store: BaseLoginCredentialStore,
-    queues: list[Queue],
+    queues: Sequence[_core.EventCallback],
     callbacks: PasswordLoginCallbacks = PasswordLoginCallbacks.default(),
     use_sms: bool = True,
 ) -> Client:
@@ -120,7 +120,7 @@ async def login_qrcode(
     /,
     protocol: Literal["AndroidWatch"],
     store: BaseLoginCredentialStore,
-    queues: list[Queue],
-    callbacks: QRCodeLoginCallbacks = QRCodeLoginCallbacks.default(),
+    event_callbacks: Sequence[_core.EventCallback],
+    login_callbacks: QRCodeLoginCallbacks = QRCodeLoginCallbacks.default(),
 ) -> Client:
-    return await _core.qrcode_login(uin, protocol, store, queues, callbacks)
+    return await _core.qrcode_login(uin, protocol, store, event_callbacks, login_callbacks)
