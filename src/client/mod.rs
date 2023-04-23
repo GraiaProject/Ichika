@@ -6,7 +6,7 @@ pub mod structs;
 use std::sync::Arc;
 use std::time::Duration;
 
-pub use cached::cache;
+pub use cached::{cache, ClientCache};
 use group::Group;
 use http::get_rust_client;
 use pyo3::exceptions::PyRuntimeError;

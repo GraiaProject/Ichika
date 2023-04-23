@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from typing import Any, Awaitable, Callable, Literal, Protocol
+from weakref import WeakValueDictionary
 
 from graia.amnesia.message import Element, MessageChain
 
@@ -135,3 +136,7 @@ class Client(PlumbingClient):
         for idx, elem in enumerate(chain):
             chain.content[idx] = await self._validate_mm(uin, elem, self.upload_friend_image)
         return await super().send_friend_message(uin, _serialize_msg(chain))
+
+
+CLIENT_REFS: WeakValueDictionary[int, Client] = WeakValueDictionary()
+# FIXME: Currently the clients are always LEAKED
