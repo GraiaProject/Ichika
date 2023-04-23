@@ -1,7 +1,7 @@
 import asyncio
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal, TypeVar
+from typing import Literal, Protocol, Sequence, TypeVar, type_check_only
 from typing_extensions import Any, TypeAlias
 
 from ichika.message.elements import MusicShare
@@ -20,6 +20,10 @@ __build__: Any
 
 _T_Event: TypeAlias = Any  # TODO
 
+@type_check_only
+class EventCallback(Protocol):
+    async def put(self, event: _T_Event, /) -> Any: ...
+
 # Here, outside wrapper "login_XXX" ensures that a "task locals" can be acquired for event task execution.
 
 async def password_login(
@@ -28,7 +32,7 @@ async def password_login(
     use_sms: bool,
     protocol: str,
     store: BaseLoginCredentialStore,
-    event_callbacks: list[asyncio.Queue[_T_Event]],
+    event_callbacks: Sequence[EventCallback],
     login_callbacks: PasswordLoginCallbacks,
 ) -> Client:
     """使用密码登录。
@@ -48,7 +52,7 @@ async def qrcode_login(
     uin: int,
     protocol: str,
     store: BaseLoginCredentialStore,
-    event_callbacks: list[asyncio.Queue[_T_Event]],
+    event_callbacks: Sequence[EventCallback],
     login_callbacks: QRCodeLoginCallbacks,
 ) -> Client:
     """使用二维码登录。
@@ -381,12 +385,3 @@ class MessageSource:
 
     time: datetime
     """消息发送时间"""
-
-@_internal_repr
-class FriendInfo:
-    """事件中的好友信息"""
-
-    uin: int
-    """好友账号"""
-    nickname: str
-    """好友实际昵称"""

@@ -4,15 +4,20 @@ from typing_extensions import TypeGuard, TypeVar
 
 from graia.amnesia.message import MessageChain
 
-from ichika.core import FriendInfo, Group, Member, MessageSource
+from ichika.client import Client
+from ichika.core import Friend, Group, Member, MessageSource
 
 
-class LoginEvent(TypedDict):
+class BaseEvent(TypedDict):
+    client: Client
+
+
+class LoginEvent(BaseEvent):
     uin: int
     type_name: Literal["LoginEvent"]
 
 
-class GroupMessage(TypedDict):
+class GroupMessage(BaseEvent):
     source: MessageSource
     content: MessageChain
     group: Group
@@ -20,7 +25,7 @@ class GroupMessage(TypedDict):
     type_name: Literal["GroupMessage"]
 
 
-class GroupRecallMessage(TypedDict):
+class GroupRecallMessage(BaseEvent):
     time: datetime
     group: Group
     author: Member
@@ -29,21 +34,21 @@ class GroupRecallMessage(TypedDict):
     type_name: Literal["GroupRecallMessage"]
 
 
-class FriendMessage(TypedDict):
+class FriendMessage(BaseEvent):
     source: MessageSource
     content: MessageChain
-    sender: FriendInfo
+    sender: Friend
     type_name: Literal["FriendMessage"]
 
 
-class FriendRecallMessage(TypedDict):
+class FriendRecallMessage(BaseEvent):
     time: datetime
-    author: FriendInfo
+    author: Friend
     seq: int
     type_name: Literal["FriendRecallMessage"]
 
 
-class TempMessage(TypedDict):
+class TempMessage(BaseEvent):
     source: MessageSource
     content: MessageChain
     group: Group
@@ -51,53 +56,53 @@ class TempMessage(TypedDict):
     type_name: Literal["TempMessage"]
 
 
-class GroupNudge(TypedDict):
+class GroupNudge(BaseEvent):
     group: Group
     sender: Member
     receiver: Member
     type_name: Literal["GroupNudge"]
 
 
-class FriendNudge(TypedDict):
-    sender: FriendInfo
+class FriendNudge(BaseEvent):
+    sender: Friend
     type_name: Literal["FriendNudge"]
 
 
-class NewFriend(TypedDict):
-    friend: FriendInfo
+class NewFriend(BaseEvent):
+    friend: Friend
     type_name: Literal["NewFriend"]
 
 
-class NewMember(TypedDict):
+class NewMember(BaseEvent):
     group: Group
     member: Member
     type_name: Literal["NewMember"]
 
 
-class MemberLeaveGroup(TypedDict):
+class MemberLeaveGroup(BaseEvent):
     group_uin: int
     member_uin: int
     type_name: Literal["MemberLeaveGroup"]
 
 
-class GroupDisband(TypedDict):
+class GroupDisband(BaseEvent):
     group_uin: int
     type_name: Literal["GroupDisband"]
 
 
-class FriendDeleted(TypedDict):
+class FriendDeleted(BaseEvent):
     friend_uin: int
     type_name: Literal["FriendDeleted"]
 
 
-class GroupMute(TypedDict):
+class GroupMute(BaseEvent):
     group: Group
     operator: Member
     status: bool
     type_name: Literal["GroupMute"]
 
 
-class MemberMute(TypedDict):
+class MemberMute(BaseEvent):
     group: Group
     operator: Member
     target: Member
@@ -105,25 +110,25 @@ class MemberMute(TypedDict):
     type_name: Literal["MemberMute"]
 
 
-class MemberPermissionChange(TypedDict):
+class MemberPermissionChange(BaseEvent):
     group: Group
     target: Member
     permission: int
     type_name: Literal["MemberPermissionChange"]
 
 
-class _GroupInfo(TypedDict):
+class _GroupInfo(BaseEvent):
     name: str
 
 
-class GroupInfoUpdate(TypedDict):
+class GroupInfoUpdate(BaseEvent):
     group: Group
     operator: Member
     info: _GroupInfo
     type_name: Literal["GroupInfoUpdate"]
 
 
-class NewFriendRequest(TypedDict):
+class NewFriendRequest(BaseEvent):
     seq: int
     uin: int
     nickname: str
@@ -131,7 +136,7 @@ class NewFriendRequest(TypedDict):
     type_name: Literal["NewFriendRequest"]
 
 
-class JoinGroupRequest(TypedDict):
+class JoinGroupRequest(BaseEvent):
     seq: int
     time: datetime
     group_uin: int
@@ -144,7 +149,7 @@ class JoinGroupRequest(TypedDict):
     type_name: Literal["JoinGroupRequest"]
 
 
-class JoinGroupInvitation(TypedDict):
+class JoinGroupInvitation(BaseEvent):
     seq: int
     time: datetime
     group_uin: int
@@ -154,7 +159,7 @@ class JoinGroupInvitation(TypedDict):
     type_name: Literal["JoinGroupInvitation"]
 
 
-class UnknownEvent(TypedDict):
+class UnknownEvent(BaseEvent):
     type_name: Literal["UnknownEvent"]
     internal_repr: str
 

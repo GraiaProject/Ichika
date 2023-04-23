@@ -52,8 +52,7 @@ pub fn core(py: Python, m: &PyModule) -> PyResult<()> {
         client::structs::RawMessageReceipt,
         client::structs::OCRResult,
         client::structs::OCRText,
-        events::structs::MessageSource,
-        events::structs::FriendInfo
+        events::MessageSource
     );
     loguru::init(m)?;
     Ok(())
