@@ -12,11 +12,6 @@ class BaseEvent(TypedDict):
     client: Client
 
 
-class LoginEvent(BaseEvent):
-    uin: int
-    type_name: Literal["LoginEvent"]
-
-
 class GroupMessage(BaseEvent):
     source: MessageSource
     content: MessageChain
@@ -165,7 +160,6 @@ class UnknownEvent(BaseEvent):
 
 
 Event = Union[
-    LoginEvent,
     GroupMessage,
     GroupRecallMessage,
     FriendMessage,

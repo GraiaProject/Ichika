@@ -5,7 +5,7 @@ from typing_extensions import Any, TypeAlias
 
 from ichika.message.elements import MusicShare
 
-from . import events as events
+from . import event_defs as event_defs
 from .client import Client, HttpClientProto
 from .login import (
     BaseLoginCredentialStore,
@@ -17,7 +17,7 @@ from .message._sealed import SealedAudio as _SealedAudio
 __version__: str
 __build__: Any
 
-_T_Event: TypeAlias = Any  # TODO
+_T_Event: TypeAlias = event_defs._T_Event
 
 @type_check_only
 class EventCallback(Protocol):

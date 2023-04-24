@@ -8,7 +8,7 @@ from datetime import datetime
 from enum import Enum
 from functools import total_ordering
 from io import BytesIO
-from typing import Callable, Generic, Literal, Optional
+from typing import TYPE_CHECKING, Callable, Generic, Literal, Optional
 from typing_extensions import Self, TypeAlias, TypeGuard, TypeVar
 
 import aiohttp
@@ -17,6 +17,9 @@ from graia.amnesia.message.element import Text as Text
 
 from .. import core
 from ._sealed import SealedAudio, SealedImage, SealedMarketFace
+
+if TYPE_CHECKING:
+    from ..client import Client as __Client
 
 
 @dataclass
@@ -148,14 +151,22 @@ class LightApp(Element):
 class ForwardCard(Element):
     """未下载的合并转发消息，本质为 XML 卡片"""
 
-    # TODO: download from ForwardMessage
-
     res_id: str
     file_name: str
     content: str
 
     def __str__(self) -> str:
         return "[合并转发]"
+
+    async def download(self, client: __Client) -> list[ForwardMessage]:
+        """使用 aiohttp 下载本转发卡片对应的转发消息"""
+
+        async def _downloader(method: Literal["get", "post"], url: str, headers: dict[str, str], body: bytes) -> bytes:
+            async with aiohttp.ClientSession(headers=headers) as session:
+                async with session.request(method, url, data=body) as resp:
+                    return await resp.read()
+
+        return await client.download_forward_msg(_downloader, self.res_id)
 
 
 @dataclass
