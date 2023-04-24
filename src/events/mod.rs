@@ -106,10 +106,12 @@ impl Handler for PyHandler {
         for handle in handles {
             match handle.await {
                 Err(err) => {
-                    tracing::error!("向队列发送事件失败: {:?}", err);
+                    tracing::error!("事件处理失败失败: {}", event_repr);
+                    tracing::error!("Rust 无法收集回调结果: {:?}", err);
                 }
                 Ok(Err(err)) => {
-                    tracing::error!("向队列发送事件失败: {:?}", err);
+                    tracing::error!("事件处理失败: {}", event_repr);
+                    py_use(|py| err.print_and_set_sys_last_vars(py));
                 }
                 Ok(Ok(())) => {}
             };

@@ -28,7 +28,7 @@ use crate::message::convert::{
 use crate::message::elements::SealedAudio;
 use crate::utils::{py_future, py_none, py_try, py_use, AsPython};
 
-#[pyclass(subclass)]
+#[pyclass(subclass, weakref)]
 pub struct PlumbingClient {
     client: Arc<ricq::client::Client>,
     alive: Option<JoinHandle<()>>,
@@ -813,5 +813,12 @@ impl PlumbingClient {
                 .await?;
             Ok(())
         })
+    }
+}
+
+impl Drop for PlumbingClient {
+    fn drop(&mut self) {
+        let uin = self.uin;
+        tracing::info!("{} 的 Rust 客户端已被成功回收", uin);
     }
 }
