@@ -25,7 +25,7 @@ from .message.elements import (
 
 class HttpClientProto(Protocol):
     def __call__(
-        self, method: Literal["get", "post", "delete"], url: str, headers: dict[str, str], body: bytes
+        self, method: Literal["get", "post"], url: str, headers: dict[str, str], body: bytes
     ) -> Awaitable[bytes]:
         ...
 
@@ -139,4 +139,3 @@ class Client(PlumbingClient):
 
 
 CLIENT_REFS: WeakValueDictionary[int, Client] = WeakValueDictionary()
-# FIXME: Currently the clients are always LEAKED

@@ -17,7 +17,6 @@ type PyDictRet = PyResult<Py<PyDict>>;
 
 pub async fn convert(event: QEvent) -> PyDictRet {
     match event {
-        QEvent::Login(event) => handle_login(event), // FIXME: ignore this
         QEvent::GroupMessage(event) => handle_group_message(event).await,
         QEvent::GroupAudioMessage(event) => handle_group_audio(event).await,
         QEvent::FriendMessage(event) => handle_friend_message(event).await,
@@ -38,14 +37,7 @@ pub async fn convert(event: QEvent) -> PyDictRet {
         QEvent::GroupRequest(event) => handle_group_request(event),
         QEvent::SelfInvited(event) => handle_group_invitation(event),
         QEvent::NewFriendRequest(event) => handle_friend_request(event),
-        unknown => dict_obj!(type_name: "UnknownEvent", internal_repr: format!("{:?}", unknown)), // TODO: OfflineEvent
-    }
-}
-
-fn handle_login(uin: i64) -> PyDictRet {
-    dict_obj! {
-        type_name: "LoginAttempt",
-        uin: uin
+        unknown => dict_obj!(type_name: "UnknownEvent", internal_repr: format!("{:?}", unknown)),
     }
 }
 
