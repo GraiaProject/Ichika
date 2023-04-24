@@ -1,7 +1,6 @@
-import asyncio
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal, Protocol, Sequence, TypeVar, type_check_only
+from typing import Awaitable, Literal, Protocol, Sequence, TypeVar, type_check_only
 from typing_extensions import Any, TypeAlias
 
 from ichika.message.elements import MusicShare
@@ -297,7 +296,7 @@ class PlumbingClient:
     def uin(self) -> int: ...
     @property
     def online(self) -> bool: ...
-    async def keep_alive(self) -> None: ...
+    def keep_alive(self) -> Awaitable[None]: ...  # FIXME: Document this
     async def stop(self) -> None: ...
     async def get_account_info(self) -> AccountInfo: ...
     async def set_account_info(
