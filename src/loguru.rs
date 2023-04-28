@@ -132,7 +132,7 @@ impl tracing::field::Visit for LoguruVisiter {
     }
 }
 
-#[pyclass(get_all)]
+#[pyclass(get_all, module = "ichika.core")]
 #[derive(PyRepr, Clone)]
 pub struct FakePyFrame {
     f_globals: Py<PyDict>,
@@ -140,7 +140,7 @@ pub struct FakePyFrame {
     f_lineno: u32,
 }
 
-#[pyclass(get_all)]
+#[pyclass(get_all, module = "ichika.core")]
 #[derive(PyRepr, Clone)]
 pub struct FakePyCode {
     co_filename: Py<PyString>,

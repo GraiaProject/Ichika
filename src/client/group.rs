@@ -1,7 +1,7 @@
 use pyo3::prelude::*;
 use pyo3_repr::PyRepr;
 use ricq::structs::{GroupInfo, GroupMemberInfo};
-#[pyclass(get_all)]
+#[pyclass(get_all, module = "ichika.core")]
 #[derive(PyRepr, Clone)]
 pub struct Group {
     pub uin: i64,
@@ -53,7 +53,7 @@ impl From<GroupInfo> for Group {
     }
 }
 
-#[pyclass(get_all)]
+#[pyclass(get_all, module = "ichika.core")]
 #[derive(PyRepr, Clone)]
 pub struct Member {
     pub group_uin: i64,
