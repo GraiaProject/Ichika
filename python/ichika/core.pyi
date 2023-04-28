@@ -240,15 +240,25 @@ class RawMessageReceipt:
 
 @_internal_repr
 class OCRText:
+    """单条 OCR 结果"""
+
     detected_text: str
+    """识别出的文本"""
     confidence: int
+    """置信度"""
     polygon: VTuple[tuple[int, int]] | None
+    """文本所在区域的顶点坐标"""
     advanced_info: str
+    """额外信息"""
 
 @_internal_repr
 class OCRResult:
+    """OCR 结果"""
+
     texts: VTuple[OCRText]
+    """识别出的文本列表"""
     language: str
+    """语言"""
 
 __OnlineStatus: TypeAlias = (  # TODO: Wrapper
     tuple[int, str]  # (face_index, wording)
@@ -291,14 +301,41 @@ __OnlineStatus: TypeAlias = (  # TODO: Wrapper
 )
 
 class PlumbingClient:
+    """Ichika 的底层客户端，暴露了一些底层接口"""
+
     # [impl 1]
     @property
-    def uin(self) -> int: ...
+    def uin(self) -> int:
+        """获取当前登录的账号的 QQ 号。
+
+        :return: 当前登录的账号的 QQ 号
+        """
+        ...
     @property
-    def online(self) -> bool: ...
-    def keep_alive(self) -> Awaitable[None]: ...  # FIXME: Document this
-    async def stop(self) -> None: ...
-    async def get_account_info(self) -> AccountInfo: ...
+    def online(self) -> bool:
+        """获取当前登录的账号是否登录成功。
+
+        :return: 当前登录的账号是否登录成功
+        """
+        ...
+    def keep_alive(self) -> Awaitable[None]:
+        """保持在线。
+
+        :return: 承载了维持心跳和重连任务的 [`Future 对象`][asyncio.Future]。
+        """
+        ...
+    async def stop(self) -> None:
+        """停止客户端运行。
+
+        请在本方法返回后再等待 [`keep_alive`][ichika.core.PlumbingClient.keep_alive] 方法返回的 [`Future 对象`][asyncio.Future]。
+        """
+        ...
+    async def get_account_info(self) -> AccountInfo:
+        """获取当前登录的账号的信息。
+
+        :return: 当前登录的账号的信息
+        """
+        ...
     async def set_account_info(
         self,
         *,
@@ -308,60 +345,363 @@ class PlumbingClient:
         company: str | None = None,
         college: str | None = None,
         signature: str = ...,
-    ) -> None: ...
-    async def get_other_clients(self) -> VTuple[OtherClientInfo]: ...
-    async def modify_online_status(self, status: __OnlineStatus) -> None: ...
-    async def image_ocr(self, url: str, md5: str, width: int, height: int) -> OCRResult: ...
+    ) -> None:
+        """设置当前登录的账号的信息。
+
+        :param name: 昵称，None 为不修改
+        :param email: 邮箱，None 为不修改
+        :param personal_note: 个人说明，None 为不修改
+        :param company: 公司，None 为不修改
+        :param college: 学校，None 为不修改
+        :param signature: 个性签名，None 为不修改
+        """
+        ...
+    async def get_other_clients(self) -> VTuple[OtherClientInfo]:
+        """获取其他在线客户端的信息。
+
+        :return: 一个元组，包含其他在线客户端的信息
+        """
+        ...
+    async def modify_online_status(self, status: __OnlineStatus) -> None:
+        """修改当前登录的账号的在线状态。
+
+        :param status: 在线状态
+        """
+        ...
+    async def image_ocr(self, url: str, md5: str, width: int, height: int) -> OCRResult:
+        """对图片进行 OCR 识别。
+
+        :param url: 图片 URL
+        :param md5: 图片 MD5
+        :param width: 图片宽度
+        :param height: 图片高度
+        :return: OCR 结果
+        """
+        ...
     # [impl 2]
-    async def get_friend_list(self) -> FriendList: ...
-    async def get_friend_list_raw(self) -> FriendList: ...
-    async def get_friends(self) -> VTuple[Friend]: ...
-    async def find_friend(self, uin: int) -> Friend | None: ...
-    async def nudge_friend(self, uin: int) -> None: ...
-    async def delete_friend(self, uin: int) -> None: ...
+    async def get_friend_list(self) -> FriendList:
+        """获取好友列表。
+
+        :return: 好友列表
+        """
+        ...
+    async def get_friend_list_raw(self) -> FriendList:
+        """获取好友列表的原始数据。
+
+        :return: 好友列表的原始数据
+        """
+        ...
+    async def get_friends(self) -> VTuple[Friend]:
+        """获取好友列表。
+
+        :return: 好友列表
+        """
+        ...
+    async def find_friend(self, uin: int) -> Friend | None:
+        """查找好友。
+
+        :param uin: 好友 QQ 号
+        :return: 好友对象，如果不存在则返回 None
+        """
+        ...
+    async def nudge_friend(self, uin: int) -> None:
+        """给好友发送窗口抖动。
+
+        :param uin: 好友 QQ 号
+        """
+        ...
+    async def delete_friend(self, uin: int) -> None:
+        """删除好友。
+
+        :param uin: 好友 QQ 号
+        """
+        ...
     # [impl 3]
-    async def get_group(self, uin: int) -> Group: ...
-    async def get_group_raw(self, uin: int) -> Group: ...
-    async def find_group(self, uin: int) -> Group | None: ...
-    async def get_groups(self) -> VTuple[Group]: ...
-    async def get_group_admins(self, uin: int) -> list[tuple[int, int]]: ...
-    async def mute_group(self, uin: int, mute: bool) -> None: ...
-    async def quit_group(self, uin: int) -> None: ...
-    async def modify_group_info(self, uin: int, *, memo: str | None = None, name: str | None = None) -> None: ...
-    async def group_sign_in(self, uin: int) -> None: ...
+    async def get_group(self, uin: int) -> Group:
+        """获取群信息。
+
+        :param uin: 群号
+        :return: 群信息
+        """
+        ...
+    async def get_group_raw(self, uin: int) -> Group:
+        """获取群信息的原始数据。
+
+        :param uin: 群号
+        :return: 群信息的原始数据
+        """
+        ...
+    async def find_group(self, uin: int) -> Group | None:
+        """查找群。
+
+        :param uin: 群号
+        :return: 群对象，如果不存在则返回 None
+        """
+        ...
+    async def get_groups(self) -> VTuple[Group]:
+        """获取群列表。
+
+        :return: 群列表
+        """
+        ...
+    async def get_group_admins(self, uin: int) -> list[tuple[int, int]]:
+        """获取群管理员列表。
+
+        :param uin: 群号
+        :return: 群管理员列表
+        """
+        ...
+    async def mute_group(self, uin: int, mute: bool) -> None:
+        """禁言/解禁群成员。
+
+        :param uin: 群号
+        :param mute: 是否禁言
+        """
+        ...
+    async def quit_group(self, uin: int) -> None:
+        """退出群。
+
+        :param uin: 群号
+        """
+        ...
+    async def modify_group_info(self, uin: int, *, memo: str | None = None, name: str | None = None) -> None:
+        """修改群信息。
+
+        :param uin: 群号
+        :param memo: 群公告
+        :param name: 群名称
+        """
+        ...
+    async def group_sign_in(self, uin: int) -> None:
+        """签到群。
+
+        :param uin: 群号
+        """
+        ...
     # [impl 4]
-    async def get_member(self, group_uin: int, uin: int) -> Member: ...
-    async def get_member_raw(self, group_uin: int, uin: int) -> Member: ...
-    async def nudge_member(self, group_uin: int, uin: int) -> None: ...
+    async def get_member(self, group_uin: int, uin: int) -> Member:
+        """获取群成员信息。
+
+        :param group_uin: 群号
+        :param uin: QQ 号
+        :return: 群成员信息
+        """
+        ...
+    async def get_member_raw(self, group_uin: int, uin: int) -> Member:
+        """获取群成员信息的原始数据。
+
+        :param group_uin: 群号
+        :param uin: QQ 号
+        :return: 群成员信息的原始数据
+        """
+        ...
+    async def nudge_member(self, group_uin: int, uin: int) -> None:
+        """给群成员发送窗口抖动。
+
+        :param group_uin: 群号
+        :param uin: QQ 号
+        """
+        ...
     # Duration -> 0: Unmute
-    async def mute_member(self, group_uin: int, uin: int, duration: int) -> None: ...
-    async def kick_member(self, group_uin: int, uin: int, msg: str, block: bool) -> None: ...
-    async def modify_member_special_title(self, group_uin: int, uin: int, special_title: str) -> None: ...
-    async def modify_member_card(self, group_uin: int, uin: int, card_name: str) -> None: ...
-    async def modify_member_admin(self, group_uin: int, uin: int, admin: bool) -> None: ...
+    async def mute_member(self, group_uin: int, uin: int, duration: int) -> None:
+        """禁言/解禁群成员。
+
+        :param group_uin: 群号
+        :param uin: QQ 号
+        :param duration: 禁言时长，单位为秒，0 表示解禁
+        """
+        ...
+    async def kick_member(self, group_uin: int, uin: int, msg: str, block: bool) -> None:
+        """踢出群成员。
+
+        :param group_uin: 群号
+        :param uin: QQ 号
+        :param msg: 踢人理由
+        :param block: 是否加入黑名单
+        """
+        ...
+    async def modify_member_special_title(self, group_uin: int, uin: int, special_title: str) -> None:
+        """修改群成员专属头衔。
+
+        :param group_uin: 群号
+        :param uin: QQ 号
+        :param special_title: 专属头衔
+        """
+        ...
+    async def modify_member_card(self, group_uin: int, uin: int, card_name: str) -> None:
+        """修改群成员名片。
+
+        :param group_uin: 群号
+        :param uin: QQ 号
+        :param card_name: 名片
+        """
+        ...
+    async def modify_member_admin(self, group_uin: int, uin: int, admin: bool) -> None:
+        """设置/取消群管理员。
+
+        :param group_uin: 群号
+        :param uin: QQ 号
+        :param admin: 是否设置为管理员
+        """
+        ...
     # [impl 5]
-    async def upload_friend_image(self, uin: int, data: bytes) -> dict[str, Any]: ...
-    async def upload_friend_audio(self, uin: int, data: bytes) -> dict[str, Any]: ...
-    async def upload_group_image(self, uin: int, data: bytes) -> dict[str, Any]: ...
-    async def upload_group_audio(self, uin: int, data: bytes) -> dict[str, Any]: ...
-    async def send_friend_audio(self, uin: int, audio: _SealedAudio) -> RawMessageReceipt: ...
-    async def send_group_audio(self, uin: int, audio: _SealedAudio) -> RawMessageReceipt: ...
-    async def send_friend_music_share(self, uin: int, share: MusicShare) -> RawMessageReceipt: ...
-    async def send_group_music_share(self, uin: int, share: MusicShare) -> RawMessageReceipt: ...
-    async def download_forward_msg(self, downloader: HttpClientProto, res_id: str) -> list[dict]: ...
-    async def upload_forward_msg(self, group_uin: int, msg: list[dict]) -> tuple[str, str, str]: ...
+    async def upload_friend_image(self, uin: int, data: bytes) -> dict[str, Any]:
+        """上传好友图片。
+
+        :param uin: QQ 号
+        :param data: 图片数据
+        :return: 上传结果
+        """
+        ...
+    async def upload_friend_audio(self, uin: int, data: bytes) -> dict[str, Any]:
+        """上传好友语音。
+
+        :param uin: QQ 号
+        :param data: 语音数据
+        :return: 上传结果
+        """
+        ...
+    async def upload_group_image(self, uin: int, data: bytes) -> dict[str, Any]:
+        """上传群图片。
+
+        :param uin: QQ 号
+        :param data: 图片数据
+        :return: 上传结果
+        """
+        ...
+    async def upload_group_audio(self, uin: int, data: bytes) -> dict[str, Any]:
+        """上传群语音。
+
+        :param uin: QQ 号
+        :param data: 语音数据
+        :return: 上传结果
+        """
+        ...
+    async def send_friend_audio(self, uin: int, audio: _SealedAudio) -> RawMessageReceipt:
+        """发送好友语音。
+
+        :param uin: QQ 号
+        :param audio: 语音数据
+        :return: 发送结果
+        """
+        ...
+    async def send_group_audio(self, uin: int, audio: _SealedAudio) -> RawMessageReceipt:
+        """发送群语音。
+
+        :param uin: QQ 号
+        :param audio: 语音数据
+        :return: 发送结果
+        """
+        ...
+    async def send_friend_music_share(self, uin: int, share: MusicShare) -> RawMessageReceipt:
+        """发送好友音乐分享。
+
+        :param uin: QQ 号
+        :param share: 音乐分享信息
+        :return: 发送结果
+        """
+        ...
+    async def send_group_music_share(self, uin: int, share: MusicShare) -> RawMessageReceipt:
+        """发送群音乐分享。
+
+        :param uin: QQ 号
+        :param share: 音乐分享信息
+        :return: 发送结果
+        """
+        ...
+    async def download_forward_msg(self, downloader: HttpClientProto, res_id: str) -> list[dict]:
+        """下载转发消息。
+
+        :param downloader: 下载器
+        :param res_id: 资源 ID
+        :return: 转发消息
+        """
+        ...
+    async def upload_forward_msg(self, group_uin: int, msg: list[dict]) -> tuple[str, str, str]:
+        """上传转发消息。
+
+        :param group_uin: 群号
+        :param msg: 转发消息
+        :return: 上传结果
+        """
+        ...
     # [impl 6]
-    async def send_friend_message(self, uin: int, chain: list[dict[str, Any]]) -> RawMessageReceipt: ...
-    async def send_group_message(self, uin: int, chain: list[dict[str, Any]]) -> RawMessageReceipt: ...
-    async def recall_friend_message(self, uin: int, time: int, seq: int, rand: int) -> None: ...
-    async def recall_group_message(self, uin: int, seq: int, rand: int) -> None: ...
-    async def modify_group_essence(self, uin: int, seq: int, rand: int, flag: bool) -> None: ...
+    async def send_friend_message(self, uin: int, chain: list[dict[str, Any]]) -> RawMessageReceipt:
+        """发送好友消息。
+
+        :param uin: QQ 号
+        :param chain: 消息链
+        :return: 发送结果
+        """
+        ...
+    async def send_group_message(self, uin: int, chain: list[dict[str, Any]]) -> RawMessageReceipt:
+        """发送群消息。
+
+        :param uin: QQ 号
+        :param chain: 消息链
+        :return: 发送结果
+        """
+        ...
+    async def recall_friend_message(self, uin: int, time: int, seq: int, rand: int) -> None:
+        """撤回好友消息。
+
+        :param uin: QQ 号
+        :param time: 消息发送时间
+        :param seq: 消息的 SEQ
+        :param rand: 消息的随机序列号
+        """
+        ...
+    async def recall_group_message(self, uin: int, seq: int, rand: int) -> None:
+        """撤回群消息。
+
+        :param uin: QQ 号
+        :param seq: 消息的 SEQ
+        :param rand: 消息的随机序列号
+        """
+        ...
+    async def modify_group_essence(self, uin: int, seq: int, rand: int, flag: bool) -> None:
+        """修改群消息精华状态。
+
+        :param uin: QQ 号
+        :param seq: 消息的 SEQ
+        :param rand: 消息的随机序列号
+        :param flag: 是否设为精华
+        """
+        ...
     # [impl 7]
     async def process_join_group_request(
         self, seq: int, request_uin: int, group_uin: int, accept: bool, block: bool, message: str
-    ) -> None: ...
-    async def process_group_invitation(self, seq: int, invitor_uin: int, group_uin: int, accept: bool) -> None: ...
-    async def process_new_friend_request(self, seq: int, request_uin: int, accept: bool) -> None: ...
+    ) -> None:
+        """
+        处理加群请求。
+
+        :param seq: 消息的 SEQ
+        :param request_uin: 请求人 QQ 号
+        :param group_uin: 群号
+        :param accept: 是否同意
+        :param block: 是否拒绝并加入黑名单
+        :param message: 回复消息
+        """
+        ...
+    async def process_group_invitation(self, seq: int, invitor_uin: int, group_uin: int, accept: bool) -> None:
+        """
+        处理群邀请。
+
+        :param seq: 消息的 SEQ
+        :param invitor_uin: 邀请人 QQ 号
+        :param group_uin: 群号
+        :param accept: 是否同意
+        """
+        ...
+    async def process_new_friend_request(self, seq: int, request_uin: int, accept: bool) -> None:
+        """
+        处理加好友请求。
+
+        :param seq: 消息的 SEQ
+        :param request_uin: 请求人 QQ 号
+        :param accept: 是否同意
+        """
+        ...
 
 # endregion: client
 
@@ -373,14 +713,17 @@ class MessageSource:
 
     seq: int
     """消息的 SEQ
+
     建议搭配聊天类型与上下文 ID （例如 `("group", 123456, seq)`）作为索引的键
     """
     rand: int
     """消息的随机序列号，撤回需要"""
 
     raw_seqs: VTuple[int]
+    """消息的原始 SEQ"""
 
     raw_rands: VTuple[int]
+    """消息的原始随机序列号"""
 
     time: datetime
     """消息发送时间"""

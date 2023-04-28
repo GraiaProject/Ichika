@@ -28,7 +28,7 @@ use crate::message::convert::{
 use crate::message::elements::SealedAudio;
 use crate::utils::{py_future, py_none, py_try, py_use, AsPython};
 
-#[pyclass(subclass, weakref)]
+#[pyclass(subclass, weakref, module = "ichika.core")]
 pub struct PlumbingClient {
     client: Arc<ricq::client::Client>,
     alive: Option<JoinHandle<()>>,
@@ -98,6 +98,9 @@ impl PlumbingClient {
     pub fn stop<'py>(&self, py: Python<'py>) -> PyResult<&'py PyAny> {
         let client = self.client.clone();
         py_future(py, async move {
+            client
+                .update_online_status(ricq::structs::OnlineStatus::Offline)
+                .await?;
             client.stop(ricq::client::NetworkStatus::Stop);
             Ok(())
         })

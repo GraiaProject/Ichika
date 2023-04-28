@@ -6,7 +6,7 @@ use ricq::structs::{ForwardMessage, MessageReceipt, MusicShare, MusicVersion};
 use ricq_core::command::oidb_svc::OcrResponse;
 
 use crate::utils::{datetime_from_ts, py_try, py_use};
-#[pyclass(get_all)]
+#[pyclass(get_all, module = "ichika.core")]
 #[derive(PyRepr, Clone)]
 pub struct AccountInfo {
     pub nickname: String,
@@ -14,7 +14,7 @@ pub struct AccountInfo {
     pub gender: u8,
 }
 
-#[pyclass(get_all)]
+#[pyclass(get_all, module = "ichika.core")]
 #[derive(PyRepr, Clone)]
 pub struct OtherClientInfo {
     pub app_id: i64,
@@ -23,7 +23,7 @@ pub struct OtherClientInfo {
     pub device_kind: String,
 }
 
-#[pyclass(get_all)]
+#[pyclass(get_all, module = "ichika.core")]
 #[derive(PyRepr, Clone)]
 pub struct RawMessageReceipt {
     pub seq: i32,
@@ -72,14 +72,14 @@ impl RawMessageReceipt {
     }
 }
 
-#[pyclass(get_all)]
+#[pyclass(get_all, module = "ichika.core")]
 #[derive(PyRepr, Clone)]
 pub struct OCRResult {
     pub texts: Py<PyTuple>, // PyTuple<OCRText>
     pub language: String,
 }
 
-#[pyclass(get_all)]
+#[pyclass(get_all, module = "ichika.core")]
 #[derive(PyRepr, Clone)]
 pub struct OCRText {
     pub detected_text: String,
