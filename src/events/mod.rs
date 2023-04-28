@@ -10,7 +10,7 @@ pub mod converter;
 
 use crate::utils::{datetime_from_ts, py_client_refs, py_try, py_use};
 
-#[pyclass(get_all)]
+#[pyclass(get_all, module = "ichika.core")]
 #[derive(PyRepr, Clone)]
 pub struct MessageSource {
     pub seq: i32,

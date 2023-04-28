@@ -1,6 +1,7 @@
 """Generate the code reference pages and navigation."""
 import sys
 from pathlib import Path
+from textwrap import indent
 
 from mkdocs_gen_files.editor import FilesEditor
 from mkdocs_gen_files.nav import Nav
@@ -14,6 +15,23 @@ docs_dir = root / "docs"
 
 src = (root / "python").resolve()
 sys.path.append(src.as_posix())
+
+core_path = Path(src, "ichika", "core.pyi")
+core_module_path = core_path.relative_to(src).with_suffix("")
+core_full_doc_path = core_path.relative_to(src / "ichika").with_suffix(".md")
+core_parts = list(core_module_path.parts)
+core_full_doc_path = ("api" / core_full_doc_path).as_posix()
+nav[tuple(core_parts)] = core_full_doc_path
+
+core_mkdocstrings_options = """\
+options:
+    filters: ["!^_"]
+"""
+with fe.open(core_full_doc_path, "w") as f:
+    print(f"::: {'.'.join(core_parts)}", file=f)
+    print(indent(core_mkdocstrings_options, "    "), file=f)
+
+fe.set_edit_path(core_full_doc_path, core_path.as_posix())
 
 for path in sorted(Path(src, "ichika").glob("**/*.py")):
     module_path = path.relative_to(src).with_suffix("")

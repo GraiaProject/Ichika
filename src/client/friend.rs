@@ -6,7 +6,7 @@ use pyo3_repr::PyRepr;
 use ricq::structs::{FriendGroupInfo, FriendInfo};
 use ricq_core::command::friendlist::FriendListResponse;
 
-#[pyclass(get_all)]
+#[pyclass(get_all, module = "ichika.core")]
 #[derive(PyRepr, Clone)]
 pub struct Friend {
     pub uin: i64,
@@ -28,7 +28,7 @@ impl From<FriendInfo> for Friend {
     }
 }
 
-#[pyclass(get_all)]
+#[pyclass(get_all, module = "ichika.core")]
 #[derive(PyRepr, Clone)]
 pub struct FriendGroup {
     pub group_id: u8,
