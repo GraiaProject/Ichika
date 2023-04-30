@@ -1,0 +1,81 @@
+name: Deploy To Netlify
+
+on:
+  workflow_run:
+    workflows: ["Run CI"]
+    types:
+      - completed
+
+jobs:
+  deploy-target:
+    name: Generate Deployment Target
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.data.outputs.environment }}
+      alias: ${{ steps.data.outputs.alias }}
+    steps:
+      - name: Prepare Data
+        id: data
+        uses: actions/github-script@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const workflowRun = await github.actions.getWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.payload.workflow_run.id,
+            });
+            if workflowRun.data.event === "pull_request" {
+              core.setOutput("alias", `pull-${workflowRun.data.pull_requests[0].number}`);
+              core.setOutput("environment", "preview");
+            } else {
+              core.setOutput("alias", workflowRun.data.head_sha);
+              core.setOutput("environment", workflowRun.data.event === "workflow_dispatch" ? "producton" : "commit");
+            }
+
+
+  deploy-docs:
+    name: Deploy To Netlify
+    runs-on: ubuntu-latest
+    needs: [deploy-target]
+    environment: ${{ needs.deploy-target.outputs.environment }}
+    steps:
+      - name: Download Documentation Artifact
+        uses: actions/github-script@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const artifacts = await github.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.payload.workflow_run.id,
+            });
+            const artifact = artifacts.data.artifacts.find(
+              (artifact) => artifact.name === "docs"
+            );
+            const response = await github.actions.downloadArtifact({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              artifact_id: artifact.id,
+              archive_format: "zip",
+            });
+            // Write the artifact to disk
+            const fs = require("fs");
+            fs.writeFileSync("docs.zip", Buffer.from(response.data));
+            // Unzip
+            await exec.exec("unzip", ["docs.zip", "-d", "build"]);
+
+      - name: Deploy to Netlify
+        uses: nwtgck/actions-netlify@v2.0
+        with:
+          publish-dir: "./build"
+          production-deploy: ${{ github.event.workflow_run.event == 'workflow_dispatch' }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "Deploy ${{ needs.deploy-target.outputs.alias }} to Netlify"
+          enable-pull-request-comment: true
+          enable-commit-comment: false
+          overwrites-pull-request-comment: true
+          alias: ${{ needs.deploy-target.outputs.alias }}
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
