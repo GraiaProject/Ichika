@@ -1,3 +1,7 @@
+"""基于 [`TypedDict`][typing.TypedDict] 的事件定义。
+
+对接本框架的下游开发者应该参考此处。
+"""
 from datetime import datetime, timedelta
 from typing import Literal, Optional, Type, TypedDict, Union
 from typing_extensions import TypeGuard, TypeVar
@@ -10,6 +14,7 @@ from ichika.core import Friend, Group, Member, MessageSource
 
 class BaseEvent(TypedDict):
     client: Client
+    """事件所属的 [`Client`][ichika.client.Client] 对象"""
 
 
 class GroupMessage(BaseEvent):
@@ -155,8 +160,11 @@ class JoinGroupInvitation(BaseEvent):
 
 
 class UnknownEvent(BaseEvent):
+    """未知事件"""
+
     type_name: Literal["UnknownEvent"]
     internal_repr: str
+    """事件的内部表示"""
 
 
 Event = Union[
@@ -186,4 +194,11 @@ _T_Event = TypeVar("_T_Event", bound=Event)
 
 
 def check_event(e: Event, type: Type[_T_Event]) -> TypeGuard[_T_Event]:
+    """检查事件是否为指定类型。
+
+    :param e: 事件对象
+    :param type: 事件类型
+
+    :return: 事件是否为指定类型
+    """
     return e["type_name"] == type.__name__
