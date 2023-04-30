@@ -24,16 +24,26 @@ if TYPE_CHECKING:
 
 @dataclass
 class Reply(Element):
+    """回复元素"""
+
     seq: int
+    """回复消息的序列号"""
     sender: int
+    """原消息的发送者 QQ 号"""
     time: datetime
+    """原消息的发送时间"""
     content: str
+    """原消息的内容"""
 
 
 @dataclass
 class At(Element):
+    """@元素"""
+
     target: int
+    """@的目标 QQ 号"""
     display: str | None = None
+    """@的目标的显示名"""
 
     def __str__(self) -> str:
         return f"@{self.target}"
@@ -41,14 +51,20 @@ class At(Element):
 
 @dataclass
 class AtAll(Element):
+    """@全体成员元素"""
+
     def __str__(self) -> str:
         return "@全体成员"
 
 
 @dataclass(init=False)
 class FingerGuessing(Element):
+    """猜拳元素"""
+
     @total_ordering
     class Choice(Enum):
+        """猜拳选项"""
+
         Rock = "石头"
         Scissors = "剪刀"
         Paper = "布"
@@ -68,11 +84,16 @@ class FingerGuessing(Element):
             }
 
     choice: Choice
+    """猜拳选项"""
 
     def __init__(
         self,
         choice: Literal["Rock", "Paper", "Scissors" "石头", "剪刀", "布"] | Choice,
     ) -> None:
+        """初始化猜拳元素
+
+        :param choice: 猜拳选项
+        """
         C = FingerGuessing.Choice
         if isinstance(choice, str):
             self.choice = C[choice] if choice in C else C(choice)
@@ -89,7 +110,10 @@ DiceValues: TypeAlias = Literal[1, 2, 3, 4, 5, 6]
 
 @dataclass
 class Dice(Element):
+    """骰子元素"""
+
     value: Literal[1, 2, 3, 4, 5, 6]
+    """骰子点数"""
 
     def __str__(self) -> str:
         return f"[骰子: {self.value}]"
@@ -97,6 +121,14 @@ class Dice(Element):
 
 @dataclass(init=False)
 class Face(Element):
+    """QQ 表情元素"""
+
+    index: int
+    """表情索引"""
+
+    name: str
+    """表情名称"""
+
     def __init__(self, index: int, name: str | None = None) -> None:
         self.index = index
         self.name = name or core.face_name_from_id(index)
@@ -122,12 +154,19 @@ class MusicShare(Element):
     """
 
     kind: Literal["QQ", "Netease", "Migu", "Kugou", "Kuwo"]
+    """音乐分享的来源"""
     title: str
+    """音乐标题"""
     summary: str
+    """音乐摘要"""
     jump_url: str
+    """跳转链接"""
     picture_url: str
+    """封面链接"""
     music_url: str
+    """音乐链接"""
     brief: str
+    """音乐简介"""
 
     def __str__(self) -> str:
         return f"[{self.kind}音乐分享: {self.title}]"
@@ -152,14 +191,22 @@ class ForwardCard(Element):
     """未下载的合并转发消息，本质为 XML 卡片"""
 
     res_id: str
+    """转发卡片的资源 ID"""
     file_name: str
+    """转发卡片的子文件名"""
     content: str
+    """转发卡片的内容"""
 
     def __str__(self) -> str:
         return "[合并转发]"
 
     async def download(self, client: __Client) -> list[ForwardMessage]:
-        """使用 aiohttp 下载本转发卡片对应的转发消息"""
+        """使用 aiohttp 下载本转发卡片对应的转发消息
+
+        :param client: 已登录的客户端
+
+        :return: 转发消息列表
+        """
 
         async def _downloader(method: Literal["get", "post"], url: str, headers: dict[str, str], body: bytes) -> bytes:
             async with aiohttp.ClientSession(headers=headers) as session:
@@ -174,9 +221,13 @@ class ForwardMessage:
     """已下载的合并转发消息"""
 
     sender_id: int
+    """发送者 QQ 号"""
     time: datetime
+    """发送时间"""
     sender_name: str
+    """发送者昵称"""
     content: MessageChain | list[ForwardMessage]
+    """消息内容"""
 
 
 @dataclass
@@ -197,8 +248,12 @@ T_Audio = TypeVar("T_Audio", bound=Optional[SealedAudio], default=SealedAudio)
 
 @dataclass(init=False)
 class Audio(Generic[T_Audio], Element):
+    """音频元素"""
+
     url: str
+    """音频链接"""
     raw: T_Audio = field(compare=False)
+    """原始音频数据"""
     _data_cache: bytes | None = field(repr=False, compare=False)
 
     def __init__(self, url: str, raw: T_Audio = None) -> None:
@@ -208,6 +263,12 @@ class Audio(Generic[T_Audio], Element):
 
     @classmethod
     def build(cls, data: bytes | BytesIO | pathlib.Path) -> Audio[None]:
+        """构造音频元素
+
+        :param data: 音频数据
+
+        :return: 未上传的音频元素
+        """
         if isinstance(data, BytesIO):
             data = data.read()
         elif isinstance(data, pathlib.Path):
@@ -222,17 +283,24 @@ class Audio(Generic[T_Audio], Element):
 
     @property
     def md5(self: Audio[SealedAudio]) -> bytes:
+        """音频 MD5 值"""
         return self.raw.md5
 
     @property
     def size(self: Audio[SealedAudio]) -> int:
+        """音频大小"""
         return self.raw.size
 
     @property
     def file_type(self: Audio[SealedAudio]) -> int:
+        """音频类型"""
         return self.raw.file_type
 
     async def fetch(self) -> bytes:
+        """获取音频数据
+
+        :return: 音频数据
+        """
         if self._data_cache is None:
             if self.url.startswith("base64://"):
                 self._data_cache = base64.urlsafe_b64decode(self.url[8:])
@@ -251,8 +319,12 @@ T_Image = TypeVar("T_Image", bound=Optional[SealedImage], default=SealedImage)
 
 @dataclass(init=False)
 class Image(Generic[T_Image], Element):
+    """图片元素"""
+
     url: str
+    """图片链接"""
     raw: T_Image = field(compare=False)
+    """原始图片数据"""
     _data_cache: bytes | None = field(repr=False, compare=False)
 
     def __init__(self, url: str, raw: T_Image = None) -> None:
@@ -262,6 +334,12 @@ class Image(Generic[T_Image], Element):
 
     @classmethod
     def build(cls, data: bytes | BytesIO | pathlib.Path) -> Image[None]:
+        """构造图片元素
+
+        :param data: 图片数据
+
+        :return: 未上传的图片元素
+        """
         if isinstance(data, BytesIO):
             data = data.read()
         elif isinstance(data, pathlib.Path):
@@ -276,25 +354,34 @@ class Image(Generic[T_Image], Element):
 
     @property
     def md5(self: Image[SealedImage]) -> bytes:
+        """图片 MD5 值"""
         return self.raw.md5
 
     @property
     def size(self: Image[SealedImage]) -> int:
+        """图片大小"""
         return self.raw.size
 
     @property
     def width(self: Image[SealedImage]) -> int:
+        """图片宽度"""
         return self.raw.width
 
     @property
     def height(self: Image[SealedImage]) -> int:
+        """图片高度"""
         return self.raw.height
 
     @property
     def image_type(self: Image[SealedImage]) -> int:
+        """图片类型"""
         return self.raw.image_type
 
     async def fetch(self) -> bytes:
+        """获取图片数据
+
+        :return: 图片数据
+        """
         if self._data_cache is None:
             if self.url.startswith("base64://"):
                 self._data_cache = base64.urlsafe_b64decode(self.url[8:])
@@ -305,6 +392,10 @@ class Image(Generic[T_Image], Element):
         return self._data_cache
 
     def as_flash(self) -> FlashImage[T_Image]:
+        """转换为闪照元素
+
+        :return: 闪照元素
+        """
         img = FlashImage(self.url, self.raw)
         img._data_cache = self._data_cache
         return img
@@ -315,8 +406,16 @@ class Image(Generic[T_Image], Element):
 
 @dataclass(init=False)
 class FlashImage(Image[T_Image]):
+    """闪照元素"""
+
     @classmethod
     def build(cls, data: bytes | BytesIO | pathlib.Path) -> FlashImage[None]:
+        """构造闪照元素
+
+        :param data: 闪照数据
+
+        :return: 未上传的闪照元素
+        """
         return Image.build(data).as_flash()
 
     @classmethod
@@ -324,6 +423,10 @@ class FlashImage(Image[T_Image]):
         return isinstance(elem, FlashImage)
 
     def as_image(self) -> Image[T_Image]:
+        """转换为图片元素
+
+        :return: 图片元素
+        """
         img = Image(self.url, self.raw)
         img._data_cache = self._data_cache
         return img
@@ -337,11 +440,14 @@ class Video(Element):
 
 
 class MarketFace(Element):
+    """商城表情元素"""
+
     def __init__(self, raw: SealedMarketFace) -> None:
         self.raw = raw
 
     @property
     def name(self) -> str:
+        """表情名称"""
         return self.raw.name
 
     def __str__(self) -> str:
