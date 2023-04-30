@@ -63,6 +63,7 @@ jobs:
             const fs = require("fs");
             fs.writeFileSync("docs.zip", Buffer.from(response.data));
             // Unzip
+            let exec = require("@actions/exec");
             await exec.exec("unzip", ["docs.zip", "-d", "build"]);
 
       - name: Deploy to Netlify
