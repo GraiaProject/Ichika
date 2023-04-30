@@ -44,7 +44,7 @@ extra_css:
 extra_javascript:
   - "assets/admonition.js"
 
-site_url: https://hoshino-ichika.netlify.app/
+site_url: https://ichika.graiax.cn/
 repo_url: https://github.com/BlueGlassBlock/Ichika
 repo_name: BlueGlassBlock/Ichika
 edit_uri: blob/master/
