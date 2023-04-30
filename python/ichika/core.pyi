@@ -21,7 +21,10 @@ _T_Event: TypeAlias = event_defs._T_Event
 
 @type_check_only
 class EventCallback(Protocol):
-    async def put(self, event: _T_Event, /) -> Any: ...
+    """描述事件处理回调的协议，被刻意设计为与 [`asyncio.Queue`][asyncio.Queue] 兼容。"""
+
+    async def put(self, event: _T_Event, /) -> Any:
+        """处理事件"""
 
 # Here, outside wrapper "login_XXX" ensures that a "task locals" can be acquired for event task execution.
 
@@ -306,17 +309,11 @@ class PlumbingClient:
     # [impl 1]
     @property
     def uin(self) -> int:
-        """获取当前登录的账号的 QQ 号。
-
-        :return: 当前登录的账号的 QQ 号
-        """
+        """当前登录的账号的 QQ 号。"""
         ...
     @property
     def online(self) -> bool:
-        """获取当前登录的账号是否登录成功。
-
-        :return: 当前登录的账号是否登录成功
-        """
+        """当前账号是否登录成功。"""
         ...
     def keep_alive(self) -> Awaitable[None]:
         """保持在线。
