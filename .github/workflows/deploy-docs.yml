@@ -16,7 +16,7 @@ jobs:
     steps:
       - name: Prepare Data
         id: data
-        uses: actions/github-script@v3
+        uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -41,7 +41,7 @@ jobs:
     environment: ${{ needs.deploy-target.outputs.environment }}
     steps:
       - name: Download Documentation Artifact
-        uses: actions/github-script@v3
+        uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
