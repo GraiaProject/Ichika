@@ -81,8 +81,8 @@ async def login_password(
     /,
     protocol: str,
     store: BaseLoginCredentialStore,
-    queues: Sequence[_core.EventCallback],
-    callbacks: PasswordLoginCallbacks = ...,
+    event_callbacks: Sequence[_core.EventCallback],
+    login_callbacks: PasswordLoginCallbacks | None = None,
     use_sms: bool = ...,
 ) -> Client:
     ...
@@ -95,8 +95,22 @@ async def login_password(
     /,
     protocol: str,
     store: BaseLoginCredentialStore,
-    queues: Sequence[_core.EventCallback],
-    callbacks: PasswordLoginCallbacks = ...,
+    event_callbacks: Sequence[_core.EventCallback],
+    login_callbacks: PasswordLoginCallbacks | None = None,
+    use_sms: bool = ...,
+) -> Client:
+    ...
+
+
+@overload
+async def login_password(
+    uin: int,
+    credential: str | bytes,
+    /,
+    protocol: str,
+    store: BaseLoginCredentialStore,
+    event_callbacks: Sequence[_core.EventCallback],
+    login_callbacks: PasswordLoginCallbacks | None = None,
     use_sms: bool = ...,
 ) -> Client:
     ...
@@ -104,15 +118,17 @@ async def login_password(
 
 async def login_password(
     uin: int,
-    credential: Union[str, bytes],
+    credential: str | bytes,
     /,
     protocol: str,
     store: BaseLoginCredentialStore,
-    queues: Sequence[_core.EventCallback],
-    callbacks: PasswordLoginCallbacks = PasswordLoginCallbacks.default(),
+    event_callbacks: Sequence[_core.EventCallback],
+    login_callbacks: PasswordLoginCallbacks | None = None,
     use_sms: bool = True,
 ) -> Client:
-    return await _core.password_login(uin, credential, use_sms, protocol, store, queues, callbacks)
+    return await _core.password_login(
+        uin, credential, use_sms, protocol, store, event_callbacks, login_callbacks or PasswordLoginCallbacks.default()
+    )
 
 
 async def login_qrcode(
@@ -121,6 +137,8 @@ async def login_qrcode(
     protocol: Literal["AndroidWatch"],
     store: BaseLoginCredentialStore,
     event_callbacks: Sequence[_core.EventCallback],
-    login_callbacks: QRCodeLoginCallbacks = QRCodeLoginCallbacks.default(),
+    login_callbacks: QRCodeLoginCallbacks | None = None,
 ) -> Client:
-    return await _core.qrcode_login(uin, protocol, store, event_callbacks, login_callbacks)
+    return await _core.qrcode_login(
+        uin, protocol, store, event_callbacks, login_callbacks or QRCodeLoginCallbacks.default()
+    )

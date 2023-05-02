@@ -121,6 +121,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "creart-graia"
+version = "0.1.5"
+requires_python = ">=3.8"
+summary = ""
+dependencies = [
+    "creart>=0.1.0",
+]
+
+[[package]]
 name = "croniter"
 version = "1.3.14"
 requires_python = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
@@ -399,6 +408,12 @@ summary = "MkDocs plugin to programmatically generate documentation pages during
 dependencies = [
     "mkdocs<2.0.0,>=1.0.3",
 ]
+
+[[package]]
+name = "mkdocs-include-markdown-plugin"
+version = "3.9.1"
+requires_python = ">=3.6"
+summary = "Mkdocs Markdown includer plugin."
 
 [[package]]
 name = "mkdocs-literate-nav"
@@ -748,8 +763,9 @@ requires_python = ">=3.7"
 summary = "Backport of pathlib-compatible object wrapper for zip files"
 
 [metadata]
-lock_version = "4.1"
-content_hash = "sha256:bcfd9f549f395298bbd5ee6ecd19fd55e219bc63f64f99277c121fa5e853d2e9"
+lock_version = "4.2"
+groups = ["default", "creart", "dev", "docs", "graia", "lint", "release"]
+content_hash = "sha256:dd911c5fdaa4eb97a2c5cbd87c33b69c02e80560f508cc9a90328909d886efdd"
 
 [metadata.files]
 "actions-toolkit 0.1.15" = [
@@ -1050,6 +1066,10 @@ content_hash = "sha256:bcfd9f549f395298bbd5ee6ecd19fd55e219bc63f64f99277c121fa5e
     {url = "https://files.pythonhosted.org/packages/2f/e6/b995bf360529e93d5200e114fd0d5d35538a59ed4964ddfc328a8f585f85/creart-0.2.2-py3-none-any.whl", hash = "sha256:8089a91c44022962e76bed4fcf19be1bc27c363268f6a4a6d52ef85b23aa6bc2"},
     {url = "https://files.pythonhosted.org/packages/38/7a/9eb96ddc36d70d3d75bb33193811bcc515c6d37f68f27153e3c50651a65e/creart-0.2.2.tar.gz", hash = "sha256:8a3147da66e385deabba2b5efad0852ab00b8464e2d4963031a741315108dc37"},
 ]
+"creart-graia 0.1.5" = [
+    {url = "https://files.pythonhosted.org/packages/64/d5/fd801db81a14d69e8f4639a04a7579b2cb9469c4a49295f44708efba0f2f/creart_graia-0.1.5-py3-none-any.whl", hash = "sha256:9c4c9423d250398afb6ba9ea361551b071e47af7fbc547c09c5c9ec8ebe92ddf"},
+    {url = "https://files.pythonhosted.org/packages/be/2a/33cda419e58c6cce564c3fa7e1a5f954c8db9ff109ed8d0a3a075669a13d/creart-graia-0.1.5.tar.gz", hash = "sha256:9adb93fec504c959c71379589f38a2ad599eccb2c7112788663a9fb37d4b5d49"},
+]
 "croniter 1.3.14" = [
     {url = "https://files.pythonhosted.org/packages/5b/4a/7b9a1ec2e3660a75d8b46aff0f5c21e8d886cfbb8558576e2ac871279916/croniter-1.3.14.tar.gz", hash = "sha256:d067b1f95b553c6e82d95a983c465695913dcd12f47a8b9aa938a0450d94dd5e"},
     {url = "https://files.pythonhosted.org/packages/e7/f4/afbf09131612dad1737c8f9b0f4f494153f4099e114904bd6b94036e588f/croniter-1.3.14-py2.py3-none-any.whl", hash = "sha256:da1a1a7ca977b38e952ab0a119576e002bc4c05d058d644e81fc06ef7e995bb0"},
@@ -1320,6 +1340,10 @@ content_hash = "sha256:bcfd9f549f395298bbd5ee6ecd19fd55e219bc63f64f99277c121fa5e
 "mkdocs-gen-files 0.4.0" = [
     {url = "https://files.pythonhosted.org/packages/19/fa/064b85a1b0d11d77a8458e1bfac50decc8d467ac866e75ccb5a6483c5c1f/mkdocs-gen-files-0.4.0.tar.gz", hash = "sha256:377bff8ee8e93515916689f483d971643f83a94eed7e92318854da8f344f0163"},
     {url = "https://files.pythonhosted.org/packages/6e/e2/f5b9f5b2ff62f2868d475586522d5d286d29c1d4e46aff0fd65037bb78b5/mkdocs_gen_files-0.4.0-py3-none-any.whl", hash = "sha256:3241a4c947ecd11763ca77cc645015305bf71a0e1b9b886801c114fcf9971e71"},
+]
+"mkdocs-include-markdown-plugin 3.9.1" = [
+    {url = "https://files.pythonhosted.org/packages/15/6a/6c0d064adb68e6553a18ccca5c187dcb0a7884a6a4a610f51401738a8001/mkdocs_include_markdown_plugin-3.9.1-py3-none-any.whl", hash = "sha256:f33687e29ac66d045ba181ea50f054646b0090b42b0a4318f08e7f1d1235e6f6"},
+    {url = "https://files.pythonhosted.org/packages/4f/45/c48601119596157aeb453e1b1cc1eeda80ec50b6e8f508d916b39b5babe6/mkdocs_include_markdown_plugin-3.9.1.tar.gz", hash = "sha256:5e5698e78d7fea111be9873a456089daa333497988405acaac8eba2924a19152"},
 ]
 "mkdocs-literate-nav 0.6.0" = [
     {url = "https://files.pythonhosted.org/packages/46/91/75eb48eafdbe609ca80d6c271ad5bc4edc75cffde4d1d70604f2a4c2145a/mkdocs_literate_nav-0.6.0.tar.gz", hash = "sha256:81ccbea18163ae8e10bd0bd39237fe70c32a1f2dff6c170779f5d52dd98a0470"},

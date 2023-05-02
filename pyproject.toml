@@ -29,6 +29,10 @@ dynamic = ["version"]
 [project.optional-dependencies]
 graia = [
     "graia-broadcast>=0.19.2",
+    "launart>=0.6.3",
+    "creart>=0.2.2",
+    "creart-graia>=0.1.5",
+    "graiax-shortcut>=0.2.1",
 ]
 
 [build-system]
@@ -112,6 +116,7 @@ docs = [
     "mkdocs-section-index~=0.3",
     "mkdocs-literate-nav~=0.6",
     "markdown-exec[ansi]>=1.4.0",
+    "mkdocs-include-markdown-plugin>=3.9.1",
 ]
 dev = [
     "maturin>=0.14.16",

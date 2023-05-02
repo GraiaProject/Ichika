@@ -57,8 +57,8 @@ class GroupDispatcher(BaseDispatcher):
     @staticmethod
     async def catch(interface: DI):
         event = interface.event
-        if isinstance(event, MessageEvent) and generic_issubclass(Group, interface.annotation):
-            return event.content
+        if generic_issubclass(Group, interface.annotation):
+            return event.group
 
 
 _DISPATCHER_MAP: Dict[type, Type[BaseDispatcher]] = {
@@ -99,12 +99,6 @@ def auto_dispatch(cls):
 
     cls.Dispatcher = Dispatcher
     return cls
-
-
-@dataclass
-@auto_dispatch
-class LoginEvent(Dispatchable):
-    uin: int
 
 
 class MessageEvent(Dispatchable):
@@ -287,7 +281,6 @@ class UnknownEvent(Dispatchable):
 EVENT_TYPES = {
     cls.__name__: cls
     for cls in (
-        LoginEvent,
         GroupMessage,
         GroupRecallMessage,
         FriendMessage,
