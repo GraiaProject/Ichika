@@ -60,11 +60,14 @@ impl RawMessageReceipt {
     }
 
     pub fn empty(kind: impl Into<String>, target: i64) -> PyResult<Self> {
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::SystemTime::UNIX_EPOCH)
+            .map_err(|_| PyValueError::new_err("SystemTime before UNIX EPOCH"))?;
         Self::new(
             MessageReceipt {
                 seqs: vec![0],
                 rands: vec![0],
-                time: chrono::offset::Utc::now().timestamp(),
+                time: timestamp.as_secs() as i64,
             },
             kind,
             target,
