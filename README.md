@@ -15,6 +15,10 @@
 
 </div>
 
+## 示例
+
+请参阅 [example.py](./example.py)，它包含了一个识别指定指令并发送图片的简单示例。
+
 <!-- start docs-include -->
 
 ## 鸣谢

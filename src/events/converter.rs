@@ -17,6 +17,7 @@ type PyDictRet = PyResult<Py<PyDict>>;
 
 pub async fn convert(event: QEvent) -> PyDictRet {
     match event {
+        QEvent::Login(_) => dict_obj! {},
         QEvent::GroupMessage(event) => handle_group_message(event).await,
         QEvent::GroupAudioMessage(event) => handle_group_audio(event).await,
         QEvent::FriendMessage(event) => handle_friend_message(event).await,
