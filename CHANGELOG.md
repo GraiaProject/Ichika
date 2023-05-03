@@ -7,6 +7,49 @@
 
 <!-- towncrier release notes start -->
 
+## [0.0.5](https://github.com/BlueGlassBlock/ichika/tree/0.0.5) - 2023-05-03
+
+你可以在 [PyPI](https://pypi.org/project/ichika/0.0.5/) 找到该版本。
+
+### 新增
+
+- 增加了适用于 `Launart` 的 `IchikaComponent` 可启动组件。
+- 支持上传与发送音频。
+- 支持发送和接收“回复”元素。请注意该元素和图片一起使用时可能发生 bug。
+- 支持处理“请求”事件（好友申请、加群申请、入群邀请）。
+- 支持处理全体禁言和群员禁言事件。
+- 支持处理其他群员退群事件。
+- 支持处理删除好友事件（无论是主动还是被动）。
+- 支持处理新增好友事件。
+- 支持处理新成员进群事件。
+- 支持处理群员权限更新事件。
+- 支持处理群解散事件。
+- 支持接收、下载和上传转发消息。
+- 支持接收和发送音乐分享。
+- 支持接收好友申请、加群申请与被邀请入群事件。
+- 添加了 `Android Pad` 协议。
+- 添加了基础的 [`Graia Project`](https://github.com/GraiaProject) 绑定。
+
+
+### 更改
+
+- 使用异步登录回调。 ([#25](https://github.com/BlueGlassBlock/ichika/issues/25))
+- 群组事件的 `Group` 对象不再挂靠于 `MemberInfo`，而是存储于 `Group` 属性。 ([#29](https://github.com/BlueGlassBlock/ichika/issues/29))
+- 使用 `dict` 作为事件传递结构以方便其他框架绑定。 ([#34](https://github.com/BlueGlassBlock/ichika/issues/34))
+- 使用 `str` 作为 `protocol` 值，并同步所有协议至最新版本。
+- 更改了构建信息的键名。
+
+
+### 修复
+
+- 暂时删除了来自 RICQ 的无用 `LoginEvent` 以避免启动时的报错。
+
+
+### 其他
+
+- 升级 [`syn`](https://github.com/dtolnay/syn) 至 `2.x.x`。
+
+
 ## [0.0.4](https://github.com/BlueGlassBlock/ichika/tree/0.0.4) - 2023-03-17
 
 你可以在 [PyPI](https://pypi.org/project/ichika/0.0.4/) 找到该版本。
