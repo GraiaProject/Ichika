@@ -152,7 +152,7 @@ jobs:
         run: |
           git config advice.addIgnoredFile false
 
-          pdm run towncrier build --version $VERSION --yes --keep --config ./towncrier_release.toml
+          pdm run towncrier build --version $VERSION --keep --config ./towncrier_release.toml
           pdm run towncrier build --version $VERSION --yes
           git add .
           git diff-index --quiet HEAD || git commit -m "chore(release): $VERSION"
