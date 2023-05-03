@@ -161,6 +161,7 @@ jobs:
           pdm run towncrier build --version $VERSION --keep --config ./towncrier_release.toml
           cat ./release-notes.md
           pdm run towncrier build --version $VERSION --yes
+          pdm run pre-commit run --all-files --show-diff-on-failure || true
           git add .
           git diff-index --quiet HEAD || git commit -m "chore(release): $VERSION"
           git push
