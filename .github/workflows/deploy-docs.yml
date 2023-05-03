@@ -56,7 +56,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const artifacts = await github.actions.listWorkflowRunArtifacts({
+            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
               owner: context.repo.owner,
               repo: context.repo.repo,
               run_id: context.payload.workflow_run.id,
@@ -64,7 +64,7 @@ jobs:
             const artifact = artifacts.data.artifacts.find(
               (artifact) => artifact.name === "docs"
             );
-            const response = await github.actions.downloadArtifact({
+            const response = await github.rest.actions.downloadArtifact({
               owner: context.repo.owner,
               repo: context.repo.repo,
               artifact_id: artifact.id,
