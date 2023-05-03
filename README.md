@@ -10,6 +10,7 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
 
+[![Deploy Docs](https://github.com/BlueGlassBlock/Ichika/actions/workflows/deploy-docs.yml/badge.svg)](https://github.comBlueGlassBlock/Ichika/actions/workflows/deploy-docs.yml/badge.svg)
 [![Run CI](https://github.com/BlueGlassBlock/Ichika/actions/workflows/ci.yml/badge.svg)](https://github.com/BlueGlassBlock/Ichika/actions/workflows/ci.yml)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/BlueGlassBlock/Ichika/master.svg)](https://results.pre-commit.ci/latest/github/BlueGlassBlock/Ichika/master)
 
