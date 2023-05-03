@@ -145,10 +145,13 @@ jobs:
       - name: Compress Documentation Archive
         run: zip -9 ./docs.zip -r ./build
 
+      - name: Export Version
+        run: pdm run python ./.github/scripts/extract_version.py
+
       - name: Build And Release
         run: |
           git config advice.addIgnoredFile false
-          pdm run python ./.github/scripts/extract_version.py
+
           pdm run towncrier build --version $VERSION --yes --keep --config ./towncrier_release.toml
           pdm run towncrier build --version $VERSION --yes
           git add .
