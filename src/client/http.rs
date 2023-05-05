@@ -26,8 +26,6 @@ fn http_method_to_string(method: RQHttpMethod) -> String {
     match method {
         RQHttpMethod::GET => "get".into(),
         RQHttpMethod::POST => "post".into(),
-        RQHttpMethod::PUT => "put".into(),
-        RQHttpMethod::DELETE => "delete".into(),
     }
 }
 

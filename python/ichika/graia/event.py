@@ -70,7 +70,7 @@ _DISPATCHER_MAP: Dict[type, Type[BaseDispatcher]] = {
 
 def auto_dispatch(cls):
     mixins: set[Type[BaseDispatcher]] = {NoneDispatcher}
-    type_map: dict[type, set[str]] = {}
+    type_map: dict[type, set[str]] = {cls: {"event"}}
 
     for name, typ in get_type_hints(cls).items():
         if name == "sender":

@@ -17,7 +17,7 @@ static CACHE_DURATION: Duration = Duration::from_secs(600);
 static CACHE: Lazy<Mutex<HashMap<i64, Arc<Mutex<DetachedCache>>>>> = Lazy::new(Mutex::default);
 
 #[repr(transparent)]
-struct VarCache<T> {
+pub(crate) struct VarCache<T> {
     val: Option<(Instant, Arc<T>)>,
 }
 
@@ -49,7 +49,7 @@ impl<T> VarCache<T> {
 }
 
 #[repr(transparent)]
-struct MapCache<K, V> {
+pub(crate) struct MapCache<K, V> {
     map: HashMap<K, (Instant, Arc<V>)>,
 }
 
@@ -65,7 +65,7 @@ impl<K, V> MapCache<K, V>
 where
     K: Eq + Hash,
 {
-    fn get<Q>(&mut self, key: &Q) -> Option<Arc<V>>
+    pub(crate) fn get<Q>(&mut self, key: &Q) -> Option<Arc<V>>
     where
         K: Borrow<Q>,
         Q: Hash + Eq,
@@ -79,12 +79,12 @@ where
         None
     }
 
-    fn set(&mut self, key: K, val: Arc<V>) -> Arc<V> {
+    pub(crate) fn set(&mut self, key: K, val: Arc<V>) -> Arc<V> {
         self.map.insert(key, (Instant::now(), val.clone()));
         val
     }
 
-    fn remove<Q>(&mut self, key: &Q) -> Option<Arc<V>>
+    pub(crate) fn remove<Q>(&mut self, key: &Q) -> Option<Arc<V>>
     where
         K: Borrow<Q>,
         Q: Hash + Eq,
@@ -94,10 +94,10 @@ where
 }
 
 #[derive(Default)]
-struct DetachedCache {
-    friends: VarCache<FriendList>,
-    groups: MapCache<i64, Group>,
-    members: MapCache<(i64, i64), Member>,
+pub(crate) struct DetachedCache {
+    pub(crate) friends: VarCache<FriendList>,
+    pub(crate) groups: MapCache<i64, Group>,
+    pub(crate) members: MapCache<(i64, i64), Member>,
 }
 
 impl VarCache<FriendList> {
@@ -142,8 +142,8 @@ impl MapCache<(i64, i64), Member> {
 }
 
 pub struct ClientCache {
-    client: Arc<Client>,
-    detached: Arc<Mutex<DetachedCache>>,
+    pub(crate) client: Arc<Client>,
+    pub(crate) detached: Arc<Mutex<DetachedCache>>,
 }
 
 impl ClientCache {

@@ -215,19 +215,17 @@ impl PlumbingClient {
 
 #[pymethods]
 impl PlumbingClient {
-    pub fn get_friend_list<'py>(&self, py: Python<'py>) -> PyResult<&'py PyAny> {
-        let client = self.client.clone();
-        py_future(py, async move {
-            let friend_list = cache(client).await.fetch_friend_list().await?;
-            Ok((*friend_list).clone().obj())
-        })
-    }
+    #[pyo3(signature = (cache=true))]
+    pub fn get_friend_list<'py>(&self, py: Python<'py>, cache: bool) -> PyResult<&'py PyAny> {
+        use self::cache as get_cache;
 
-    pub fn get_friend_list_raw<'py>(&self, py: Python<'py>) -> PyResult<&'py PyAny> {
+        let use_cache = cache;
         let client = self.client.clone();
         py_future(py, async move {
-            let mut cache = cache(client).await;
-            cache.flush_friend_list().await;
+            let mut cache = get_cache(client).await;
+            if !use_cache {
+                cache.flush_friend_list().await;
+            }
             let friend_list = cache.fetch_friend_list().await?;
             Ok((*friend_list).clone().obj())
         })
@@ -268,19 +266,17 @@ impl PlumbingClient {
 
 #[pymethods]
 impl PlumbingClient {
-    pub fn get_group<'py>(&self, py: Python<'py>, uin: i64) -> PyResult<&'py PyAny> {
-        let client = self.client.clone();
-        py_future(py, async move {
-            let group = cache(client).await.fetch_group(uin).await?;
-            Ok((*group).clone().obj())
-        })
-    }
+    #[pyo3(signature = (uin, cache=true))]
+    pub fn get_group<'py>(&self, py: Python<'py>, uin: i64, cache: bool) -> PyResult<&'py PyAny> {
+        use self::cache as get_cache;
+        let use_cache = cache;
 
-    pub fn get_group_raw<'py>(&self, py: Python<'py>, uin: i64) -> PyResult<&'py PyAny> {
         let client = self.client.clone();
         py_future(py, async move {
-            let mut cache = cache(client).await;
-            cache.flush_group(uin).await;
+            let mut cache = get_cache(client).await;
+            if !use_cache {
+                cache.flush_group(uin).await;
+            }
             let group = cache.fetch_group(uin).await?;
             Ok((*group).clone().obj())
         })
@@ -371,31 +367,58 @@ impl PlumbingClient {
 
 #[pymethods]
 impl PlumbingClient {
+    #[pyo3(signature = (group_uin, uin, cache=true))]
     pub fn get_member<'py>(
         &self,
         py: Python<'py>,
         group_uin: i64,
         uin: i64,
+        cache: bool,
     ) -> PyResult<&'py PyAny> {
+        use self::cache as get_cache;
+        let use_cache = cache;
         let client = self.client.clone();
         py_future(py, async move {
-            let member = cache(client).await.fetch_member(group_uin, uin).await?;
+            let mut cache = get_cache(client).await;
+            if !use_cache {
+                cache.flush_member(group_uin, uin).await;
+            }
+            let member = cache.fetch_member(group_uin, uin).await?;
             Ok((*member).clone().obj())
         })
     }
 
-    pub fn get_member_raw<'py>(
+    #[pyo3(signature = (group_uin, cache=true))]
+    pub fn get_member_list<'py>(
         &self,
         py: Python<'py>,
         group_uin: i64,
-        uin: i64,
+        cache: bool,
     ) -> PyResult<&'py PyAny> {
+        use self::cache as get_cache;
+        let use_cache = cache;
         let client = self.client.clone();
         py_future(py, async move {
-            let mut cache = cache(client).await;
-            cache.flush_member(group_uin, uin).await;
-            let member = cache.fetch_member(group_uin, uin).await?;
-            Ok((*member).clone().obj())
+            let mut cache = get_cache(client).await;
+            if !use_cache {
+                cache.flush_group(group_uin).await;
+            }
+            let group = cache.fetch_group(group_uin).await?;
+            let members = cache
+                .client
+                .get_group_member_list(group.uin, group.owner_uin)
+                .await?;
+            let mut guard = cache.detached.lock().await;
+            let members = members
+                .into_iter()
+                .map(|m| {
+                    let m = self::group::Member::from(m);
+                    guard.members.set((group.uin, m.uin), Arc::new(m.clone()));
+                    m
+                })
+                .collect::<Vec<_>>();
+            std::mem::drop(guard);
+            Ok(members)
         })
     }
 

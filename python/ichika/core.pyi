@@ -48,7 +48,6 @@ async def password_login(
     :param login_callbacks: 用于解析登录的回调
     :return: 可操作的客户端
     """
-    ...
 
 async def qrcode_login(
     uin: int,
@@ -66,7 +65,6 @@ async def qrcode_login(
     :param login_callbacks: 用于解析登录的回调
     :return: 可操作的客户端
     """
-    ...
 
 # region: client
 
@@ -134,32 +132,28 @@ class FriendList:
     """所有好友数"""
     online_count: int
     """在线好友数"""
-    def friends(self) -> tuple[Friend, ...]:
+    def friends(self) -> tuple[Friend,]:
         """获取好友列表。
 
         :return: 好友列表
         """
-        ...
     def find_friend(self, uin: int) -> Friend | None:
         """查找好友。
 
         :param uin: 好友账号
         :return: 好友信息
         """
-        ...
-    def friend_groups(self) -> tuple[FriendGroup, ...]:
+    def friend_groups(self) -> tuple[FriendGroup,]:
         """获取好友分组列表。
 
         :return: 好友分组列表
         """
-        ...
     def find_friend_group(self, group_id: int) -> FriendGroup | None:
         """查找好友分组。
 
         :param group_id: 好友分组 ID
         :return: 好友分组信息
         """
-        ...
 
 @_internal_repr
 class Group:
@@ -224,7 +218,7 @@ class Member:
 
 _T = TypeVar("_T")
 
-VTuple = tuple[_T, ...]
+VTuple = tuple[_T,]
 
 @_internal_repr
 class RawMessageReceipt:
@@ -310,29 +304,24 @@ class PlumbingClient:
     @property
     def uin(self) -> int:
         """当前登录的账号的 QQ 号。"""
-        ...
     @property
     def online(self) -> bool:
         """当前账号是否登录成功。"""
-        ...
     def keep_alive(self) -> Awaitable[None]:
         """保持在线。
 
         :return: 承载了维持心跳和重连任务的 [`Future 对象`][asyncio.Future]。
         """
-        ...
     async def stop(self) -> None:
         """停止客户端运行。
 
         请在本方法返回后再等待 [`keep_alive`][ichika.core.PlumbingClient.keep_alive] 方法返回的 [`Future 对象`][asyncio.Future]。
         """
-        ...
     async def get_account_info(self) -> AccountInfo:
         """获取当前登录的账号的信息。
 
         :return: 当前登录的账号的信息
         """
-        ...
     async def set_account_info(
         self,
         *,
@@ -341,7 +330,7 @@ class PlumbingClient:
         personal_note: str | None = None,
         company: str | None = None,
         college: str | None = None,
-        signature: str = ...,
+        signature: str | None = None,
     ) -> None:
         """设置当前登录的账号的信息。
 
@@ -352,19 +341,16 @@ class PlumbingClient:
         :param college: 学校，None 为不修改
         :param signature: 个性签名，None 为不修改
         """
-        ...
     async def get_other_clients(self) -> VTuple[OtherClientInfo]:
         """获取其他在线客户端的信息。
 
         :return: 一个元组，包含其他在线客户端的信息
         """
-        ...
     async def modify_online_status(self, status: __OnlineStatus) -> None:
         """修改当前登录的账号的在线状态。
 
         :param status: 在线状态
         """
-        ...
     async def image_ocr(self, url: str, md5: str, width: int, height: int) -> OCRResult:
         """对图片进行 OCR 识别。
 
@@ -374,93 +360,70 @@ class PlumbingClient:
         :param height: 图片高度
         :return: OCR 结果
         """
-        ...
     # [impl 2]
-    async def get_friend_list(self) -> FriendList:
+    async def get_friend_list(self, cache: bool = True) -> FriendList:
         """获取好友列表。
 
+        :param cache: 是否使用缓存
         :return: 好友列表
         """
-        ...
-    async def get_friend_list_raw(self) -> FriendList:
-        """获取好友列表的原始数据。
-
-        :return: 好友列表的原始数据
-        """
-        ...
     async def get_friends(self) -> VTuple[Friend]:
         """获取好友列表。
 
         :return: 好友列表
         """
-        ...
     async def find_friend(self, uin: int) -> Friend | None:
         """查找好友。
 
         :param uin: 好友 QQ 号
         :return: 好友对象，如果不存在则返回 None
         """
-        ...
     async def nudge_friend(self, uin: int) -> None:
         """给好友发送窗口抖动。
 
         :param uin: 好友 QQ 号
         """
-        ...
     async def delete_friend(self, uin: int) -> None:
         """删除好友。
 
         :param uin: 好友 QQ 号
         """
-        ...
     # [impl 3]
-    async def get_group(self, uin: int) -> Group:
+    async def get_group(self, uin: int, cache: bool = True) -> Group:
         """获取群信息。
 
         :param uin: 群号
+        :param cache: 是否使用缓存
         :return: 群信息
         """
-        ...
-    async def get_group_raw(self, uin: int) -> Group:
-        """获取群信息的原始数据。
-
-        :param uin: 群号
-        :return: 群信息的原始数据
-        """
-        ...
     async def find_group(self, uin: int) -> Group | None:
         """查找群。
 
         :param uin: 群号
         :return: 群对象，如果不存在则返回 None
         """
-        ...
     async def get_groups(self) -> VTuple[Group]:
         """获取群列表。
 
         :return: 群列表
         """
-        ...
     async def get_group_admins(self, uin: int) -> list[tuple[int, int]]:
         """获取群管理员列表。
 
         :param uin: 群号
         :return: 群管理员列表
         """
-        ...
     async def mute_group(self, uin: int, mute: bool) -> None:
         """禁言/解禁群成员。
 
         :param uin: 群号
         :param mute: 是否禁言
         """
-        ...
     async def quit_group(self, uin: int) -> None:
         """退出群。
 
         :param uin: 群号
         """
-        ...
     async def modify_group_info(self, uin: int, *, memo: str | None = None, name: str | None = None) -> None:
         """修改群信息。
 
@@ -468,37 +431,33 @@ class PlumbingClient:
         :param memo: 群公告
         :param name: 群名称
         """
-        ...
     async def group_sign_in(self, uin: int) -> None:
         """签到群。
 
         :param uin: 群号
         """
-        ...
     # [impl 4]
-    async def get_member(self, group_uin: int, uin: int) -> Member:
+    async def get_member(self, group_uin: int, uin: int, cache: bool = False) -> Member:
         """获取群成员信息。
 
         :param group_uin: 群号
         :param uin: QQ 号
+        :param cache: 是否使用缓存
         :return: 群成员信息
         """
-        ...
-    async def get_member_raw(self, group_uin: int, uin: int) -> Member:
-        """获取群成员信息的原始数据。
+    async def get_member_list(self, group_uin: int, cache: bool = True) -> list[Member]:
+        """获取群成员列表。
 
         :param group_uin: 群号
-        :param uin: QQ 号
-        :return: 群成员信息的原始数据
+        :param cache: 是否使用缓存
+        :return: 群成员列表
         """
-        ...
     async def nudge_member(self, group_uin: int, uin: int) -> None:
         """给群成员发送窗口抖动。
 
         :param group_uin: 群号
         :param uin: QQ 号
         """
-        ...
     # Duration -> 0: Unmute
     async def mute_member(self, group_uin: int, uin: int, duration: int) -> None:
         """禁言/解禁群成员。
@@ -507,7 +466,6 @@ class PlumbingClient:
         :param uin: QQ 号
         :param duration: 禁言时长，单位为秒，0 表示解禁
         """
-        ...
     async def kick_member(self, group_uin: int, uin: int, msg: str, block: bool) -> None:
         """踢出群成员。
 
@@ -516,7 +474,6 @@ class PlumbingClient:
         :param msg: 踢人理由
         :param block: 是否加入黑名单
         """
-        ...
     async def modify_member_special_title(self, group_uin: int, uin: int, special_title: str) -> None:
         """修改群成员专属头衔。
 
@@ -524,7 +481,6 @@ class PlumbingClient:
         :param uin: QQ 号
         :param special_title: 专属头衔
         """
-        ...
     async def modify_member_card(self, group_uin: int, uin: int, card_name: str) -> None:
         """修改群成员名片。
 
@@ -532,7 +488,6 @@ class PlumbingClient:
         :param uin: QQ 号
         :param card_name: 名片
         """
-        ...
     async def modify_member_admin(self, group_uin: int, uin: int, admin: bool) -> None:
         """设置/取消群管理员。
 
@@ -540,7 +495,6 @@ class PlumbingClient:
         :param uin: QQ 号
         :param admin: 是否设置为管理员
         """
-        ...
     # [impl 5]
     async def upload_friend_image(self, uin: int, data: bytes) -> dict[str, Any]:
         """上传好友图片。
@@ -549,7 +503,6 @@ class PlumbingClient:
         :param data: 图片数据
         :return: 上传结果
         """
-        ...
     async def upload_friend_audio(self, uin: int, data: bytes) -> dict[str, Any]:
         """上传好友语音。
 
@@ -557,7 +510,6 @@ class PlumbingClient:
         :param data: 语音数据
         :return: 上传结果
         """
-        ...
     async def upload_group_image(self, uin: int, data: bytes) -> dict[str, Any]:
         """上传群图片。
 
@@ -565,7 +517,6 @@ class PlumbingClient:
         :param data: 图片数据
         :return: 上传结果
         """
-        ...
     async def upload_group_audio(self, uin: int, data: bytes) -> dict[str, Any]:
         """上传群语音。
 
@@ -573,7 +524,6 @@ class PlumbingClient:
         :param data: 语音数据
         :return: 上传结果
         """
-        ...
     async def send_friend_audio(self, uin: int, audio: _SealedAudio) -> RawMessageReceipt:
         """发送好友语音。
 
@@ -581,7 +531,6 @@ class PlumbingClient:
         :param audio: 语音数据
         :return: 发送结果
         """
-        ...
     async def send_group_audio(self, uin: int, audio: _SealedAudio) -> RawMessageReceipt:
         """发送群语音。
 
@@ -589,7 +538,6 @@ class PlumbingClient:
         :param audio: 语音数据
         :return: 发送结果
         """
-        ...
     async def send_friend_music_share(self, uin: int, share: MusicShare) -> RawMessageReceipt:
         """发送好友音乐分享。
 
@@ -597,7 +545,6 @@ class PlumbingClient:
         :param share: 音乐分享信息
         :return: 发送结果
         """
-        ...
     async def send_group_music_share(self, uin: int, share: MusicShare) -> RawMessageReceipt:
         """发送群音乐分享。
 
@@ -605,7 +552,6 @@ class PlumbingClient:
         :param share: 音乐分享信息
         :return: 发送结果
         """
-        ...
     async def download_forward_msg(self, downloader: HttpClientProto, res_id: str) -> list[dict]:
         """下载转发消息。
 
@@ -613,7 +559,6 @@ class PlumbingClient:
         :param res_id: 资源 ID
         :return: 转发消息
         """
-        ...
     async def upload_forward_msg(self, group_uin: int, msg: list[dict]) -> tuple[str, str, str]:
         """上传转发消息。
 
@@ -621,7 +566,6 @@ class PlumbingClient:
         :param msg: 转发消息
         :return: 上传结果
         """
-        ...
     # [impl 6]
     async def send_friend_message(self, uin: int, chain: list[dict[str, Any]]) -> RawMessageReceipt:
         """发送好友消息。
@@ -630,7 +574,6 @@ class PlumbingClient:
         :param chain: 消息链
         :return: 发送结果
         """
-        ...
     async def send_group_message(self, uin: int, chain: list[dict[str, Any]]) -> RawMessageReceipt:
         """发送群消息。
 
@@ -638,7 +581,6 @@ class PlumbingClient:
         :param chain: 消息链
         :return: 发送结果
         """
-        ...
     async def recall_friend_message(self, uin: int, time: int, seq: int, rand: int) -> None:
         """撤回好友消息。
 
@@ -647,7 +589,6 @@ class PlumbingClient:
         :param seq: 消息的 SEQ
         :param rand: 消息的随机序列号
         """
-        ...
     async def recall_group_message(self, uin: int, seq: int, rand: int) -> None:
         """撤回群消息。
 
@@ -655,7 +596,6 @@ class PlumbingClient:
         :param seq: 消息的 SEQ
         :param rand: 消息的随机序列号
         """
-        ...
     async def modify_group_essence(self, uin: int, seq: int, rand: int, flag: bool) -> None:
         """修改群消息精华状态。
 
@@ -664,7 +604,6 @@ class PlumbingClient:
         :param rand: 消息的随机序列号
         :param flag: 是否设为精华
         """
-        ...
     # [impl 7]
     async def process_join_group_request(
         self, seq: int, request_uin: int, group_uin: int, accept: bool, block: bool, message: str
@@ -679,7 +618,6 @@ class PlumbingClient:
         :param block: 是否拒绝并加入黑名单
         :param message: 回复消息
         """
-        ...
     async def process_group_invitation(self, seq: int, invitor_uin: int, group_uin: int, accept: bool) -> None:
         """
         处理群邀请。
@@ -689,7 +627,6 @@ class PlumbingClient:
         :param group_uin: 群号
         :param accept: 是否同意
         """
-        ...
     async def process_new_friend_request(self, seq: int, request_uin: int, accept: bool) -> None:
         """
         处理加好友请求。
@@ -698,7 +635,6 @@ class PlumbingClient:
         :param request_uin: 请求人 QQ 号
         :param accept: 是否同意
         """
-        ...
 
 # endregion: client
 
