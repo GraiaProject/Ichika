@@ -97,6 +97,6 @@ jobs:
         with:
           number: ${{ needs.deploy-target.outputs.pr-number }}
           message: |
-            :rocket: Preview is ready at Netlify: ${{ steps.deploy.outputs.url }}
+            :rocket: Preview is ready at Netlify: ${{ steps.deploy.outputs.deploy-url }}
             Built with commit: ${{ needs.deploy-target.outputs.head-sha }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
