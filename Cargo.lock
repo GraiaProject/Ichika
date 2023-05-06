@@ -762,6 +762,7 @@ dependencies = [
  "futures-util",
  "hex",
  "image 0.24.6",
+ "lru_time_cache",
  "once_cell",
  "pyo3",
  "pyo3-asyncio",
@@ -983,6 +984,12 @@ checksum = "71e7d46de488603ffdd5f30afbc64fbba2378214a2c3a2fb83abf3d33126df17"
 dependencies = [
  "hashbrown 0.13.2",
 ]
+
+[[package]]
+name = "lru_time_cache"
+version = "0.11.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9106e1d747ffd48e6be5bb2d97fa706ed25b144fbee4d5c02eae110cd8d6badd"
 
 [[package]]
 name = "md5"

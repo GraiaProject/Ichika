@@ -1,10 +1,10 @@
 use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::default::Default;
-use std::hash::Hash;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+use lru_time_cache::LruCache;
 use once_cell::sync::Lazy;
 use ricq::{Client, RQError, RQResult};
 use tokio::sync::Mutex;
@@ -50,46 +50,43 @@ impl<T> VarCache<T> {
 
 #[repr(transparent)]
 pub(crate) struct MapCache<K, V> {
-    map: HashMap<K, (Instant, Arc<V>)>,
+    map: LruCache<K, Arc<V>>,
 }
 
-impl<K, V> Default for MapCache<K, V> {
+impl<K, V> Default for MapCache<K, V>
+where
+    K: Ord + Clone,
+{
     fn default() -> Self {
         Self {
-            map: HashMap::default(),
+            map: LruCache::with_expiry_duration_and_capacity(CACHE_DURATION, 1024),
         }
     }
 }
 
 impl<K, V> MapCache<K, V>
 where
-    K: Eq + Hash,
+    K: Ord + Clone,
 {
     pub(crate) fn get<Q>(&mut self, key: &Q) -> Option<Arc<V>>
     where
         K: Borrow<Q>,
-        Q: Hash + Eq,
+        Q: Ord,
     {
-        if let Some((ref last_upd, ref arc)) = self.map.get(key) {
-            if last_upd.elapsed() <= CACHE_DURATION {
-                return Some(arc.clone());
-            }
-            self.map.remove(key);
-        }
-        None
+        self.map.get(key).cloned()
     }
 
     pub(crate) fn set(&mut self, key: K, val: Arc<V>) -> Arc<V> {
-        self.map.insert(key, (Instant::now(), val.clone()));
+        self.map.insert(key, val.clone());
         val
     }
 
     pub(crate) fn remove<Q>(&mut self, key: &Q) -> Option<Arc<V>>
     where
         K: Borrow<Q>,
-        Q: Hash + Eq,
+        Q: Ord,
     {
-        self.map.remove(key).map(|v| v.1)
+        self.map.remove(key)
     }
 }
 
