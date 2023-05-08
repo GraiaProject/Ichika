@@ -4,6 +4,7 @@ use std::default::Default;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+use backon::{ExponentialBuilder, Retryable};
 use lru_time_cache::LruCache;
 use once_cell::sync::Lazy;
 use ricq::{Client, RQError};
@@ -16,6 +17,14 @@ use crate::exc::IckResult;
 static CACHE_DURATION: Duration = Duration::from_secs(600);
 
 static CACHE: Lazy<Mutex<HashMap<i64, Arc<Mutex<DetachedCache>>>>> = Lazy::new(Mutex::default);
+
+static RETRY_BUILDER: Lazy<ExponentialBuilder> = Lazy::new(|| {
+    ExponentialBuilder::default()
+        .with_factor(1.5)
+        .with_min_delay(Duration::from_secs(1))
+        .with_max_delay(Duration::from_secs(5))
+        .with_max_times(3)
+});
 
 #[repr(transparent)]
 pub(crate) struct VarCache<T> {
@@ -103,7 +112,9 @@ impl VarCache<FriendList> {
         if let Some(val) = self.get() {
             return Ok(val);
         }
-        let val = Arc::new(client.get_friend_list().await?.into());
+        let fetch_closure =
+            async move || -> IckResult<FriendList> { Ok(client.get_friend_list().await?.into()) };
+        let val = Arc::new(fetch_closure.retry(&*RETRY_BUILDER).await?);
         Ok(self.set(val))
     }
 }
@@ -113,13 +124,14 @@ impl MapCache<i64, Group> {
         if let Some(val) = self.get(&uin) {
             return Ok(val);
         }
-        let val = Arc::new(
-            client
+        let fetch_closure = async move || -> IckResult<Group> {
+            Ok(client
                 .get_group_info(uin)
                 .await?
                 .ok_or_else(|| RQError::EmptyField("group"))?
-                .try_into()?,
-        );
+                .try_into()?)
+        };
+        let val = Arc::new(fetch_closure.retry(&*RETRY_BUILDER).await?);
         Ok(self.set(uin, val))
     }
 }
@@ -134,12 +146,13 @@ impl MapCache<(i64, i64), Member> {
         if let Some(val) = self.get(&(group_uin, uin)) {
             return Ok(val);
         }
-        let val = Arc::new(
-            client
+        let fetch_closure = async move || -> IckResult<Member> {
+            Ok(client
                 .get_group_member_info(group_uin, uin)
                 .await?
-                .try_into()?,
-        );
+                .try_into()?)
+        };
+        let val = Arc::new(fetch_closure.retry(&*RETRY_BUILDER).await?);
         Ok(self.set((group_uin, uin), val))
     }
 }
