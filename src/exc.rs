@@ -88,3 +88,5 @@ where
         }
     }
 }
+
+pub type IckResult<T> = Result<T, Error>;

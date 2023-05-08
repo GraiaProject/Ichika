@@ -6,11 +6,12 @@ use std::time::{Duration, Instant};
 
 use lru_time_cache::LruCache;
 use once_cell::sync::Lazy;
-use ricq::{Client, RQError, RQResult};
+use ricq::{Client, RQError};
 use tokio::sync::Mutex;
 
 use super::friend::FriendList;
 use super::group::{Group, Member};
+use crate::exc::IckResult;
 
 static CACHE_DURATION: Duration = Duration::from_secs(600);
 
@@ -98,7 +99,7 @@ pub(crate) struct DetachedCache {
 }
 
 impl VarCache<FriendList> {
-    async fn fetch(&mut self, client: &Arc<Client>) -> RQResult<Arc<FriendList>> {
+    async fn fetch(&mut self, client: &Arc<Client>) -> IckResult<Arc<FriendList>> {
         if let Some(val) = self.get() {
             return Ok(val);
         }
@@ -108,7 +109,7 @@ impl VarCache<FriendList> {
 }
 
 impl MapCache<i64, Group> {
-    async fn fetch(&mut self, client: &Arc<Client>, uin: i64) -> RQResult<Arc<Group>> {
+    async fn fetch(&mut self, client: &Arc<Client>, uin: i64) -> IckResult<Arc<Group>> {
         if let Some(val) = self.get(&uin) {
             return Ok(val);
         }
@@ -117,7 +118,7 @@ impl MapCache<i64, Group> {
                 .get_group_info(uin)
                 .await?
                 .ok_or_else(|| RQError::EmptyField("group"))?
-                .into(),
+                .try_into()?,
         );
         Ok(self.set(uin, val))
     }
@@ -129,11 +130,16 @@ impl MapCache<(i64, i64), Member> {
         client: &Arc<Client>,
         group_uin: i64,
         uin: i64,
-    ) -> RQResult<Arc<Member>> {
+    ) -> IckResult<Arc<Member>> {
         if let Some(val) = self.get(&(group_uin, uin)) {
             return Ok(val);
         }
-        let val = Arc::new(client.get_group_member_info(group_uin, uin).await?.into());
+        let val = Arc::new(
+            client
+                .get_group_member_info(group_uin, uin)
+                .await?
+                .try_into()?,
+        );
         Ok(self.set((group_uin, uin), val))
     }
 }
@@ -144,7 +150,7 @@ pub struct ClientCache {
 }
 
 impl ClientCache {
-    pub async fn fetch_friend_list(&mut self) -> RQResult<Arc<FriendList>> {
+    pub async fn fetch_friend_list(&mut self) -> IckResult<Arc<FriendList>> {
         let mut guard = self.detached.lock().await;
         guard.friends.fetch(&self.client).await
     }
@@ -154,7 +160,7 @@ impl ClientCache {
         guard.friends.clear();
     }
 
-    pub async fn fetch_group(&mut self, uin: i64) -> RQResult<Arc<Group>> {
+    pub async fn fetch_group(&mut self, uin: i64) -> IckResult<Arc<Group>> {
         let mut guard = self.detached.lock().await;
         guard.groups.fetch(&self.client, uin).await
     }
@@ -164,7 +170,7 @@ impl ClientCache {
         guard.groups.remove(&uin);
     }
 
-    pub async fn fetch_member(&mut self, group_uin: i64, uin: i64) -> RQResult<Arc<Member>> {
+    pub async fn fetch_member(&mut self, group_uin: i64, uin: i64) -> IckResult<Arc<Member>> {
         let mut guard = self.detached.lock().await;
         guard.members.fetch(&self.client, group_uin, uin).await
     }
