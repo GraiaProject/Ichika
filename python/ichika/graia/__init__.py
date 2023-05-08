@@ -15,7 +15,12 @@ from loguru import logger
 from ichika import core
 from ichika.client import Client
 from ichika.exceptions import LoginError
-from ichika.login import BaseLoginCredentialStore, login_password, login_qrcode
+from ichika.login import (
+    BaseLoginCredentialStore,
+    PasswordProtocol,
+    login_password,
+    login_qrcode,
+)
 from ichika.login.password import PasswordLoginCallbacks
 from ichika.login.qrcode import QRCodeLoginCallbacks
 from ichika.utils import generic_issubclass
@@ -58,6 +63,8 @@ class BroadcastCallback:
 
 
 class IchikaComponent(Launchable):
+    """可用于 Launart 的 Ichika 组件"""
+
     class _LoginPartial(Protocol):
         def __call__(
             self,
@@ -68,6 +75,11 @@ class IchikaComponent(Launchable):
             ...
 
     def __init__(self, store: BaseLoginCredentialStore, broadcast: Optional[Broadcast] = None) -> None:
+        """初始化 Ichika 组件
+
+        :param store: 登录凭据存储, 可以使用 `ichika.login.PathCredentialStore`
+        :param broadcast: Graia Broadcast 实例
+        """
         self.broadcast = broadcast
         self.store: BaseLoginCredentialStore = store
         self.login_partials: dict[int, IchikaComponent._LoginPartial] = {}
@@ -89,7 +101,7 @@ class IchikaComponent(Launchable):
         uin: int,
         credential: str | bytes,
         /,
-        protocol: str = "AndroidPad",
+        protocol: PasswordProtocol = "AndroidPad",
         callbacks: PasswordLoginCallbacks | None = None,
         use_sms: bool = True,
     ) -> Self:

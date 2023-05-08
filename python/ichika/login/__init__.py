@@ -74,12 +74,22 @@ class PathCredentialStore(BaseLoginCredentialStore):
         token_path.write_bytes(token)
 
 
+PasswordProtocol = Literal["AndroidPhone", "AndroidPad", "IPad", "MacOS", "QiDian"]
+"""可用密码登录的协议
+
+登录成功率较大的:
+
+- AndroidPad (默认)
+- AndroidPhone
+"""
+
+
 @overload
 async def login_password(
     uin: int,
     password: str,
     /,
-    protocol: str,
+    protocol: PasswordProtocol,
     store: BaseLoginCredentialStore,
     event_callbacks: Sequence[_core.EventCallback],
     login_callbacks: PasswordLoginCallbacks | None = None,
@@ -93,7 +103,7 @@ async def login_password(
     uin: int,
     password_md5: bytes,
     /,
-    protocol: str,
+    protocol: PasswordProtocol,
     store: BaseLoginCredentialStore,
     event_callbacks: Sequence[_core.EventCallback],
     login_callbacks: PasswordLoginCallbacks | None = None,
@@ -107,7 +117,7 @@ async def login_password(
     uin: int,
     credential: str | bytes,
     /,
-    protocol: str,
+    protocol: PasswordProtocol,
     store: BaseLoginCredentialStore,
     event_callbacks: Sequence[_core.EventCallback],
     login_callbacks: PasswordLoginCallbacks | None = None,
@@ -120,7 +130,7 @@ async def login_password(
     uin: int,
     credential: str | bytes,
     /,
-    protocol: str,
+    protocol: PasswordProtocol,
     store: BaseLoginCredentialStore,
     event_callbacks: Sequence[_core.EventCallback],
     login_callbacks: PasswordLoginCallbacks | None = None,
