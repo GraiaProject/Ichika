@@ -215,9 +215,18 @@ pub fn serialize_as_py_chain(py: Python, chain: MessageChain) -> PyResult<PyObje
 
 pub fn deserialize_element(chain: &mut MessageChain, ident: &str, store: &PyAny) -> PyResult<()> {
     match ident {
-        "AtAll" => chain.push(At::new(0)),
+        "AtAll" => chain.push(At {
+            target: 0,
+            display: "@全体成员".into(),
+        }),
         "At" => {
-            chain.push(At::new(store.get_item("target")?.extract::<i64>()?));
+            let target = store.get_item("target")?.extract::<i64>()?;
+            let display = store
+                .get_item("display")?
+                .extract::<String>()
+                .ok()
+                .unwrap_or_else(|| format!("@{target}"));
+            chain.push(At { target, display });
         }
         "Text" => {
             chain.push(Text::new(store.get_item("text")?.extract::<String>()?));

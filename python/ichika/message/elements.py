@@ -43,7 +43,12 @@ class At(Element):
     target: int
     """@的目标 QQ 号"""
     display: str | None = None
-    """@的目标的显示名"""
+    """@ 的目标的显示名，包括前导 @
+
+    注意: 如果构造时不传入此参数，则会在手Q上显示为 “@{target}”，不过仍会起到通知效果。
+
+    参见 [#59](https://github.com/BlueGlassBlock/Ichika/issues/59)
+    """
 
     def __str__(self) -> str:
         return f"@{self.target}"
