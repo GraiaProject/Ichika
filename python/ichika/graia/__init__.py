@@ -122,17 +122,21 @@ class IchikaComponent(Launchable):
         elif self.broadcast.loop is not asyncio.get_running_loop():
             raise ValueError("Graia Broadcast had a different event loop!")
         broadcast_cb = BroadcastCallback(self.broadcast)
+        event_cbs: list[core.EventCallback] = [broadcast_cb]
         async with self.stage("preparing"):
             for uin, login_fn in self.login_partials.items():
                 try:
                     logger.info(f"Trying to login: {uin}")
-                    client = await login_fn(store=self.store, event_callbacks=[broadcast_cb])
+                    client = await login_fn(store=self.store, event_callbacks=event_cbs)
                     self.client_hb_map[uin] = (client, client.keep_alive())
                 except Exception as e:
                     logger.exception(f"Login failed: {uin}", e)
 
         async with self.stage("blocking"):
             await mgr.status.wait_for_sigexit()
+            # 清空事件回调
+            event_cbs.clear()  # LINK: https://github.com/BlueGlassBlock/Ichika/issues/61
+            logger.info("事件监听已终止。")
 
         async with self.stage("cleanup"):
             for uin, (client, hb) in self.client_hb_map.items():

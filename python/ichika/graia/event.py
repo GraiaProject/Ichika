@@ -68,11 +68,11 @@ _DISPATCHER_MAP: Dict[type, Type[BaseDispatcher]] = {
 }
 
 
-def auto_dispatch(cls):
+def auto_dispatch(event_cls: Type[Dispatchable]):
     mixins: set[Type[BaseDispatcher]] = {NoneDispatcher}
-    type_map: dict[type, set[str]] = {cls: {"event"}}
+    type_map: dict[type, set[str]] = {}
 
-    for name, typ in get_type_hints(cls).items():
+    for name, typ in get_type_hints(event_cls).items():
         if name == "sender":
             mixins.add(SenderDispatcher)
         elif dispatcher := _DISPATCHER_MAP.get(typ):
@@ -90,15 +90,17 @@ def auto_dispatch(cls):
             anno, name, event = interface.annotation, interface.name, interface.event
             if name in cls._name_dispatch and generic_issubclass(cls._name_dispatch[name], anno):
                 return getattr(event, name)
+            if generic_issubclass(event_cls, anno):
+                return event
             for t, target_name in cls._type_dispatch.items():
                 if generic_issubclass(t, anno):
                     return getattr(event, target_name)
 
-    Dispatcher.__module__ = cls.__module__
-    Dispatcher.__qualname__ = f"{cls.__qualname__}.Dispatcher"
+    Dispatcher.__module__ = event_cls.__module__
+    Dispatcher.__qualname__ = f"{event_cls.__qualname__}.Dispatcher"
 
-    cls.Dispatcher = Dispatcher
-    return cls
+    event_cls.Dispatcher = Dispatcher
+    return event_cls
 
 
 class MessageEvent(Dispatchable):

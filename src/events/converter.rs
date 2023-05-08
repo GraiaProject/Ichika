@@ -263,7 +263,7 @@ async fn handle_mute(event: rce::GroupMuteEvent) -> PyDictRet {
             type_name: "GroupMute",
             group: group,
             operator: operator,
-            duration: event.duration.as_secs() == 0
+            status: event.duration.as_secs() == 0
         };
     }
     let duration = event.duration.as_secs();
