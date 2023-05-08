@@ -14,6 +14,7 @@ from loguru import logger
 
 from ichika import core
 from ichika.client import Client
+from ichika.exceptions import LoginError
 from ichika.login import BaseLoginCredentialStore, login_password, login_qrcode
 from ichika.login.password import PasswordLoginCallbacks
 from ichika.login.qrcode import QRCodeLoginCallbacks
@@ -38,7 +39,7 @@ class BroadcastCallback:
         if not broadcast:
             broadcast = Broadcast(loop=loop)
         if broadcast.loop is not loop:
-            raise ValueError("Graia Broadcast had a different event loop!")
+            raise ValueError("Graia Broadcast 被绑定至不同事件循环!")
         self.broadcast = broadcast
         if IchikaClientDispatcher not in broadcast.prelude_dispatchers:
             broadcast.prelude_dispatchers.append(IchikaClientDispatcher)
@@ -93,7 +94,7 @@ class IchikaComponent(Launchable):
         use_sms: bool = True,
     ) -> Self:
         if uin in self.login_partials:
-            raise ValueError(f"uin {uin} already exists")
+            raise ValueError(f"账号 {uin} 已经存在")
         self.login_partials[uin] = partial(
             login_password,
             uin,
@@ -112,7 +113,7 @@ class IchikaComponent(Launchable):
         callbacks: QRCodeLoginCallbacks | None = None,
     ) -> Self:
         if uin in self.login_partials:
-            raise ValueError(f"uin {uin} already exists")
+            raise ValueError(f"账号 {uin} 已经存在")
         self.login_partials[uin] = partial(login_qrcode, uin, protocol=protocol, login_callbacks=callbacks)
         return self
 
@@ -120,17 +121,21 @@ class IchikaComponent(Launchable):
         if self.broadcast is None:
             self.broadcast = Broadcast(loop=asyncio.get_running_loop())
         elif self.broadcast.loop is not asyncio.get_running_loop():
-            raise ValueError("Graia Broadcast had a different event loop!")
+            raise ValueError("Graia Broadcast 被绑定至不同事件循环!")
         broadcast_cb = BroadcastCallback(self.broadcast)
         event_cbs: list[core.EventCallback] = [broadcast_cb]
         async with self.stage("preparing"):
             for uin, login_fn in self.login_partials.items():
                 try:
-                    logger.info(f"Trying to login: {uin}")
+                    logger.info(f"尝试登录账号: {uin}")
                     client = await login_fn(store=self.store, event_callbacks=event_cbs)
                     self.client_hb_map[uin] = (client, client.keep_alive())
+                    if not client.online:
+                        raise LoginError(f"账号 {uin} 被服务器断开连接。")
                 except Exception as e:
-                    logger.exception(f"Login failed: {uin}", e)
+                    logger.exception(f"账号 {uin} 登录失败: ", e)
+            if not self.client_hb_map:
+                raise LoginError(f"所有账号均登录失败: {list(self.login_partials.keys())}")
 
         async with self.stage("blocking"):
             await mgr.status.wait_for_sigexit()
@@ -140,7 +145,14 @@ class IchikaComponent(Launchable):
 
         async with self.stage("cleanup"):
             for uin, (client, hb) in self.client_hb_map.items():
-                logger.info(f"Stopping client: {uin}")
-                await client.stop()
+                logger.info(f"正在停止账号 {uin}。")
+                if client.online:
+                    try:
+                        await client.stop()
+                    except Exception as e:
+                        logger.exception(f"账号 {uin} 停止失败: ", e)
+                    else:
+                        logger.success(f"客户端 {uin} 已停止。")
+                else:
+                    logger.info(f"客户端 {uin} 已离线。")
                 await hb
-                logger.success(f"Client {uin} stopped")
