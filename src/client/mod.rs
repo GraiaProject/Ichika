@@ -7,7 +7,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 pub use cached::{cache, ClientCache};
-use group::Group;
+use group::{Group, Member};
 use http::get_rust_client;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
@@ -312,15 +312,21 @@ impl PlumbingClient {
     }
 
     pub fn get_group_admins<'py>(&self, py: Python<'py>, uin: i64) -> PyResult<&'py PyAny> {
+        use self::cache as get_cache;
         let client = self.client.clone();
         py_future(py, async move {
-            let admins = client
-                .get_group_admin_list(uin)
-                .await?
-                .into_iter()
-                .map(|(member_uin, perm)| (member_uin, perm as u8))
-                .collect::<Vec<(i64, u8)>>(); // TODO: Better Perm handling
-            Ok(admins)
+            let admins = client.get_group_admin_list(uin).await?;
+            let mut cache = get_cache(client).await;
+            let mut admin_list: Vec<Member> = vec![];
+            for (member_uin, perm) in admins.iter() {
+                let mut member = cache.fetch_member(uin, *member_uin).await?;
+                if member.permission != (perm.clone() as u8) {
+                    cache.flush_member(uin, *member_uin).await;
+                    member = cache.fetch_member(uin, *member_uin).await?;
+                }
+                admin_list.push((*member).clone());
+            }
+            Ok(admin_list)
         })
     }
 
@@ -416,7 +422,7 @@ impl PlumbingClient {
             let members = members
                 .into_iter()
                 .map(|m| {
-                    let m = self::group::Member::try_from(m)?;
+                    let m = Member::try_from(m)?;
                     guard.members.set((group.uin, m.uin), Arc::new(m.clone()));
                     Ok(m)
                 })

@@ -404,7 +404,7 @@ class PlumbingClient:
 
         :return: 群列表
         """
-    async def get_group_admins(self, uin: int) -> list[tuple[int, int]]:
+    async def get_group_admins(self, uin: int) -> list[Member]:
         """获取群管理员列表。
 
         :param uin: 群号
