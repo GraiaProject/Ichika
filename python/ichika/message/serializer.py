@@ -46,7 +46,7 @@ def _serialize(
 _serialize(Reply)(lambda t: {"seq": t.seq, "sender": t.sender, "time": int(t.time.timestamp()), "content": t.content})
 _serialize(Text)(lambda t: {"text": t.text})
 _serialize(AtAll)(lambda _: {})
-_serialize(At)(lambda t: {"target": t.target})
+_serialize(At)(lambda t: {"target": t.target, "display": f"@{t.display or t.target}"})
 _serialize(Dice)(lambda t: {"value": t.value})
 _serialize(FingerGuessing)(lambda t: {"choice": t.choice.name})
 _serialize(Face)(lambda t: {"index": t.index})
