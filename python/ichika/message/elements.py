@@ -51,7 +51,7 @@ class At(Element):
     """
 
     def __str__(self) -> str:
-        return f"@{self.target}"
+        return self.display or f"@{self.target}"
 
 
 @dataclass
