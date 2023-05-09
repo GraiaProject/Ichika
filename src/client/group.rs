@@ -1,8 +1,6 @@
 use pyo3::prelude::*;
 use pyo3_repr::PyRepr;
 use ricq::structs::{GroupInfo, GroupMemberInfo};
-
-use crate::utils::{datetime_from_ts, py_try};
 #[pyclass(get_all, module = "ichika.core")]
 #[derive(PyRepr, Clone)]
 pub struct Group {
@@ -10,16 +8,20 @@ pub struct Group {
     pub name: String,
     pub memo: String,
     pub owner_uin: i64,
-    pub create_time: PyObject,
+    pub create_time: u32,
     pub level: u32,
     pub member_count: u16,
     pub max_member_count: u16,
+    // 全群禁言时间
+    pub global_mute_timestamp: i64,
+    // 自己被禁言时间
+    pub mute_timestamp: i64,
+    // 最后一条信息的 SEQ,只有通过 GetGroupInfo 函数获取的 GroupInfo 才会有
+    pub last_msg_seq: i64,
 }
 
-impl TryFrom<GroupInfo> for Group {
-    type Error = PyErr;
-
-    fn try_from(
+impl From<GroupInfo> for Group {
+    fn from(
         GroupInfo {
             code,
             name,
@@ -29,19 +31,25 @@ impl TryFrom<GroupInfo> for Group {
             group_level,
             member_count,
             max_member_count,
+            shut_up_timestamp,
+            my_shut_up_timestamp,
+            last_msg_seq,
             ..
         }: GroupInfo,
-    ) -> PyResult<Self> {
-        Ok(Self {
+    ) -> Self {
+        Group {
             uin: code,
             name,
             memo,
             owner_uin,
-            create_time: py_try(|py| Ok(datetime_from_ts(py, group_create_time)?.to_object(py)))?,
+            create_time: group_create_time,
             level: group_level,
             member_count,
             max_member_count,
-        })
+            global_mute_timestamp: shut_up_timestamp,
+            mute_timestamp: my_shut_up_timestamp,
+            last_msg_seq, // TODO: maybe `Option`?
+        }
     }
 }
 
@@ -54,18 +62,16 @@ pub struct Member {
     pub nickname: String,
     pub raw_card_name: String,
     pub level: u16,
-    pub join_time: PyObject,
-    pub last_speak_time: PyObject,
+    pub join_time: i64, // TODO: Datetime
+    pub last_speak_time: i64,
     pub special_title: String,
-    pub special_title_expire_time: PyObject,
-    pub mute_timestamp: PyObject,
+    pub special_title_expire_time: i64,
+    pub mute_timestamp: i64,
     pub permission: u8,
 }
 
-impl TryFrom<GroupMemberInfo> for Member {
-    type Error = PyErr;
-
-    fn try_from(
+impl From<GroupMemberInfo> for Member {
+    fn from(
         GroupMemberInfo {
             group_code,
             uin,
@@ -80,25 +86,21 @@ impl TryFrom<GroupMemberInfo> for Member {
             shut_up_timestamp,
             permission,
         }: GroupMemberInfo,
-    ) -> PyResult<Self> {
-        Ok(Self {
+    ) -> Self {
+        Self {
             group_uin: group_code,
             uin,
             gender,
             nickname,
             raw_card_name: card_name,
             level,
-            join_time: py_try(|py| Ok(datetime_from_ts(py, join_time)?.to_object(py)))?,
-            last_speak_time: py_try(|py| Ok(datetime_from_ts(py, last_speak_time)?.to_object(py)))?,
+            join_time,
+            last_speak_time,
             special_title,
-            special_title_expire_time: py_try(|py| {
-                Ok(datetime_from_ts(py, special_title_expire_time)?.to_object(py))
-            })?,
-            mute_timestamp: py_try(
-                |py| Ok(datetime_from_ts(py, shut_up_timestamp)?.to_object(py)),
-            )?,
+            special_title_expire_time,
+            mute_timestamp: shut_up_timestamp,
             permission: permission as u8,
-        })
+        }
     }
 }
 

@@ -167,7 +167,7 @@ class Group:
     """群公告"""
     owner_uin: int
     """群主账号"""
-    create_time: datetime
+    create_time: int
     """群创建时间戳"""
     level: int
     """群等级"""
@@ -175,6 +175,12 @@ class Group:
     """群成员数量"""
     max_member_count: int
     """群最大成员数量"""
+    global_mute_timestamp: int
+    """全局禁言时间戳"""
+    mute_timestamp: int
+    """群禁言时间戳"""
+    last_msg_seq: int
+    """最后一条消息序列号"""
 
 @_internal_repr
 class Member:
@@ -188,22 +194,19 @@ class Member:
     """性别"""
     nickname: str
     """昵称"""
-    raw_card_name: str
-    """原始名片，未自行设置则为空字符串"""
-    @property
-    def card_name(self) -> str:
-        """显示名片，由原始名片与昵称合并而来"""
+    card_name: str
+    """群名片"""
     level: int
     """成员等级"""
-    join_time: datetime
+    join_time: int
     """加入时间"""
-    last_speak_time: datetime
+    last_speak_time: int
     """最后发言时间"""
     special_title: str
     """特殊头衔"""
-    special_title_expire_time: datetime
+    special_title_expire_time: int
     """特殊头衔过期时间"""
-    mute_timestamp: datetime
+    mute_timestamp: int
     """禁言时间戳"""
     permission: int  # TODO: Enum
     """权限

@@ -286,10 +286,7 @@ impl PlumbingClient {
         let client = self.client.clone();
         py_future(py, async move {
             let group = client.get_group_info(uin).await?;
-            match group {
-                Some(group) => Ok(Some(Group::try_from(group)?)),
-                None => Ok(None),
-            }
+            Ok(group.map(Group::from))
         })
     }
 
@@ -297,17 +294,16 @@ impl PlumbingClient {
         let client = self.client.clone();
         py_future(py, async move {
             let infos = client.get_group_list().await?;
-            py_try(|py| {
-                Ok(PyTuple::new(
+            Ok(py_use(|py| {
+                PyTuple::new(
                     py,
                     infos
                         .into_iter()
-                        .map(|g| Ok(Group::try_from(g)?.obj()))
-                        .collect::<PyResult<Vec<PyObject>>>()?,
+                        .map(|g| Group::from(g).obj())
+                        .collect::<Vec<PyObject>>(),
                 )
-                .to_object(py))
-            })
-            .map_err(|e| e.into())
+                .obj()
+            }))
         })
     }
 
@@ -422,11 +418,11 @@ impl PlumbingClient {
             let members = members
                 .into_iter()
                 .map(|m| {
-                    let m = Member::try_from(m)?;
+                    let m = Member::from(m);
                     guard.members.set((group.uin, m.uin), Arc::new(m.clone()));
-                    Ok(m)
+                    m
                 })
-                .collect::<PyResult<Vec<_>>>()?;
+                .collect::<Vec<_>>();
             std::mem::drop(guard);
             Ok(members)
         })

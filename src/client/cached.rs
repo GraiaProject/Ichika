@@ -129,7 +129,7 @@ impl MapCache<i64, Group> {
                 .get_group_info(uin)
                 .await?
                 .ok_or_else(|| RQError::EmptyField("group"))?
-                .try_into()?)
+                .into())
         };
         let val = Arc::new(fetch_closure.retry(&*RETRY_BUILDER).await?);
         Ok(self.set(uin, val))
@@ -147,10 +147,7 @@ impl MapCache<(i64, i64), Member> {
             return Ok(val);
         }
         let fetch_closure = async move || -> IckResult<Member> {
-            Ok(client
-                .get_group_member_info(group_uin, uin)
-                .await?
-                .try_into()?)
+            Ok(client.get_group_member_info(group_uin, uin).await?.into())
         };
         let val = Arc::new(fetch_closure.retry(&*RETRY_BUILDER).await?);
         Ok(self.set((group_uin, uin), val))
