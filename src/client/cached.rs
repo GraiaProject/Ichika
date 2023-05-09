@@ -4,14 +4,13 @@ use std::default::Default;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use backon::{ExponentialBuilder, Retryable};
+use backon::{ExponentialBuilder, Retryable as _};
 use lru_time_cache::LruCache;
 use once_cell::sync::Lazy;
 use ricq::{Client, RQError};
 use tokio::sync::Mutex;
 
-use super::friend::FriendList;
-use super::group::{Group, Member};
+use super::structs::{FriendList, Group, Member};
 use crate::exc::IckResult;
 
 static CACHE_DURATION: Duration = Duration::from_secs(600);

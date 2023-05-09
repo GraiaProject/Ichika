@@ -1,22 +1,22 @@
 mod cached;
-pub mod friend;
-pub mod group;
 mod http;
+mod params;
 pub mod structs;
+
 use std::sync::Arc;
 use std::time::Duration;
 
 pub use cached::{cache, ClientCache};
-use group::{Group, Member};
-use http::get_rust_client;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::*;
 use ricq::msg::elem::RQElem;
 use ricq::structs::{ForwardMessage, FriendAudio, GroupAudio, ProfileDetailUpdate, Status};
-use structs::*;
 use tokio::task::JoinHandle;
 
+use self::http::get_rust_client;
+use self::params::*;
+use self::structs::*;
 use crate::login::{reconnect, TokenRW};
 use crate::message::convert::{
     deserialize_message_chain,
@@ -103,6 +103,14 @@ impl PlumbingClient {
                 .await?;
             client.stop(ricq::client::NetworkStatus::Stop);
             Ok(())
+        })
+    }
+
+    pub fn get_profile<'py>(&self, py: Python<'py>, uin: i64) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            let profile = client.get_summary_info(uin).await?;
+            Ok(Profile::from(profile))
         })
     }
 

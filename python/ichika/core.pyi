@@ -156,6 +156,32 @@ class FriendList:
         """
 
 @_internal_repr
+class Profile:
+    """描述账号资料"""
+
+    uin: int
+    """账号"""
+    sex: int
+    """性别
+
+    - 0: 男
+    - 1: 女
+    - 2: 未知
+    """
+    age: int
+    """年龄"""
+    nickname: str
+    """设置的昵称"""
+    level: int
+    """等级"""
+    city: str
+    """设置的城市"""
+    sign: str
+    """设置的个性签名"""
+    login_days: int
+    """连续登录天数"""
+
+@_internal_repr
 class Group:
     """群组信息，请注意通过缓存获取的数据可能不精确"""
 
@@ -316,6 +342,12 @@ class PlumbingClient:
         """停止客户端运行。
 
         请在本方法返回后再等待 [`keep_alive`][ichika.core.PlumbingClient.keep_alive] 方法返回的 [`Future 对象`][asyncio.Future]。
+        """
+    async def get_profile(self, uin: int) -> Profile:
+        """获取任意账号的资料
+
+        :param uin: 账号
+        :return: 对应账号的资料
         """
     async def get_account_info(self) -> AccountInfo:
         """获取当前登录的账号的信息。

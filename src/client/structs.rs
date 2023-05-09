@@ -1,9 +1,13 @@
-use pyo3::exceptions::{PyIndexError, PyTypeError, PyValueError};
+use std::collections::HashMap;
+
+use pyo3::exceptions::{PyIndexError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::*;
 use pyo3_repr::PyRepr;
-use ricq::structs::{ForwardMessage, MessageReceipt, MusicShare, MusicVersion};
+use ricq::structs::{FriendGroupInfo, FriendInfo, GroupInfo, GroupMemberInfo, MessageReceipt};
+use ricq_core::command::friendlist::FriendListResponse;
 use ricq_core::command::oidb_svc::OcrResponse;
+use ricq_core::structs::SummaryCardInfo;
 
 use crate::utils::{datetime_from_ts, py_try, py_use};
 #[pyclass(get_all, module = "ichika.core")]
@@ -121,149 +125,272 @@ impl From<OcrResponse> for OCRResult {
     }
 }
 
-#[derive(FromPyObject)]
-pub enum OnlineStatusParam {
-    #[pyo3(annotation = "tuple[bool, int]")]
-    Normal(bool, i32),
-    #[pyo3(annotation = "tuple[int, str]")]
-    Custom(u64, String),
+#[pyclass(get_all, module = "ichika.core")]
+#[derive(PyRepr, Default, Clone)]
+pub struct Profile {
+    pub uin: i64,
+    pub sex: u8,
+    pub age: u8,
+    pub nickname: String,
+    pub level: i32,
+    pub city: String,
+    pub sign: String,
+    pub login_days: i64,
 }
 
-impl From<OnlineStatusParam> for ricq::structs::Status {
-    fn from(value: OnlineStatusParam) -> Self {
-        use ricq::structs::{CustomOnlineStatus, Status};
-        match value {
-            OnlineStatusParam::Custom(face_index, wording) => Status {
-                online_status: 11,
-                ext_online_status: 2000,
-                custom_status: Some(CustomOnlineStatus {
-                    face_index,
-                    wording,
-                }),
-            },
-            OnlineStatusParam::Normal(is_ext, index) => Status {
-                online_status: if is_ext { 11 } else { index },
-                ext_online_status: if is_ext { i64::from(index) } else { 0 },
-                custom_status: None,
-            },
+impl From<SummaryCardInfo> for Profile {
+    fn from(value: SummaryCardInfo) -> Self {
+        let SummaryCardInfo {
+            uin,
+            sex,
+            age,
+            nickname,
+            level,
+            city,
+            sign,
+            login_days,
+            ..
+        } = value;
+        Self {
+            uin,
+            sex,
+            age,
+            nickname,
+            level,
+            city,
+            sign,
+            login_days,
         }
     }
 }
 
-#[derive(FromPyObject)]
-pub struct MusicShareParam {
-    #[pyo3(attribute)]
-    kind: String,
-    #[pyo3(attribute)]
-    title: String,
-    #[pyo3(attribute)]
-    summary: String,
-    #[pyo3(attribute)]
-    jump_url: String,
-    #[pyo3(attribute)]
-    picture_url: String,
-    #[pyo3(attribute)]
-    music_url: String,
-    #[pyo3(attribute)]
-    brief: String,
+#[pyclass(get_all, module = "ichika.core")]
+#[derive(PyRepr, Clone)]
+pub struct Group {
+    pub uin: i64,
+    pub name: String,
+    pub memo: String,
+    pub owner_uin: i64,
+    pub create_time: u32,
+    pub level: u32,
+    pub member_count: u16,
+    pub max_member_count: u16,
+    // 全群禁言时间
+    pub global_mute_timestamp: i64,
+    // 自己被禁言时间
+    pub mute_timestamp: i64,
+    // 最后一条信息的 SEQ,只有通过 GetGroupInfo 函数获取的 GroupInfo 才会有
+    pub last_msg_seq: i64,
 }
 
-impl TryFrom<MusicShareParam> for (MusicShare, MusicVersion) {
-    type Error = PyErr;
-
-    fn try_from(value: MusicShareParam) -> Result<Self, Self::Error> {
-        let MusicShareParam {
-            kind,
-            title,
-            summary,
-            jump_url,
-            picture_url,
-            music_url,
-            brief,
-        } = value;
-        let version = match kind.as_str() {
-            "QQ" => MusicVersion::QQ,
-            "Netease" => MusicVersion::NETEASE,
-            "Migu" => MusicVersion::MIGU,
-            "Kugou" => MusicVersion::KUGOU,
-            "Kuwo" => MusicVersion::KUWO,
-            platform => {
-                return Err(PyValueError::new_err(format!(
-                    "无法识别的音乐平台: {platform}"
-                )))
-            }
-        };
-        let share = MusicShare {
-            title,
-            brief,
-            summary,
-            url: jump_url,
-            picture_url,
-            music_url,
-        };
-        Ok((share, version))
+impl From<GroupInfo> for Group {
+    fn from(
+        GroupInfo {
+            code,
+            name,
+            memo,
+            owner_uin,
+            group_create_time,
+            group_level,
+            member_count,
+            max_member_count,
+            shut_up_timestamp,
+            my_shut_up_timestamp,
+            last_msg_seq,
+            ..
+        }: GroupInfo,
+    ) -> Self {
+        Group {
+            uin: code,
+            name,
+            memo,
+            owner_uin,
+            create_time: group_create_time,
+            level: group_level,
+            member_count,
+            max_member_count,
+            global_mute_timestamp: shut_up_timestamp,
+            mute_timestamp: my_shut_up_timestamp,
+            last_msg_seq, // TODO: maybe `Option`?
+        }
     }
 }
 
-pub struct PyForwardMessage {
-    sender_id: i64,
-    time: i32,
-    sender_name: String,
-    content: PyInnerForward,
+#[pyclass(get_all, module = "ichika.core")]
+#[derive(PyRepr, Clone)]
+pub struct Member {
+    pub group_uin: i64,
+    pub uin: i64,
+    pub gender: u8,
+    pub nickname: String,
+    pub raw_card_name: String,
+    pub level: u16,
+    pub join_time: i64, // TODO: Datetime
+    pub last_speak_time: i64,
+    pub special_title: String,
+    pub special_title_expire_time: i64,
+    pub mute_timestamp: i64,
+    pub permission: u8,
 }
 
-
-impl TryFrom<PyForwardMessage> for ForwardMessage {
-    type Error = PyErr;
-
-    fn try_from(value: PyForwardMessage) -> PyResult<Self> {
-        use ricq::structs::{ForwardNode, MessageNode};
-
-        use crate::message::convert::deserialize_message_chain;
-
-        let PyForwardMessage {
-            sender_id,
-            time,
-            sender_name,
-            content,
-        } = value;
-        Ok(match content {
-            PyInnerForward::Message(msg) => Self::Message(MessageNode {
-                sender_id,
-                time,
-                sender_name,
-                elements: py_try(|py| deserialize_message_chain(msg.as_ref(py)))?,
-            }),
-            PyInnerForward::Forward(fwd) => Self::Forward(ForwardNode {
-                sender_id,
-                time,
-                sender_name,
-                nodes: fwd.into_iter().map(|v| v.try_into()).try_collect()?,
-            }),
-        })
+impl From<GroupMemberInfo> for Member {
+    fn from(
+        GroupMemberInfo {
+            group_code,
+            uin,
+            gender,
+            nickname,
+            card_name,
+            level,
+            join_time,
+            last_speak_time,
+            special_title,
+            special_title_expire_time,
+            shut_up_timestamp,
+            permission,
+        }: GroupMemberInfo,
+    ) -> Self {
+        Self {
+            group_uin: group_code,
+            uin,
+            gender,
+            nickname,
+            raw_card_name: card_name,
+            level,
+            join_time,
+            last_speak_time,
+            special_title,
+            special_title_expire_time,
+            mute_timestamp: shut_up_timestamp,
+            permission: permission as u8,
+        }
     }
 }
 
-pub enum PyInnerForward {
-    Forward(Vec<PyForwardMessage>),
-    Message(Py<PyList>),
+#[pymethods]
+impl Member {
+    #[getter]
+    fn card_name(&self) -> String {
+        if self.raw_card_name.is_empty() {
+            self.nickname.clone()
+        } else {
+            self.raw_card_name.clone()
+        }
+    }
 }
 
-impl<'s> FromPyObject<'s> for PyForwardMessage {
-    fn extract(obj: &'s PyAny) -> PyResult<Self> {
-        let typ: String = obj.get_item("type")?.extract()?;
-        let content: &PyList = obj.get_item("content")?.extract()?;
-        Ok(Self {
-            sender_id: obj.get_item("sender_id")?.extract()?,
-            time: obj.get_item("time")?.extract()?,
-            sender_name: obj.get_item("sender_name")?.extract()?,
-            content: match typ.as_str() {
-                "Forward" => {
-                    PyInnerForward::Forward(content.into_iter().map(|o| o.extract()).try_collect()?)
-                }
-                "Message" => PyInnerForward::Message(content.into_py(content.py())),
-                _ => Err(PyTypeError::new_err("Invalid forward content type"))?,
-            },
-        })
+#[pyclass(get_all, module = "ichika.core")]
+#[derive(PyRepr, Clone)]
+pub struct Friend {
+    pub uin: i64,
+    pub nick: String,
+    pub remark: String,
+    pub face_id: i16,
+    pub group_id: u8,
+}
+
+impl From<FriendInfo> for Friend {
+    fn from(info: FriendInfo) -> Self {
+        Friend {
+            uin: info.uin,
+            nick: info.nick,
+            remark: info.remark,
+            face_id: info.face_id,
+            group_id: info.group_id,
+        }
+    }
+}
+
+#[pyclass(get_all, module = "ichika.core")]
+#[derive(PyRepr, Clone)]
+pub struct FriendGroup {
+    pub group_id: u8,
+    pub name: String,
+    pub total_count: i32,
+    pub online_count: i32,
+    pub seq_id: u8,
+}
+
+impl From<FriendGroupInfo> for FriendGroup {
+    fn from(
+        FriendGroupInfo {
+            group_id,
+            group_name,
+            friend_count,
+            online_friend_count,
+            seq_id,
+        }: FriendGroupInfo,
+    ) -> Self {
+        FriendGroup {
+            group_id,
+            name: group_name,
+            total_count: friend_count,
+            online_count: online_friend_count,
+            seq_id,
+        }
+    }
+}
+
+#[pyclass]
+#[derive(Clone, Debug)]
+pub struct FriendList {
+    entries: Vec<Friend>,
+    friend_groups: HashMap<u8, FriendGroup>,
+    #[pyo3(get)]
+    pub total_count: i16,
+    #[pyo3(get)]
+    pub online_count: i16,
+}
+
+#[pymethods]
+impl FriendList {
+    pub fn friends(&self, py: Python) -> Py<PyTuple> {
+        PyTuple::new(
+            py,
+            self.entries
+                .clone()
+                .into_iter()
+                .map(|f| f.into_py(py))
+                .collect::<Vec<PyObject>>(),
+        )
+        .into_py(py)
+    }
+
+    pub fn find_friend(&self, uin: i64) -> Option<Friend> {
+        self.entries
+            .iter()
+            .find(|friend| friend.uin == uin)
+            .cloned()
+    }
+
+    pub fn friend_groups(&self, py: Python) -> Py<PyTuple> {
+        PyTuple::new(
+            py,
+            self.friend_groups
+                .clone()
+                .into_values()
+                .map(|g| g.into_py(py))
+                .collect::<Vec<PyObject>>(),
+        )
+        .into_py(py)
+    }
+
+    pub fn find_friend_group(&self, group_id: u8) -> Option<FriendGroup> {
+        self.friend_groups.get(&group_id).cloned()
+    }
+}
+
+impl From<FriendListResponse> for FriendList {
+    fn from(resp: FriendListResponse) -> Self {
+        Self {
+            entries: resp.friends.into_iter().map(Friend::from).collect(),
+            friend_groups: resp
+                .friend_groups
+                .into_iter()
+                .map(|(g_id, info)| (g_id, FriendGroup::from(info)))
+                .collect(),
+            total_count: resp.total_count,
+            online_count: resp.online_friend_count,
+        }
     }
 }

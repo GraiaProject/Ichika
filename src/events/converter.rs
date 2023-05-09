@@ -5,8 +5,7 @@ use ricq::client::event as rce;
 use ricq::handler::QEvent;
 
 use super::MessageSource;
-use crate::client::friend::Friend;
-use crate::client::group::{Group, Member};
+use crate::client::structs::{Friend, Group, Member};
 use crate::client::{cache, ClientCache};
 use crate::dict_obj;
 use crate::exc::MapPyErr;

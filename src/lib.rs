@@ -42,16 +42,17 @@ pub fn core(py: Python, m: &PyModule) -> PyResult<()> {
     );
     add_batch!(@cls m,
         client::PlumbingClient,
-        client::friend::Friend,
-        client::friend::FriendGroup,
-        client::friend::FriendList,
-        client::group::Group,
-        client::group::Member,
+        client::structs::Friend,
+        client::structs::FriendGroup,
+        client::structs::FriendList,
+        client::structs::Group,
+        client::structs::Member,
         client::structs::AccountInfo,
         client::structs::OtherClientInfo,
         client::structs::RawMessageReceipt,
         client::structs::OCRResult,
         client::structs::OCRText,
+        client::structs::Profile,
         events::MessageSource
     );
     loguru::init(m)?;
