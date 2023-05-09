@@ -463,7 +463,9 @@ class MarketFace(Element):
 
 
 _DESERIALIZE_INV: dict[str, Callable[..., Element]] = {
-    cls.__name__: cls for cls in Element.__subclasses__() if cls.__module__.startswith(("ichika", "graia.amnesia"))
+    cls.__name__: cls
+    for cls in Element.__subclasses__()
+    if cls.__module__.startswith(("ichika", "graia.amnesia")) and cls is not Video
 }
 
 __MUSIC_SHARE_APPID_MAP: dict[int, Literal["QQ", "Netease", "Migu", "Kugou", "Kuwo"]] = {

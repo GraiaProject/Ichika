@@ -6,8 +6,8 @@ from graia.amnesia.message import MessageChain
 from graia.amnesia.message.element import Element, Unknown
 from loguru import logger
 
+from ._serializer import _SERIALIZE_INV
 from .elements import _DESERIALIZE_INV
-from .serializer import _SERIALIZE_INV
 
 
 def _deserialize_message(elements: list[dict[str, Any]]) -> MessageChain:
