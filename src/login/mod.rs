@@ -9,7 +9,6 @@ use pyo3::types::*;
 use pyo3_asyncio::{into_future_with_locals, TaskLocals};
 use pythonize::depythonize;
 use ricq::client::{Client, Connector, NetworkStatus, Token};
-use ricq::ext::common::after_login;
 use ricq::version::Version;
 use ricq::{
     Device,
@@ -209,7 +208,7 @@ pub async fn reconnect(
                 return Ok(None);
             }
 
-            after_login(client).await;
+            after_login(client).await?;
 
             tracing::info!("客户端重连成功");
             Ok(Some(alive))
@@ -354,8 +353,34 @@ async fn password_login_process(
     Ok(())
 }
 
+
+async fn after_login(client: &Arc<Client>) -> PyResult<()> {
+    client
+        .register_client()
+        .await
+        .map_err(|e| exc::RICQError::new_err(format!("注册客户端失败: {e:?}")))?;
+
+    if !client
+        .heartbeat_enabled
+        .load(std::sync::atomic::Ordering::Relaxed)
+    {
+        let client = client.clone();
+        tokio::spawn(async move {
+            client.do_heartbeat().await;
+        });
+    }
+
+    client
+        .refresh_status()
+        .await
+        .map_err(|e| exc::RICQError::new_err(format!("刷新状态失败: {e:?}")))?;
+
+    Ok(())
+}
+
 async fn post_login(client: Arc<Client>, alive: JoinHandle<()>, token_rw: TokenRW) -> PyRet {
-    after_login(&client).await;
+    after_login(&client).await?;
+
     token_rw.set(&client).await?;
     let uin = client.uin().await;
     let init = crate::client::ClientInitializer {

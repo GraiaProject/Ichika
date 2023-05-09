@@ -141,9 +141,9 @@ class IchikaComponent(Launchable):
                 try:
                     logger.info(f"尝试登录账号: {uin}")
                     client = await login_fn(store=self.store, event_callbacks=event_cbs)
-                    self.client_hb_map[uin] = (client, client.keep_alive())
                     if not client.online:
                         raise LoginError(f"账号 {uin} 被服务器断开连接。")
+                    self.client_hb_map[uin] = (client, client.keep_alive())
                 except Exception as e:
                     logger.exception(f"账号 {uin} 登录失败: ", e)
             if not self.client_hb_map:

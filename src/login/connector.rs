@@ -56,10 +56,6 @@ pub struct IchikaConnector;
 #[async_trait]
 impl Connector<TcpStream> for IchikaConnector {
     async fn connect(&self, client: &Client) -> io::Result<TcpStream> {
-        let addrs = client.get_address_list().await;
-        for addr in addrs {
-            tracing::info!("地址: {}", addr);
-        }
         tcp_connect_fastest(client.get_address_list().await, Duration::from_secs(5)).await
     }
 }
