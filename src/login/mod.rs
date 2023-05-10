@@ -25,12 +25,85 @@ use crate::events::PyHandler;
 use crate::exc::MapPyErr;
 use crate::utils::{partial, py_bytes, py_client_refs, py_future, py_try, py_use};
 use crate::{exc, import_call, PyRet};
+
+#[cfg(feature = "t544")]
+pub(crate) mod t544 {
+    use bytes::{BufMut, Bytes, BytesMut};
+    use ricq::Client;
+    use ricq_core::binary::BinaryWriter;
+    use ricq_core::wtlogin::T544Provider;
+    use t544_enc::t544_sign::sign;
+
+    #[derive(Debug)]
+    struct NativeT544Provider {
+        uin: i64,
+        guid: Bytes,
+        version: Bytes,
+    }
+
+    impl NativeT544Provider {
+        async fn new(client: &Client) -> Self {
+            let uin = client.uin().await;
+            let guid = client.device().await.guid();
+            let version = client.version().await.sdk_version;
+
+            Self {
+                uin,
+                guid,
+                version: Bytes::copy_from_slice(version.as_bytes()),
+            }
+        }
+    }
+
+    impl T544Provider for NativeT544Provider {
+        fn t544(&self, command: String) -> Bytes {
+            let mut salt = BytesMut::new();
+            let cmd = command.split("_").last().unwrap();
+            let cmd = u32::from_str_radix(cmd, 16).unwrap();
+            match cmd {
+                2 | 7 => {
+                    // T544v1
+                    salt.put_u64(self.uin as u64);
+                    salt.write_bytes_short(&self.guid[..]);
+                    salt.write_bytes_short(&self.version[..]);
+                    salt.put_u32(cmd);
+                }
+                _ => {
+                    // T544v2
+                    salt.put_u32(0);
+                    salt.write_bytes_short(&self.guid[..]);
+                    salt.write_bytes_short(&self.version[..]);
+                    salt.put_u32(cmd);
+                    salt.put_u32(0);
+                }
+            }
+            let curr = std::time::UNIX_EPOCH.elapsed().unwrap().as_micros();
+            let res = sign(curr as u64, &salt.freeze()[..]);
+            Bytes::copy_from_slice(&res)
+        }
+    }
+
+    pub(crate) async fn inject_t544(client: &mut Client) {
+        client.engine.write().await.ex_provider.t544 =
+            Some(Box::new(NativeT544Provider::new(client).await));
+    }
+}
+
+
 async fn prepare_client(
     device: Device,
     app_ver: Version,
     handler: PyHandler,
 ) -> PyResult<(Arc<Client>, JoinHandle<()>)> {
-    let client = Arc::new(Client::new(device, app_ver, handler));
+    #[allow(unused_mut)]
+    let mut client = Client::new(device, app_ver, handler);
+
+    #[cfg(feature = "t544")]
+    {
+        t544::inject_t544(&mut client).await;
+    }
+
+    let client = Arc::new(client);
     let alive = tokio::spawn({
         let client = client.clone();
         // 连接最快的服务器

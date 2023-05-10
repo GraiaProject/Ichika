@@ -41,6 +41,10 @@ pyo3-repr = { version = "0.1.0", path = "pyo3-repr" }
 once_cell = "1.17.1"
 lru_time_cache = "0.11.11"
 backon = "0.4.0"
+t544_enc = { path = "../t544_enc", optional = true }
+
+[features]
+t544 = ["t544_enc"]
 
 [patch.crates-io]
 ricq = { git = "https://github.com/BlueGlassBlock/ricq.git", branch = "ichika-snapshot"}
