@@ -33,6 +33,15 @@ macro_rules! add_batch {
 pub fn core(py: Python, m: &PyModule) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     m.add("__build__", build_info::get_info(py)?)?;
+    let tokio_thread_count = std::env::var("ICHIKA_RUNTIME_THREAD_COUNT")
+        .ok()
+        .and_then(|s| s.parse().ok().filter(|v| *v > 0))
+        .unwrap_or(4);
+    pyo3_asyncio::tokio::init({
+        let mut rt = tokio::runtime::Builder::new_multi_thread();
+        rt.worker_threads(tokio_thread_count).enable_all();
+        rt
+    });
     add_batch!(@fun m,
         loguru::getframe,
         message::elements::face_id_from_name,

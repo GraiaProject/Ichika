@@ -23,6 +23,15 @@ pub struct Error {
     backtrace: Backtrace,
 }
 
+impl From<std::io::Error> for Error {
+    fn from(value: std::io::Error) -> Self {
+        Self {
+            inner: InnerError::RQ(RQError::IO(value)),
+            backtrace: Backtrace::force_capture(),
+        }
+    }
+}
+
 impl From<RQError> for Error {
     fn from(value: RQError) -> Self {
         Self {
