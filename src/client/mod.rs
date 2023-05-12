@@ -83,7 +83,7 @@ impl PlumbingClient {
                     }
                 }
             }
-            tracing::info!("客户端 {} 连接断开", uin);
+            tracing::info!("客户端 {} 被迫断开连接", uin);
             Ok(py_none())
         })
     }

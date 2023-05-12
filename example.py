@@ -30,6 +30,15 @@ async def listener(
     await client.send_group_message(group.uin, MessageChain([Text("图来了！\n"), Image.build(image_bytes)]))
 
 
+@broadcast.receiver(GroupMessage)
+async def log(event: GroupMessage):
+    from loguru import logger
+
+    logger.info(
+        f"[{event.group.name}:{event.group.uin}]({event.sender.card_name}:{event.sender.uin}) -> {event.content}"
+    )
+
+
 mgr = Launart()
 mgr.add_launchable(
     IchikaComponent(PathCredentialStore("./var/bots"), broadcast).add_password_login(

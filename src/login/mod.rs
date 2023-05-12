@@ -247,18 +247,20 @@ pub async fn reconnect(
     client: &Arc<Client>,
     token_rw: &TokenRW,
 ) -> PyResult<Option<JoinHandle<()>>> {
+    let uin = client.uin().await;
+
     crate::utils::py_retry(
         10,
         || async {
             // 如果不是网络原因掉线，不重连（服务端强制下线/被踢下线/用户手动停止）
             if client.get_status() != (NetworkStatus::NetworkOffline as u8) {
-                tracing::warn!("客户端因非网络原因下线，不再重连");
+                tracing::warn!("账号 {} 因非网络原因下线，不再重连", uin);
                 return Ok(None);
             }
             client.stop(NetworkStatus::NetworkOffline);
 
-            tracing::error!("客户端连接中断，将在 10 秒后重连");
-            tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+            tracing::error!("账号 {} 连接中断，将在 3 秒后重连", uin);
+            tokio::time::sleep(std::time::Duration::from_secs(3)).await;
 
             let alive = tokio::spawn({
                 let client = client.clone();
@@ -278,7 +280,7 @@ pub async fn reconnect(
             // 启动接收后，再发送登录请求，否则报错 NetworkError
             if !token_rw.try_login(client).await? {
                 client.stop(NetworkStatus::NetworkOffline);
-                return Ok(None);
+                return Err(ricq_core::error::RQError::Network).py_res();
             }
 
             after_login(client).await?;

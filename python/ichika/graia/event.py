@@ -1,7 +1,7 @@
 import contextlib
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Dict, Literal, Optional, Type, TypedDict, Union
+from typing import Dict, Literal, Optional, Type, TypedDict, TypeVar, Union
 from typing_extensions import get_type_hints
 
 from graia.amnesia.message import MessageChain
@@ -67,8 +67,10 @@ _DISPATCHER_MAP: Dict[type, Type[BaseDispatcher]] = {
     Group: GroupDispatcher,
 }
 
+_Dispatch_T = TypeVar("_Dispatch_T", bound=Dispatchable)
 
-def auto_dispatch(event_cls: Type[Dispatchable]):
+
+def auto_dispatch(event_cls: Type[_Dispatch_T]) -> Type[_Dispatch_T]:
     mixins: set[Type[BaseDispatcher]] = {NoneDispatcher}
     type_map: dict[type, set[str]] = {}
 
