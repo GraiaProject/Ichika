@@ -14,7 +14,7 @@ include = [
 ]
 
 [lib]
-name = "core"
+name = "ichika"
 crate-type = ["cdylib"]
 
 [dependencies]

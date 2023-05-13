@@ -26,7 +26,7 @@ pub(crate) fn init(module: &PyModule) -> PyResult<()> {
             // 筛选不同包的日志级别
             tracing_subscriber::filter::Targets::new()
                 .with_target("ricq", Level::DEBUG)
-                .with_target("core", Level::DEBUG),
+                .with_target("ichika", Level::DEBUG),
         )
         .init();
     // 注入 getframe
@@ -66,14 +66,18 @@ where
                 .get_or_init(py, || Arc::new(std::sync::RwLock::new(None)))
                 .write()
             {
+                let meta = event.metadata();
+
                 *frame = FakePyFrame::new(
-                    event
-                        .metadata()
+                    &meta
                         .module_path()
-                        .unwrap_or_else(|| event.metadata().target()),
-                    event.metadata().file().unwrap_or("<rust>"),
-                    "",
-                    event.metadata().line().unwrap_or(0),
+                        .unwrap_or_else(|| event.metadata().target())
+                        .split("::")
+                        .collect::<Vec<_>>()
+                        .join("."),
+                    meta.file().unwrap_or("<rust>"),
+                    "<rust>",
+                    meta.line().unwrap_or(0),
                 )
                 .ok();
             }

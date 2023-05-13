@@ -237,9 +237,9 @@ class Member:
     permission: int  # TODO: Enum
     """权限
 
-    - 0: 群员
-    - 1: 管理员
-    - 2: 群主
+    - 1: 群主
+    - 2: 管理员
+    - 3: 群员
     """
 
 _T = TypeVar("_T")
