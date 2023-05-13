@@ -93,30 +93,6 @@ where
     pyo3_asyncio::tokio::future_into_py(py, async move { future.await.map_err(|e| e.into()) })
 }
 
-/// 自动重试直到得到 `Ok(..)`。
-pub async fn py_retry<F, T, D>(
-    mut max_count: usize,
-    mut f: impl FnMut() -> F,
-    mut on_retry: impl FnMut(PyErr, usize) -> D,
-) -> PyResult<T>
-where
-    F: Future<Output = PyResult<T>>,
-    D: Future<Output = ()>,
-{
-    loop {
-        match f().await {
-            Ok(t) => return Ok(t),
-            Err(e) => {
-                if max_count == 0 {
-                    return Err(e);
-                }
-                max_count -= 1;
-                on_retry(e, max_count).await;
-            }
-        }
-    }
-}
-
 pub fn py_try<F, R>(f: F) -> PyResult<R>
 where
     F: for<'py> FnOnce(Python<'py>) -> PyResult<R>,

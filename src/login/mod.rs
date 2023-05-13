@@ -247,52 +247,64 @@ pub async fn reconnect(
     client: &Arc<Client>,
     token_rw: &TokenRW,
 ) -> PyResult<Option<JoinHandle<()>>> {
+    use std::time::Duration;
+
+    use backon::{ExponentialBuilder, Retryable as _};
+
     let uin = client.uin().await;
 
-    crate::utils::py_retry(
-        10,
-        || async {
-            // 如果不是网络原因掉线，不重连（服务端强制下线/被踢下线/用户手动停止）
-            if client.get_status() != (NetworkStatus::NetworkOffline as u8) {
-                tracing::warn!("账号 {} 因非网络原因下线，不再重连", uin);
-                return Ok(None);
+    let retry_builder = ExponentialBuilder::default()
+        .with_factor(1.2)
+        .with_min_delay(Duration::from_secs(3))
+        .with_max_delay(Duration::from_secs(60))
+        .with_max_times(usize::MAX);
+    let retry_closure = || async {
+        // 如果不是网络原因掉线，不重连（服务端强制下线/被踢下线/用户手动停止）
+        if client.get_status() != (NetworkStatus::NetworkOffline as u8) {
+            tracing::warn!("账号 {} 因非网络原因下线，不再重连", uin);
+            return Ok(None);
+        }
+        client.stop(NetworkStatus::NetworkOffline);
+
+        let alive = tokio::spawn({
+            let client = client.clone();
+            // 连接最快的服务器
+            let stream = IchikaConnector.connect(&client).await?;
+
+            #[allow(
+                clippy::redundant_async_block,
+                reason = "FP: rust-lang/rust-clippy#10482"
+            )]
+            async move {
+                client.start(stream).await;
             }
+        });
+        tokio::task::yield_now().await; // 等一下，确保连上了
+
+        // 启动接收后，再发送登录请求，否则报错 NetworkError
+        if !token_rw.try_login(client).await? {
             client.stop(NetworkStatus::NetworkOffline);
+            return Err(ricq_core::error::RQError::Network).py_res();
+        }
 
-            tracing::error!("账号 {} 连接中断，将在 3 秒后重连", uin);
-            tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+        after_login(client).await?;
 
-            let alive = tokio::spawn({
-                let client = client.clone();
-                // 连接最快的服务器
-                let stream = IchikaConnector.connect(&client).await?;
-
-                #[allow(
-                    clippy::redundant_async_block,
-                    reason = "FP: rust-lang/rust-clippy#10482"
-                )]
-                async move {
-                    client.start(stream).await;
-                }
-            });
-            tokio::task::yield_now().await; // 等一下，确保连上了
-
-            // 启动接收后，再发送登录请求，否则报错 NetworkError
-            if !token_rw.try_login(client).await? {
-                client.stop(NetworkStatus::NetworkOffline);
-                return Err(ricq_core::error::RQError::Network).py_res();
-            }
-
-            after_login(client).await?;
-
-            tracing::info!("客户端重连成功");
-            Ok(Some(alive))
-        },
-        |e, c| async move {
-            tracing::error!("客户端重连失败，原因：{}，剩余尝试 {} 次", e, c);
-        },
-    )
-    .await
+        tracing::info!("客户端重连成功");
+        Ok(Some(alive))
+    };
+    let retry_closure = || async move { retry_closure().await.map_err(|e| (uin, e)) };
+    retry_closure
+        .retry(&retry_builder)
+        .notify(|e, dur: Duration| {
+            tracing::error!(
+                "客户端 {} 重连失败，原因：{}，将在 {:.2} 秒后重试",
+                e.0,
+                e.1,
+                dur.as_secs_f64()
+            );
+        })
+        .await
+        .map_err(|e| e.1)
 }
 
 async fn make_password_login_req(
