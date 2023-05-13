@@ -11,17 +11,6 @@ env:
   RELEASE: ${{ github.event_name == 'workflow_dispatch' }}
 
 jobs:
-  cocogitto:
-    name: "Cocogitto: Check Conventional Commits"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - name: Conventional commits check
-        uses: oknozor/cocogitto-action@v2
-
   lint-python:
     name: Lint Python
     runs-on: ubuntu-latest
@@ -40,6 +29,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - name: Install Rust nightly
         uses: dtolnay/rust-toolchain@nightly
         with:
@@ -54,6 +45,11 @@ jobs:
 
       - name: Run cargo clippy
         run: cargo clippy -- -D warnings
+
+      - name: "Cocogitto: Check Conventional Commit"
+        run: |
+          cargo install --locked cocogitto
+          cog check
 
   build-docs:
     name: Build Documentation
@@ -146,7 +142,7 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'workflow_dispatch' }}
-    needs: [cocogitto, lint-python, lint-rust, build, build-docs]
+    needs: [lint-python, lint-rust, build, build-docs]
     permissions:
       id-token: write
     steps:
