@@ -143,8 +143,7 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'workflow_dispatch' }}
     needs: [lint-python, lint-rust, build, build-docs]
-    permissions:
-      id-token: write
+    permissions: write-all
     steps:
       - uses: actions/checkout@v3
       - uses: pdm-project/setup-pdm@v3
