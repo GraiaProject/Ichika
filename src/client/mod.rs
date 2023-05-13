@@ -26,7 +26,7 @@ use crate::message::convert::{
     serialize_forward,
 };
 use crate::message::elements::SealedAudio;
-use crate::utils::{py_future, py_none, py_try, py_use, AsPython};
+use crate::utils::{py_future, py_none, py_try, py_use, to_py_gender, to_py_permission, AsPython};
 
 #[pyclass(subclass, weakref, module = "ichika.core")]
 pub struct PlumbingClient {
@@ -121,7 +121,7 @@ impl PlumbingClient {
             Ok(AccountInfo {
                 nickname: info.nickname.clone(),
                 age: info.age,
-                gender: info.gender,
+                gender: to_py_gender(info.gender),
             })
         })
     }
@@ -324,7 +324,7 @@ impl PlumbingClient {
             let mut admin_list: Vec<Member> = vec![];
             for (member_uin, perm) in admins.iter() {
                 let mut member = cache.fetch_member(uin, *member_uin).await?;
-                if member.permission != (perm.clone() as u8) {
+                if !member.permission.is(&to_py_permission(perm.clone())) {
                     cache.flush_member(uin, *member_uin).await;
                     member = cache.fetch_member(uin, *member_uin).await?;
                 }

@@ -4,6 +4,7 @@ from typing import Awaitable, Literal, Protocol, Sequence, TypeVar, type_check_o
 from typing_extensions import Any, TypeAlias
 
 from ichika.message.elements import MusicShare
+from ichika.structs import Gender, GroupPermission
 
 from . import event_defs as event_defs
 from .client import Client, HttpClientProto
@@ -12,7 +13,7 @@ from .login import (
     PasswordLoginCallbacks,
     QRCodeLoginCallbacks,
 )
-from .message._sealed import SealedAudio as _SealedAudio
+from .message._sealed import SealedAudio
 
 __version__: str
 __build__: Any
@@ -78,7 +79,7 @@ class AccountInfo:
     """机器人昵称"""
     age: int
     """机器人年龄"""
-    gender: int  # TODO: note
+    gender: Gender
     """机器人标注的性别"""
 
 @_internal_repr
@@ -161,13 +162,8 @@ class Profile:
 
     uin: int
     """账号"""
-    sex: int
-    """性别
-
-    - 0: 男
-    - 1: 女
-    - 2: 未知
-    """
+    gender: Gender
+    """性别"""
     age: int
     """年龄"""
     nickname: str
@@ -216,7 +212,7 @@ class Member:
     """群号"""
     uin: int
     """账号"""
-    gender: int
+    gender: Gender
     """性别"""
     nickname: str
     """昵称"""
@@ -234,13 +230,8 @@ class Member:
     """特殊头衔过期时间"""
     mute_timestamp: int
     """禁言时间戳"""
-    permission: int  # TODO: Enum
-    """权限
-
-    - 1: 群主
-    - 2: 管理员
-    - 3: 群员
-    """
+    permission: GroupPermission
+    """权限"""
 
 _T = TypeVar("_T")
 
@@ -556,14 +547,14 @@ class PlumbingClient:
         :param data: 语音数据
         :return: 上传结果
         """
-    async def send_friend_audio(self, uin: int, audio: _SealedAudio) -> RawMessageReceipt:
+    async def send_friend_audio(self, uin: int, audio: SealedAudio) -> RawMessageReceipt:
         """发送好友语音。
 
         :param uin: QQ 号
         :param audio: 语音数据
         :return: 发送结果
         """
-    async def send_group_audio(self, uin: int, audio: _SealedAudio) -> RawMessageReceipt:
+    async def send_group_audio(self, uin: int, audio: SealedAudio) -> RawMessageReceipt:
         """发送群语音。
 
         :param uin: QQ 号

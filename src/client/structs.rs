@@ -9,13 +9,13 @@ use ricq_core::command::friendlist::FriendListResponse;
 use ricq_core::command::oidb_svc::OcrResponse;
 use ricq_core::structs::SummaryCardInfo;
 
-use crate::utils::{datetime_from_ts, py_try, py_use};
+use crate::utils::{datetime_from_ts, py_try, py_use, to_py_gender, to_py_permission};
 #[pyclass(get_all, module = "ichika.core")]
 #[derive(PyRepr, Clone)]
 pub struct AccountInfo {
     pub nickname: String,
     pub age: u8,
-    pub gender: u8,
+    pub gender: PyObject,
 }
 
 #[pyclass(get_all, module = "ichika.core")]
@@ -126,10 +126,10 @@ impl From<OcrResponse> for OCRResult {
 }
 
 #[pyclass(get_all, module = "ichika.core")]
-#[derive(PyRepr, Default, Clone)]
+#[derive(PyRepr, Clone)]
 pub struct Profile {
     pub uin: i64,
-    pub sex: u8,
+    pub gender: PyObject,
     pub age: u8,
     pub nickname: String,
     pub level: i32,
@@ -153,7 +153,7 @@ impl From<SummaryCardInfo> for Profile {
         } = value;
         Self {
             uin,
-            sex,
+            gender: to_py_gender(sex),
             age,
             nickname,
             level,
@@ -221,7 +221,7 @@ impl From<GroupInfo> for Group {
 pub struct Member {
     pub group_uin: i64,
     pub uin: i64,
-    pub gender: u8,
+    pub gender: PyObject,
     pub nickname: String,
     pub raw_card_name: String,
     pub level: u16,
@@ -230,7 +230,7 @@ pub struct Member {
     pub special_title: String,
     pub special_title_expire_time: i64,
     pub mute_timestamp: i64,
-    pub permission: u8,
+    pub permission: PyObject,
 }
 
 impl From<GroupMemberInfo> for Member {
@@ -253,7 +253,7 @@ impl From<GroupMemberInfo> for Member {
         Self {
             group_uin: group_code,
             uin,
-            gender,
+            gender: to_py_gender(gender),
             nickname,
             raw_card_name: card_name,
             level,
@@ -262,7 +262,7 @@ impl From<GroupMemberInfo> for Member {
             special_title,
             special_title_expire_time,
             mute_timestamp: shut_up_timestamp,
-            permission: permission as u8,
+            permission: to_py_permission(permission),
         }
     }
 }

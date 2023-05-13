@@ -197,6 +197,39 @@ static_py_fn!(
     ["CLIENT_REFS"]
 );
 
+static_py_fn!(
+    _to_py_gender,
+    __PY_GENDER_ENUM_CELL,
+    "ichika.structs",
+    ["Gender"]
+);
+
+pub fn to_py_gender(gender: u8) -> PyObject {
+    let gender_str = match gender {
+        0 => "Male",
+        1 => "Female",
+        _ => "Unknown",
+    };
+    py_use(|py| _to_py_gender(py).call1((gender_str,)).unwrap().into_py(py))
+}
+
+static_py_fn!(
+    _to_py_perm,
+    __PY_GROUP_PERMISSION_CELL,
+    "ichika.structs",
+    ["GroupPermission"]
+);
+
+pub fn to_py_permission(perm: ricq_core::structs::GroupMemberPermission) -> PyObject {
+    use ricq_core::structs::GroupMemberPermission as Perm;
+    let perm_str = match perm {
+        Perm::Owner => "Owner",
+        Perm::Administrator => "Admin",
+        Perm::Member => "Member",
+    };
+    py_use(|py| _to_py_perm(py).call1((perm_str,)).unwrap().into_py(py))
+}
+
 #[macro_export]
 macro_rules! dict_obj {
     {$py:ident ! $($key:ident : $val:expr),* $(,)?} => {
