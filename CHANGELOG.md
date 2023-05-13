@@ -7,6 +7,44 @@
 
 <!-- towncrier release notes start -->
 
+## [0.0.6](https://github.com/BlueGlassBlock/ichika/tree/0.0.6) - 2023-05-13
+
+你可以在 [PyPI](https://pypi.org/project/ichika/0.0.6/) 找到该版本。
+
+### 新增
+
+- 使用 [`backon`](https://docs.rs/backon) 提供自动重试。 ([#55](https://github.com/BlueGlassBlock/ichika/issues/55))
+- `Member.card_name` 现在表示合并后的名片。原始名片存储于 `Member.raw_card_name` 中。 ([#56](https://github.com/BlueGlassBlock/ichika/issues/56))
+- 支持处理群名更新事件。
+- 添加 `Client.get_profile` 以获取用户公开资料。
+- 添加了获取群员列表的方法。
+
+
+### 更改
+
+- 优化了首次登录即失败以及退出时掉线的逻辑。 ([#57](https://github.com/BlueGlassBlock/ichika/issues/57))
+- `Client.get_group_admins` 的返回类型更改为 `list[Member]`。 ([#65](https://github.com/BlueGlassBlock/ichika/issues/65))
+- 使用 `Enum` 表示性别和权限。 ([#68](https://github.com/BlueGlassBlock/ichika/issues/68))
+- 使用 `Literal` 标注了可用密码登录的协议列表。
+- 更改了 Rust 侧日志的显示风格。
+- 现在自动重连将采取最小 3s，最大 60s，每次增长 1.2 倍的间隔时间，并不再主动停止重试。
+- 现在要使用刷新缓存的 API 应传入 `cache = False` 而不是调用 `get_xxx_raw` 方法。
+- 设定每个账号的群员和群的缓存大小为 1024。
+- 重命名 `ichika.core.Profile.sex` 为 `ichika.core.Profile.gender`。
+- 默认限制使用 4 个线程进行操作。你可以通过 `ICHIKA_RUNTIME_THREAD_COUNT` 环境变量来修改这个限制。
+
+
+### 修复
+
+- 修复了事件无法正确在 Union 中分发的 bug。 ([#58](https://github.com/BlueGlassBlock/ichika/issues/58))
+- 修复 `At` 的 `target` 属性发送时被忽略的问题。 ([#59](https://github.com/BlueGlassBlock/ichika/issues/59))
+- 修复了 `GroupMute` 在 Rust 端提供参数名不吻合的问题。 ([#60](https://github.com/BlueGlassBlock/ichika/issues/60))
+- 修复了 `IchikaComponent` 在 cleanup 阶段分发事件导致的错误。 ([#61](https://github.com/BlueGlassBlock/ichika/issues/61))
+- 客户端注册失败现在会直接报错。 ([#67](https://github.com/BlueGlassBlock/ichika/issues/67))
+- 修复了因网络原因掉线时，无法多次重试的问题。 ([#69](https://github.com/BlueGlassBlock/ichika/issues/69))
+- 修复了事件的属性无法被类型检查器正常识别的问题。
+
+
 ## [0.0.5](https://github.com/BlueGlassBlock/ichika/tree/0.0.5) - 2023-05-03
 
 你可以在 [PyPI](https://pypi.org/project/ichika/0.0.5/) 找到该版本。
