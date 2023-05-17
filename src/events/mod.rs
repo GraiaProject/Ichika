@@ -4,6 +4,8 @@ use pyo3::prelude::*;
 use pyo3::types::*;
 use pyo3_asyncio::{into_future_with_locals, TaskLocals};
 use pyo3_repr::PyRepr;
+use ricq::client::event::DisconnectReason;
+use ricq::client::NetworkStatus;
 use ricq::handler::{Handler, QEvent};
 
 pub mod converter;
@@ -58,6 +60,29 @@ impl PyHandler {
 impl Handler for PyHandler {
     async fn handle(&self, event: QEvent) {
         let event_repr = format!("{event:?}");
+        if let QEvent::ClientDisconnect(e) = event {
+            match e.inner {
+                DisconnectReason::Network => {
+                    tracing::error!("网络错误, 尝试重连");
+                }
+                DisconnectReason::Actively(net) => match net {
+                    NetworkStatus::Drop => {
+                        tracing::error!("意料之外的内存释放");
+                    }
+                    NetworkStatus::NetworkOffline => {
+                        tracing::error!("网络离线, 尝试重连");
+                    }
+                    NetworkStatus::KickedOffline => {
+                        tracing::error!("其他设备登录, 被踢下线");
+                    }
+                    NetworkStatus::MsfOffline => {
+                        tracing::error!("服务器强制下线");
+                    }
+                    _ => {}
+                },
+            }
+            return;
+        }
         let py_event = match self::converter::convert(event).await {
             Ok(obj) => obj,
             Err(e) => {

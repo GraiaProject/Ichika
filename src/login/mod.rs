@@ -22,7 +22,7 @@ use ricq::{
 use tokio::task::JoinHandle;
 
 use crate::events::PyHandler;
-use crate::exc::MapPyErr;
+use crate::exc::{MapPyErr, RICQError};
 use crate::utils::{partial, py_bytes, py_client_refs, py_future, py_try, py_use};
 use crate::{exc, import_call, PyRet};
 
@@ -582,10 +582,27 @@ async fn qrcode_login_process(
                 let qrcode_data = parse_qrcode(image_data)?;
                 invoke_cb(locals, &handle_getter, "DisplayQRCode", (qrcode_data,)).await?;
             }
-            QRCodeState::Confirmed(ricq::QRCodeConfirmed { uin, .. }) => {
+            QRCodeState::Confirmed(ricq::QRCodeConfirmed {
+                uin,
+                ref tmp_pwd,
+                ref tmp_no_pic_sig,
+                ref tgt_qr,
+                ..
+            }) => {
                 if uin == decl_uin {
-                    invoke_cb(locals, &handle_getter, "Success", (uin,)).await?;
-                    break;
+                    let mut login_resp = client
+                        .qrcode_login(tmp_pwd, tmp_no_pic_sig, tgt_qr)
+                        .await
+                        .py_res()?;
+                    if matches!(login_resp, LoginResponse::DeviceLockLogin(_)) {
+                        tracing::info!("账号 {} 尝试设备锁登录", uin);
+                        login_resp = client.device_lock_login().await.py_res()?;
+                    }
+                    if matches!(login_resp, LoginResponse::Success(_)) {
+                        invoke_cb(locals, &handle_getter, "Success", (uin,)).await?;
+                        break;
+                    }
+                    Err(RICQError::new_err(format!("登录失败: {login_resp:?}")))?;
                 }
                 invoke_cb(locals, &handle_getter, "UINMismatch", (decl_uin, uin)).await?;
                 resp = client.fetch_qrcode().await.py_res()?;

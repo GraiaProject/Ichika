@@ -35,7 +35,13 @@ class BaseLoginCredentialStore:
 class PathCredentialStore(BaseLoginCredentialStore):
     """可以给所有账号共享的，基于路径的凭据存储器"""
 
-    def __init__(self, path: Union[str, os.PathLike[str]]) -> None:
+    def __init__(self, path: Union[str, os.PathLike[str]], device_name: str = "ricq_device.json") -> None:
+        """初始化
+
+        :param path: 存储路径
+        :param device_name: 设备信息文件名，可以使用 `{protocol}` 占位符，注意其为 PascalCase 格式
+        """
+        self.device_name = device_name
         self.path = Path(path)
         self.path.mkdir(parents=True, exist_ok=True)
 
@@ -45,7 +51,7 @@ class PathCredentialStore(BaseLoginCredentialStore):
         return path
 
     def get_device(self, uin: int, protocol: str) -> dict:
-        ricq_device = self.uin_path(uin) / "ricq_device.json"
+        ricq_device = self.uin_path(uin) / self.device_name.format(protocol=protocol)
         if ricq_device.exists():
             log.info("发现 `ricq_device.json`, 读取")
             return json.loads(ricq_device.read_text("utf-8"))
