@@ -125,6 +125,6 @@ dev = [
     "graiax-shortcut>=0.2.1",
 ]
 [tool.pdm.scripts]
-develop.cmd = "maturin develop"
+develop= {cmd = "pdm install -v", env = {MATURIN_PEP517_ARGS = "--profile dev"}}
 build-docs.cmd = "mkdocs build"
 view-docs.cmd = "mkdocs serve"

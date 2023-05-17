@@ -44,7 +44,7 @@ pub(crate) mod t544 {
     impl NativeT544Provider {
         async fn new(client: &Client) -> Self {
             let uin = client.uin().await;
-            let guid = client.device().await.guid();
+            let guid = client.engine.read().await.transport.sig.guid.clone();
             let version = client.version().await.sdk_version;
 
             Self {
