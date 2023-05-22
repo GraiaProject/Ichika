@@ -200,7 +200,7 @@ class ForwardCard(Element):
     file_name: str
     """转发卡片的子文件名"""
     content: str
-    """转发卡片的内容"""
+    """转发卡片的原始内容，可以为 XML 或 JSON 格式 (Android 8.9.50+?)"""
 
     def __str__(self) -> str:
         return "[合并转发]"
@@ -482,19 +482,25 @@ def _light_app_deserializer(**data) -> Element:
     from contextlib import suppress
 
     with suppress(ValueError, KeyError):
+        app_data = json.loads(data["content"])
+        if app_data["app"] == "com.tencent.multimsg":
+            res_id = app_data["meta"]["resid"]
+            extra = json.loads(app_data["extra"])
+            return ForwardCard(res_id=res_id, file_name=extra["filename"], content=data["content"])
+
         # MusicShare resolver
         # https://github.com/mamoe/mirai/blob/893fb3e9f653623056f9c4bff73b4dac957cd2a2/mirai-core/src/commonMain/kotlin/message/data/lightApp.kt
-        app_data = json.loads(data["content"])
-        music_info = app_data["meta"]["music"]
-        return MusicShare(
-            kind=__MUSIC_SHARE_APPID_MAP[app_data["extra"]["appid"]],
-            title=music_info["title"],
-            summary=music_info["desc"],
-            jump_url=music_info["jumpUrl"],
-            picture_url=music_info["preview"],
-            music_url=music_info["musicUrl"],
-            brief=data["prompt"],
-        )
+        if "music" in app_data["meta"]:
+            music_info = app_data["meta"]["music"]
+            return MusicShare(
+                kind=__MUSIC_SHARE_APPID_MAP[app_data["extra"]["appid"]],
+                title=music_info["title"],
+                summary=music_info["desc"],
+                jump_url=music_info["jumpUrl"],
+                picture_url=music_info["preview"],
+                music_url=music_info["musicUrl"],
+                brief=data["prompt"],
+            )
 
     return LightApp(content=data["content"])
 
