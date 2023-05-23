@@ -7,6 +7,21 @@
 
 <!-- towncrier release notes start -->
 
+## [0.0.7](https://github.com/BlueGlassBlock/ichika/tree/0.0.7) - 2023-05-23
+
+你可以在 [PyPI](https://pypi.org/project/ichika/0.0.7/) 找到该版本。
+
+### 新增
+
+- 支持解析 `LightApp` 格式的转发消息。[mamoe/mirai#2618](https://github.com/mamoe/mirai/issues/2618)
+
+
+### 修复
+
+- 修复了事件在 `Union` 中无法正常获取的问题。
+- 修复了扫码登录的逻辑。
+
+
 ## [0.0.6](https://github.com/BlueGlassBlock/ichika/tree/0.0.6) - 2023-05-13
 
 你可以在 [PyPI](https://pypi.org/project/ichika/0.0.6/) 找到该版本。
