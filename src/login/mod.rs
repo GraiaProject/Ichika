@@ -199,7 +199,7 @@ fn parse_login_args<'py>(
     store: &'py PyAny,
     queues: &'py PyList,
 ) -> PyResult<(Version, PyHandler, Device, TokenRW, TaskLocals)> {
-    let task_locals = TaskLocals::with_running_loop(py)?; // Necessary since retrieving task locals at handling time is already insufficient
+    let task_locals = TaskLocals::with_running_loop(py)?.copy_context(py)?; // Necessary since retrieving task locals at handling time is already insufficient
     let handler = PyHandler::new(queues.into_py(py), task_locals.clone(), uin);
 
     let get_token = partial(py).call1((store.getattr("get_token")?, uin, &protocol))?;
