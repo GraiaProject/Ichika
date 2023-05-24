@@ -7,6 +7,27 @@
 
 <!-- towncrier release notes start -->
 
+## [0.0.8](https://github.com/BlueGlassBlock/ichika/tree/0.0.8) - 2023-05-24
+
+你可以在 [PyPI](https://pypi.org/project/ichika/0.0.8/) 找到该版本。
+
+### 新增
+
+- 增加了 `At.build` 方法。
+- 增加了 `ForwardMessage.build` 方法以方便构建转发消息。
+
+
+### 更改
+
+- `Client` 中好友和群组的部分 API 支持直接传入 `Friend` 和 `Group` 对象。
+- `Client` 的消息发送方法支持更多样的类型，包括单个字符串/元素/元素列表等。
+
+
+### 修复
+
+- 修复了调用 `put` 回调时 Python 异步上下文丢失的问题。
+
+
 ## [0.0.7](https://github.com/BlueGlassBlock/ichika/tree/0.0.7) - 2023-05-23
 
 你可以在 [PyPI](https://pypi.org/project/ichika/0.0.7/) 找到该版本。
