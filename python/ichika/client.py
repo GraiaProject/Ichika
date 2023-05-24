@@ -1,12 +1,12 @@
 """基于 `ichika.core.PlumbingClient` 封装的高层 API"""
 from __future__ import annotations
 
-from typing import Any, Awaitable, Callable, Literal, Protocol
+from typing import Any, Awaitable, Callable, Iterable, Literal, Protocol
 from weakref import WeakValueDictionary
 
 from graia.amnesia.message import Element, MessageChain
 
-from .core import PlumbingClient, RawMessageReceipt
+from .core import Friend, Group, PlumbingClient, RawMessageReceipt
 from .message import _serialize_message as _serialize_msg
 from .message.elements import (
     At,
@@ -41,54 +41,67 @@ class HttpClientProto(Protocol):
         ...
 
 
+def _uin(obj: Friend | Group | int) -> int:
+    return obj if isinstance(obj, int) else obj.uin
+
+
+def _chain_coerce(msg: str | Element | MessageChain | Iterable[str | Element]) -> MessageChain:
+    if isinstance(msg, MessageChain):
+        return msg
+    if isinstance(msg, (str, Element)):
+        msg = [msg]
+    if isinstance(msg, Iterable):
+        return MessageChain([Text(e) if isinstance(e, str) else e for e in msg])
+
+
 class Client(PlumbingClient):
     """基于 [`PlumbingClient`][ichika.core.PlumbingClient] 封装的高层 API"""
 
-    async def upload_friend_image(self, uin: int, data: bytes) -> Image:
+    async def upload_friend_image(self, friend: int | Friend, data: bytes) -> Image:
         """上传好友图片
 
-        :param uin: 好友 QQ 号
+        :param friend: 好友 QQ 号或好友对象
         :param data: 图片数据
 
         :return: 图片元素
         """
-        image_dict = await super().upload_friend_image(uin, data)
+        image_dict = await super().upload_friend_image(_uin(friend), data)
         image_dict.pop("type")
         return Image(**image_dict)
 
-    async def upload_friend_audio(self, uin: int, data: bytes) -> Audio:
+    async def upload_friend_audio(self, friend: int | Friend, data: bytes) -> Audio:
         """上传好友语音
 
-        :param uin: 好友 QQ 号
+        :param friend: 好友 QQ 号或好友对象
         :param data: 语音数据，应为 SILK/AMR 编码的音频数据
 
         :return: 语音元素
         """
-        audio_dict = await super().upload_friend_audio(uin, data)
+        audio_dict = await super().upload_friend_audio(_uin(friend), data)
         audio_dict.pop("type")
         return Audio(**audio_dict)
 
-    async def upload_group_image(self, uin: int, data: bytes) -> Image:
+    async def upload_group_image(self, group: int | Group, data: bytes) -> Image:
         """上传群图片
 
-        :param uin: 群号
+        :param group: 群号或群对象
         :param data: 图片数据
 
         :return: 图片元素
         """
-        image_dict = await super().upload_group_image(uin, data)
+        image_dict = await super().upload_group_image(_uin(group), data)
         image_dict.pop("type")
         return Image(**image_dict)
 
-    async def upload_group_audio(self, uin: int, data: bytes) -> Audio:
+    async def upload_group_audio(self, group: int | Group, data: bytes) -> Audio:
         """上传群语音
 
-        :param uin: 群号
+        :param group: 群号或群对象
         :param data: 语音数据，应为 SILK/AMR 编码的音频数据
 
         :return: 语音元素
         """
-        audio_dict = await super().upload_group_audio(uin, data)
+        audio_dict = await super().upload_group_audio(_uin(group), data)
         audio_dict.pop("type")
         return Audio(**audio_dict)
 
@@ -149,16 +162,16 @@ class Client(PlumbingClient):
             data["content"] = [await self._prepare_forward(uin, f) for f in fwd.content]
         return data
 
-    async def upload_forward_msg(self, group_uin: int, msgs: list[ForwardMessage]) -> ForwardCard:
+    async def upload_forward_msg(self, group: int | Group, msgs: list[ForwardMessage]) -> ForwardCard:
         """上传合并转发消息
 
-        :param group_uin: 用于标记的原始群号
+        :param group: 用于标记的原始群号或群对象
         :param msgs: 转发消息列表
 
         :return: 转发卡片元素
         """
         res_id, file_name, content = await super().upload_forward_msg(
-            group_uin, [await self._prepare_forward(group_uin, msg) for msg in msgs]
+            _uin(group), [await self._prepare_forward(_uin(group), msg) for msg in msgs]
         )
         return ForwardCard(res_id, file_name, content)
 
@@ -178,28 +191,36 @@ class Client(PlumbingClient):
 
         raise TypeError(f"无法发送元素: {element!r}")
 
-    async def send_group_message(self, uin: int, chain: MessageChain) -> RawMessageReceipt:
+    async def send_group_message(
+        self, group: int | Group, chain: str | Element | MessageChain | Iterable[str | Element]
+    ) -> RawMessageReceipt:
         """发送群消息
 
-        :param uin: 群号
+        :param group: 群号或群对象
         :param chain: 消息链
 
         :return: 消息发送凭据，可用于撤回
         """
+        uin: int = _uin(group)
+        chain = _chain_coerce(chain)
         if isinstance(validated := self._validate_chain(chain), Element):
             return await self._send_special_element(uin, "group", validated)
         for idx, elem in enumerate(chain):
             chain.content[idx] = await self._validate_mm(uin, elem, self.upload_group_image)
         return await super().send_group_message(uin, _serialize_msg(chain))
 
-    async def send_friend_message(self, uin: int, chain: MessageChain) -> RawMessageReceipt:
+    async def send_friend_message(
+        self, friend: int | Friend, chain: str | Element | MessageChain | Iterable[str | Element]
+    ) -> RawMessageReceipt:
         """发送好友消息
 
-        :param uin: 好友 QQ 号
+        :param friend: 好友 QQ 号或好友对象
         :param chain: 消息链
 
         :return: 消息发送凭据，可用于撤回
         """
+        uin: int = _uin(friend)
+        chain = _chain_coerce(chain)
         if isinstance(validated := self._validate_chain(chain), Element):
             return await self._send_special_element(uin, "friend", validated)
         for idx, elem in enumerate(chain):

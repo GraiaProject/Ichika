@@ -53,6 +53,10 @@ class At(Element):
     def __str__(self) -> str:
         return self.display or f"@{self.target}"
 
+    @classmethod
+    def build(cls, obj: core.Member) -> At:
+        return cls(obj.uin, obj.card_name)
+
 
 @dataclass
 class AtAll(Element):
@@ -233,6 +237,10 @@ class ForwardMessage:
     """发送者昵称"""
     content: MessageChain | list[ForwardMessage]
     """消息内容"""
+
+    @classmethod
+    def build(cls, sender: core.Friend | core.Member, time: datetime, content: MessageChain) -> ForwardMessage:
+        return cls(sender.uin, time, sender.card_name if isinstance(sender, core.Member) else sender.nick, content)
 
 
 @dataclass
