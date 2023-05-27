@@ -243,7 +243,7 @@ class RawMessageReceipt:
     rand: int
     raw_seqs: VTuple[int]
     """消息 SEQ ID"""
-    rwa_rands: VTuple[int]
+    raw_rands: VTuple[int]
     """消息随机数"""
     time: int
     """发送时间戳"""
