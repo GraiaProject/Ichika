@@ -26,7 +26,6 @@ use crate::exc::{MapPyErr, RICQError};
 use crate::utils::{partial, py_bytes, py_client_refs, py_future, py_try, py_use};
 use crate::{exc, import_call, PyRet};
 
-#[cfg(feature = "t544")]
 pub(crate) mod t544 {
     use bytes::{BufMut, Bytes, BytesMut};
     use ricq::Client;
@@ -58,7 +57,7 @@ pub(crate) mod t544 {
     impl T544Provider for NativeT544Provider {
         fn t544(&self, command: String) -> Bytes {
             let mut salt = BytesMut::new();
-            let cmd = command.split("_").last().unwrap();
+            let cmd = command.split('_').last().unwrap();
             let cmd = u32::from_str_radix(cmd, 16).unwrap();
             match cmd {
                 2 | 7 => {
@@ -95,13 +94,9 @@ async fn prepare_client(
     app_ver: Version,
     handler: PyHandler,
 ) -> PyResult<(Arc<Client>, JoinHandle<()>)> {
-    #[allow(unused_mut)]
     let mut client = Client::new(device, app_ver, handler);
 
-    #[cfg(feature = "t544")]
-    {
-        t544::inject_t544(&mut client).await;
-    }
+    t544::inject_t544(&mut client).await;
 
     let client = Arc::new(client);
     let alive = tokio::spawn({

@@ -49,7 +49,7 @@ jobs:
       - name: "Cocogitto: Check Conventional Commit"
         run: |
           cargo install --locked cocogitto
-          cog check
+          cog check --ignore-merge-commits
 
   build-docs:
     name: Build Documentation

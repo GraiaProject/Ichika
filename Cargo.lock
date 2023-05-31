@@ -1795,6 +1795,7 @@ dependencies = [
 [[package]]
 name = "t544_enc"
 version = "0.1.0"
+source = "git+https://github.com/LaoLittle/t544_enc#7bff8f96e8d11186a8fc455efdf0d213151472f7"
 dependencies = [
  "md-5",
  "rand",
