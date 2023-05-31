@@ -40,7 +40,7 @@ pythonize = "0.18"
 pyo3-repr = { version = "0.1.0", path = "pyo3-repr" }
 once_cell = "1.17.2"
 lru_time_cache = "0.11.11"
-backon = "0.4.0"
+backon = "0.4.1"
 t544_enc = { git = "https://github.com/LaoLittle/t544_enc" }
 
 [patch.crates-io]
