@@ -1840,7 +1840,7 @@ dependencies = [
 [[package]]
 name = "t544_enc"
 version = "0.1.0"
-source = "git+https://github.com/LaoLittle/t544_enc#7749b764fed0721c791be5766dbb056a51768420"
+source = "git+https://github.com/LaoLittle/t544_enc#73dc9bd2255470d54cffcd6a7fe544bb95289182"
 dependencies = [
  "jni",
  "md-5",
