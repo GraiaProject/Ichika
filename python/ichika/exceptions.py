@@ -8,3 +8,7 @@ class LoginError(IchikaError, ValueError):
 
 class RICQError(IchikaError, RuntimeError):
     """由 RICQ 引发的运行时异常"""
+
+
+class MessageSendFailed(IchikaError):
+    """消息发送失败引发的异常"""

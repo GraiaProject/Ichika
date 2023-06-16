@@ -5,6 +5,7 @@ from typing import Any, Awaitable, Callable, Iterable, Literal, Protocol
 from weakref import WeakValueDictionary
 
 from graia.amnesia.message import Element, MessageChain
+from python.ichika.exceptions import MessageSendFailed
 
 from .core import Friend, Group, PlumbingClient, RawMessageReceipt
 from .message import _serialize_message as _serialize_msg
@@ -207,7 +208,10 @@ class Client(PlumbingClient):
             return await self._send_special_element(uin, "group", validated)
         for idx, elem in enumerate(chain):
             chain.content[idx] = await self._validate_mm(uin, elem, self.upload_group_image)
-        return await super().send_group_message(uin, _serialize_msg(chain))
+        receipt = await super().send_group_message(uin, _serialize_msg(chain))
+        if receipt.seq == 0:
+            raise MessageSendFailed(f"failed on group {uin}, unexcepted zero seq")
+        return receipt
 
     async def send_friend_message(
         self, friend: int | Friend, chain: str | Element | MessageChain | Iterable[str | Element]
@@ -225,7 +229,11 @@ class Client(PlumbingClient):
             return await self._send_special_element(uin, "friend", validated)
         for idx, elem in enumerate(chain):
             chain.content[idx] = await self._validate_mm(uin, elem, self.upload_friend_image)
-        return await super().send_friend_message(uin, _serialize_msg(chain))
+        receipt = await super().send_friend_message(uin, _serialize_msg(chain))
+        if receipt.seq == 0:
+            raise MessageSendFailed(f"failed on group {uin}, unexcepted zero seq")
+        return receipt
 
 
 CLIENT_REFS: WeakValueDictionary[int, Client] = WeakValueDictionary()
+
