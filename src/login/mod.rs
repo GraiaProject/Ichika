@@ -287,19 +287,17 @@ pub async fn reconnect(
         tracing::info!("客户端重连成功");
         Ok(Some(alive))
     };
-    let retry_closure = || async move { retry_closure().await.map_err(|e| (uin, e)) };
     retry_closure
         .retry(&retry_builder)
         .notify(|e, dur: Duration| {
             tracing::error!(
                 "客户端 {} 重连失败，原因：{}，将在 {:.2} 秒后重试",
-                e.0,
-                e.1,
+                uin,
+                e,
                 dur.as_secs_f64()
             );
         })
         .await
-        .map_err(|e| e.1)
 }
 
 async fn make_password_login_req(

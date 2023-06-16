@@ -7,7 +7,7 @@
 
 <!-- towncrier release notes start -->
 
-## [0.0.8](https://github.com/BlueGlassBlock/ichika/tree/0.0.8) - 2023-05-24
+## [0.0.8](https://github.com/GraiaProject/Ichika/tree/0.0.8) - 2023-05-24
 
 你可以在 [PyPI](https://pypi.org/project/ichika/0.0.8/) 找到该版本。
 
@@ -28,7 +28,7 @@
 - 修复了调用 `put` 回调时 Python 异步上下文丢失的问题。
 
 
-## [0.0.7](https://github.com/BlueGlassBlock/ichika/tree/0.0.7) - 2023-05-23
+## [0.0.7](https://github.com/GraiaProject/Ichika/tree/0.0.7) - 2023-05-23
 
 你可以在 [PyPI](https://pypi.org/project/ichika/0.0.7/) 找到该版本。
 
@@ -43,14 +43,14 @@
 - 修复了扫码登录的逻辑。
 
 
-## [0.0.6](https://github.com/BlueGlassBlock/ichika/tree/0.0.6) - 2023-05-13
+## [0.0.6](https://github.com/GraiaProject/Ichika/tree/0.0.6) - 2023-05-13
 
 你可以在 [PyPI](https://pypi.org/project/ichika/0.0.6/) 找到该版本。
 
 ### 新增
 
-- 使用 [`backon`](https://docs.rs/backon) 提供自动重试。 ([#55](https://github.com/BlueGlassBlock/ichika/issues/55))
-- `Member.card_name` 现在表示合并后的名片。原始名片存储于 `Member.raw_card_name` 中。 ([#56](https://github.com/BlueGlassBlock/ichika/issues/56))
+- 使用 [`backon`](https://docs.rs/backon) 提供自动重试。 ([#55](https://github.com/GraiaProject/Ichika/issues/55))
+- `Member.card_name` 现在表示合并后的名片。原始名片存储于 `Member.raw_card_name` 中。 ([#56](https://github.com/GraiaProject/Ichika/issues/56))
 - 支持处理群名更新事件。
 - 添加 `Client.get_profile` 以获取用户公开资料。
 - 添加了获取群员列表的方法。
@@ -58,9 +58,9 @@
 
 ### 更改
 
-- 优化了首次登录即失败以及退出时掉线的逻辑。 ([#57](https://github.com/BlueGlassBlock/ichika/issues/57))
-- `Client.get_group_admins` 的返回类型更改为 `list[Member]`。 ([#65](https://github.com/BlueGlassBlock/ichika/issues/65))
-- 使用 `Enum` 表示性别和权限。 ([#68](https://github.com/BlueGlassBlock/ichika/issues/68))
+- 优化了首次登录即失败以及退出时掉线的逻辑。 ([#57](https://github.com/GraiaProject/Ichika/issues/57))
+- `Client.get_group_admins` 的返回类型更改为 `list[Member]`。 ([#65](https://github.com/GraiaProject/Ichika/issues/65))
+- 使用 `Enum` 表示性别和权限。 ([#68](https://github.com/GraiaProject/Ichika/issues/68))
 - 使用 `Literal` 标注了可用密码登录的协议列表。
 - 更改了 Rust 侧日志的显示风格。
 - 现在自动重连将采取最小 3s，最大 60s，每次增长 1.2 倍的间隔时间，并不再主动停止重试。
@@ -72,16 +72,16 @@
 
 ### 修复
 
-- 修复了事件无法正确在 Union 中分发的 bug。 ([#58](https://github.com/BlueGlassBlock/ichika/issues/58))
-- 修复 `At` 的 `target` 属性发送时被忽略的问题。 ([#59](https://github.com/BlueGlassBlock/ichika/issues/59))
-- 修复了 `GroupMute` 在 Rust 端提供参数名不吻合的问题。 ([#60](https://github.com/BlueGlassBlock/ichika/issues/60))
-- 修复了 `IchikaComponent` 在 cleanup 阶段分发事件导致的错误。 ([#61](https://github.com/BlueGlassBlock/ichika/issues/61))
-- 客户端注册失败现在会直接报错。 ([#67](https://github.com/BlueGlassBlock/ichika/issues/67))
-- 修复了因网络原因掉线时，无法多次重试的问题。 ([#69](https://github.com/BlueGlassBlock/ichika/issues/69))
+- 修复了事件无法正确在 Union 中分发的 bug。 ([#58](https://github.com/GraiaProject/Ichika/issues/58))
+- 修复 `At` 的 `target` 属性发送时被忽略的问题。 ([#59](https://github.com/GraiaProject/Ichika/issues/59))
+- 修复了 `GroupMute` 在 Rust 端提供参数名不吻合的问题。 ([#60](https://github.com/GraiaProject/Ichika/issues/60))
+- 修复了 `IchikaComponent` 在 cleanup 阶段分发事件导致的错误。 ([#61](https://github.com/GraiaProject/Ichika/issues/61))
+- 客户端注册失败现在会直接报错。 ([#67](https://github.com/GraiaProject/Ichika/issues/67))
+- 修复了因网络原因掉线时，无法多次重试的问题。 ([#69](https://github.com/GraiaProject/Ichika/issues/69))
 - 修复了事件的属性无法被类型检查器正常识别的问题。
 
 
-## [0.0.5](https://github.com/BlueGlassBlock/ichika/tree/0.0.5) - 2023-05-03
+## [0.0.5](https://github.com/GraiaProject/Ichika/tree/0.0.5) - 2023-05-03
 
 你可以在 [PyPI](https://pypi.org/project/ichika/0.0.5/) 找到该版本。
 
@@ -107,9 +107,9 @@
 
 ### 更改
 
-- 使用异步登录回调。 ([#25](https://github.com/BlueGlassBlock/ichika/issues/25))
-- 群组事件的 `Group` 对象不再挂靠于 `MemberInfo`，而是存储于 `Group` 属性。 ([#29](https://github.com/BlueGlassBlock/ichika/issues/29))
-- 使用 `dict` 作为事件传递结构以方便其他框架绑定。 ([#34](https://github.com/BlueGlassBlock/ichika/issues/34))
+- 使用异步登录回调。 ([#25](https://github.com/GraiaProject/Ichika/issues/25))
+- 群组事件的 `Group` 对象不再挂靠于 `MemberInfo`，而是存储于 `Group` 属性。 ([#29](https://github.com/GraiaProject/Ichika/issues/29))
+- 使用 `dict` 作为事件传递结构以方便其他框架绑定。 ([#34](https://github.com/GraiaProject/Ichika/issues/34))
 - 使用 `str` 作为 `protocol` 值，并同步所有协议至最新版本。
 - 更改了构建信息的键名。
 
@@ -124,13 +124,13 @@
 - 升级 [`syn`](https://github.com/dtolnay/syn) 至 `2.x.x`。
 
 
-## [0.0.4](https://github.com/BlueGlassBlock/ichika/tree/0.0.4) - 2023-03-17
+## [0.0.4](https://github.com/GraiaProject/Ichika/tree/0.0.4) - 2023-03-17
 
 你可以在 [PyPI](https://pypi.org/project/ichika/0.0.4/) 找到该版本。
 
 ### 新增
 
-- 支持处理群聊和好友撤回消息事件 ([#22](https://github.com/BlueGlassBlock/ichika/issues/22))
+- 支持处理群聊和好友撤回消息事件 ([#22](https://github.com/GraiaProject/Ichika/issues/22))
 - 修复了消息元素的 `__repr__` 显示。
 - 支持好友和群组的拍一拍（双击头像触发）事件。
 
@@ -142,7 +142,7 @@
   `Queue.put` 的任务上下文会与 `ichika.login.xxx_login` 的调用者一致。
 
 
-## [0.0.3](https://github.com/BlueGlassBlock/ichika/tree/0.0.3) - 2023-03-16
+## [0.0.3](https://github.com/GraiaProject/Ichika/tree/0.0.3) - 2023-03-16
 
 你可以在 [PyPI](https://pypi.org/project/ichika/0.0.3/) 找到该版本。
 
@@ -178,4 +178,4 @@
 
 ### 其他
 
-- 使用 [`towncrier`](https://towncrier.readthedocs.io) 和 GitHub Release 来管理项目。 ([#18](https://github.com/BlueGlassBlock/ichika/issues/18))
+- 使用 [`towncrier`](https://towncrier.readthedocs.io) 和 GitHub Release 来管理项目。 ([#18](https://github.com/GraiaProject/Ichika/issues/18))

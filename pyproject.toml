@@ -62,8 +62,8 @@ filename = "CHANGELOG.md"
 start_string = "<!-- towncrier release notes start -->\n"
 underlines = ["", "", ""]
 template = "news/template.jinja"
-title_format = "## [{version}](https://github.com/BlueGlassBlock/ichika/tree/{version}) - {project_date}"
-issue_format = "([#{issue}](https://github.com/BlueGlassBlock/ichika/issues/{issue}))"
+title_format = "## [{version}](https://github.com/GraiaProject/Ichika/tree/{version}) - {project_date}"
+issue_format = "([#{issue}](https://github.com/GraiaProject/Ichika/issues/{issue}))"
 
 [[tool.towncrier.type]]
 directory = "removed"

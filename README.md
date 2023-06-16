@@ -3,7 +3,7 @@
 # Ichika
 
 
-[![PyPI](https://img.shields.io/pypi/v/ichika)](https://github.com/BlueGlassBlock/ichika/blob/master/CHANGELOG.md)
+[![PyPI](https://img.shields.io/pypi/v/ichika)](https://github.com/GraiaProject/Ichika/blob/master/CHANGELOG.md)
 [![Python Version](https://img.shields.io/pypi/pyversions/ichika)](https://pypi.org/project/ichika)
 [![License](https://img.shields.io/github/license/BlueGlassBlock/Ichika)](https://github.com/BlueGlassBlock/Ichika/blob/master/LICENSE)
 
