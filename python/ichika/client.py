@@ -5,7 +5,7 @@ from typing import Any, Awaitable, Callable, Iterable, Literal, Protocol
 from weakref import WeakValueDictionary
 
 from graia.amnesia.message import Element, MessageChain
-from python.ichika.exceptions import MessageSendFailed
+from .exceptions import MessageSendFailed
 
 from .core import Friend, Group, PlumbingClient, RawMessageReceipt
 from .message import _serialize_message as _serialize_msg
