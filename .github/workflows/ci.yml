@@ -36,10 +36,6 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - name: Copy t544_stub
-        # copy ./.github/t544_stub to ./t544_enc
-        run: cp -r ./.github/t544_stub ./t544_enc
-
       - name: Run cargo fmt
         run: cargo fmt --all -- --check
 

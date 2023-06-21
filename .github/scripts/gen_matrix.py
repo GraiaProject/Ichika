@@ -4,7 +4,7 @@ from actions_toolkit import core
 
 includes = []
 mapping = {
-    "macos": ["x64", "aarch64", "universal2"],
+    "macos": ["x64", "aarch64", "universal2-apple-darwin"],
     "windows": ["x64", "x86", "aarch64"],
     "linux-musl": ["x64", "x86", "aarch64", "armv7"],
     "linux": ["x64", "x86", "aarch64", "armv7", "s390x", "ppc64", "ppc64le"],
@@ -21,18 +21,14 @@ for os, targets in mapping.items():
             "build_args": ["--out", "dist"],
         }
 
+        if env["RELEASE"] == "true":
+            job["build_args"].append("--release")
+
         if os == "windows" and target == "x86":
             job["py_arch"] = "x86"
 
         if "linux" in os:
             job["manylinux"] = "musllinux_1_2" if "musl" in os else "auto"
-
-        if env["RELEASE"] == "true":
-            job["build_args"].append("--release")
-
-        if target == "universal2":
-            job["target"] = "aarch64"
-            job["build_args"].append("--universal2")
 
         job["build_args"] = " ".join(job["build_args"])
         includes.append(job)
