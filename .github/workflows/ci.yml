@@ -109,10 +109,6 @@ jobs:
         if: ${{ env.RELEASE != 'true' }}
         run: python ./.github/scripts/bump_cargo_version.py
 
-      - name: Copy t544_stub
-        # copy ./.github/t544_stub to ./t544_enc
-        run: cp -r ./.github/t544_stub ./t544_enc
-
       - name: Build Wheel
         id: build-wheel
         uses: PyO3/maturin-action@v1

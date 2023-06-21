@@ -5,9 +5,9 @@ from typing import Any, Awaitable, Callable, Iterable, Literal, Protocol
 from weakref import WeakValueDictionary
 
 from graia.amnesia.message import Element, MessageChain
-from .exceptions import MessageSendFailed
 
 from .core import Friend, Group, PlumbingClient, RawMessageReceipt
+from .exceptions import MessageSendFailed
 from .message import _serialize_message as _serialize_msg
 from .message.elements import (
     At,
@@ -236,4 +236,3 @@ class Client(PlumbingClient):
 
 
 CLIENT_REFS: WeakValueDictionary[int, Client] = WeakValueDictionary()
-
