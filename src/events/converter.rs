@@ -6,7 +6,6 @@ use ricq::handler::QEvent;
 
 use super::MessageSource;
 use crate::client::structs::{Friend, Group, Member};
-use crate::client::{cache, ClientCache};
 use crate::dict_obj;
 use crate::exc::MapPyErr;
 use crate::message::convert::{serialize_as_py_chain, serialize_audio};
@@ -41,57 +40,28 @@ pub async fn convert(event: QEvent) -> PyDictRet {
     }
 }
 
-async fn fetch_friend(cache_obj: &mut ClientCache, uin: i64) -> PyResult<Friend> {
-    cache_obj
-        .fetch_friend_list()
-        .await
-        .py_res()?
-        .find_friend(uin)
-        .ok_or_else(|| PyValueError::new_err(format!("Unable to find friend {uin}")))
-}
-
-async fn fetch_group(cache_obj: &mut ClientCache, uin: i64) -> PyResult<Group> {
-    Ok(cache_obj.fetch_group(uin).await.py_res()?.as_ref().clone())
-}
-
-async fn fetch_member(cache_obj: &mut ClientCache, group_uin: i64, uin: i64) -> PyResult<Member> {
-    Ok(cache_obj
-        .fetch_member(group_uin, uin)
-        .await
-        .py_res()?
-        .as_ref()
-        .clone())
-}
 async fn handle_group_message(event: rce::GroupMessageEvent) -> PyDictRet {
     let msg = event.inner;
-
-    let mut cache = cache(event.client).await;
-    let group = fetch_group(&mut cache, msg.group_code).await?;
-    let sender = fetch_member(&mut cache, msg.group_code, msg.from_uin).await?;
 
     let content = py_try(|py| serialize_as_py_chain(py, msg.elements))?;
     dict_obj! {py !
         type_name: "GroupMessage",
         source: MessageSource::new(py, &msg.seqs, &msg.rands, msg.time)?,
         content: content,
-        group: group,
-        sender: sender,
+        group: msg.group_code,
+        sender: msg.from_uin,
     }
 }
 
 async fn handle_group_recall(event: rce::GroupMessageRecallEvent) -> PyDictRet {
-    let mut cache = cache(event.client).await;
     let event = event.inner;
-    let group = fetch_group(&mut cache, event.group_code).await?;
-    let author = fetch_member(&mut cache, event.group_code, event.author_uin).await?;
-    let operator = fetch_member(&mut cache, event.group_code, event.operator_uin).await?;
     let time = py_try(|py| Ok(datetime_from_ts(py, event.time)?.into_py(py)))?;
     dict_obj! {
         type_name: "GroupRecallMessage",
         time: time,
-        group: group,
-        author: author,
-        operator: operator,
+        group: event.group_code,
+        author: event.author_uin,
+        operator: event.operator_uin,
         seq: event.msg_seq,
     }
 }
@@ -100,41 +70,33 @@ async fn handle_group_audio(event: rce::GroupAudioMessageEvent) -> PyDictRet {
     let url = event.url().await.py_res()?;
     let msg = event.inner;
     let content = py_try(|py| serialize_audio(py, url, &msg.audio.0))?;
-    let mut cache = cache(event.client).await;
-    let group = fetch_group(&mut cache, msg.group_code).await?;
-    let sender = fetch_member(&mut cache, msg.group_code, msg.from_uin).await?;
-
     dict_obj! {py !
         type_name: "GroupMessage",
         source: MessageSource::new(py, &msg.seqs, &msg.rands, msg.time)?,
         content: content,
-        group: group,
-        sender: sender,
+        group: msg.group_code,
+        sender: msg.from_uin,
     }
 }
 
 async fn handle_friend_message(event: rce::FriendMessageEvent) -> PyDictRet {
-    let mut cache = cache(event.client).await;
     let msg = event.inner;
     let content = py_try(|py| serialize_as_py_chain(py, msg.elements))?;
-    let friend = fetch_friend(&mut cache, msg.from_uin).await?;
     dict_obj! {py !
         type_name: "FriendMessage",
         source: MessageSource::new(py, &msg.seqs, &msg.rands, msg.time)?,
         content: content,
-        sender: friend,
+        sender: msg.from_uin,
     }
 }
 
 async fn handle_friend_recall(event: rce::FriendMessageRecallEvent) -> PyDictRet {
-    let mut cache = cache(event.client).await;
     let event = event.inner;
     let time = py_try(|py| Ok(datetime_from_ts(py, event.time)?.into_py(py)))?;
-    let friend = fetch_friend(&mut cache, event.friend_uin).await?;
     dict_obj! {
         type_name: "FriendRecallMessage",
         time: time,
-        author: friend,
+        author: event.friend_uin,
         seq: event.msg_seq,
     }
 }
@@ -143,13 +105,11 @@ async fn handle_friend_audio(event: rce::FriendAudioMessageEvent) -> PyDictRet {
     let url = event.url().await.py_res()?;
     let msg = event.inner;
     let content = py_try(|py| serialize_audio(py, url, &msg.audio.0))?;
-    let mut cache = cache(event.client).await;
-    let friend = fetch_friend(&mut cache, msg.from_uin).await?;
     dict_obj! {py !
         type_name: "FriendMessage",
         source: MessageSource::new(py, &msg.seqs, &msg.rands, msg.time)?,
         content: content,
-        sender: friend,
+        sender: msg.from_uin,
     }
 }
 
@@ -157,31 +117,24 @@ async fn handle_temp_message(event: rce::GroupTempMessageEvent) -> PyDictRet {
     let msg = event.inner;
     let content = py_try(|py| serialize_as_py_chain(py, msg.elements))?;
 
-    let mut cache = cache(event.client).await;
-    let group = fetch_group(&mut cache, msg.group_code).await?;
-    let sender = fetch_member(&mut cache, msg.group_code, msg.from_uin).await?;
 
     dict_obj! {py !
         type_name: "TempMessage",
         source: MessageSource::new(py, &msg.seqs, &msg.rands, msg.time)?,
         content: content,
-        group: group,
-        sender: sender,
+        group: msg.group_code,
+        sender: msg.from_uin,
     }
 }
 
 async fn handle_group_nudge(event: rce::GroupPokeEvent) -> PyDictRet {
-    let mut cache = cache(event.client).await;
     let event = event.inner;
-    let group = fetch_group(&mut cache, event.group_code).await?;
-    let sender = fetch_member(&mut cache, event.group_code, event.sender).await?;
-    let receiver = fetch_member(&mut cache, event.group_code, event.receiver).await?;
 
     dict_obj! {
         type_name: "GroupNudge",
-        group: group,
-        sender: sender,
-        receiver: receiver,
+        group: event.group_code,
+        sender: event.sender,
+        receiver: event.receiver,
     }
 }
 
@@ -190,12 +143,10 @@ async fn handle_friend_nudge(event: rce::FriendPokeEvent) -> PyDictRet {
     if client.uin().await == event.inner.sender {
         return dict_obj! {};
     }
-    let mut cache = cache(client).await;
     let event = event.inner;
-    let friend = fetch_friend(&mut cache, event.sender).await?;
     dict_obj! {
         type_name: "FriendNudge",
-        sender: friend,
+        sender: event.sender,
     }
 }
 
@@ -207,21 +158,16 @@ fn handle_new_friend(event: rce::NewFriendEvent) -> PyDictRet {
     }
 }
 async fn handle_new_member(event: rce::NewMemberEvent) -> PyDictRet {
-    let mut cache = cache(event.client).await;
     let event = event.inner;
-    let group = fetch_group(&mut cache, event.group_code).await?;
-    let member = fetch_member(&mut cache, event.group_code, event.member_uin).await?;
     dict_obj! {
         type_name: "NewMember",
-        group: group,
-        member: member,
+        group: event.group_code,
+        member: event.member_uin,
     }
 }
 
 async fn handle_group_leave(event: rce::GroupLeaveEvent) -> PyDictRet {
-    let mut cache = cache(event.client).await;
     let event = event.inner;
-    cache.flush_member(event.group_code, event.member_uin).await;
 
     dict_obj! {
         type_name: "MemberLeaveGroup",
@@ -231,9 +177,7 @@ async fn handle_group_leave(event: rce::GroupLeaveEvent) -> PyDictRet {
 }
 
 async fn handle_group_disband(event: rce::GroupDisbandEvent) -> PyDictRet {
-    let mut cache = cache(event.client).await;
     let event = event.inner;
-    cache.flush_group(event.group_code).await;
     dict_obj! {
         type_name: "GroupDisband",
         group_uin: event.group_code,
@@ -242,8 +186,6 @@ async fn handle_group_disband(event: rce::GroupDisbandEvent) -> PyDictRet {
 }
 
 async fn handle_friend_delete(event: rce::DeleteFriendEvent) -> PyDictRet {
-    let mut cache = cache(event.client).await;
-    cache.flush_friend_list().await;
     dict_obj! {
         type_name: "FriendDeleted",
         friend_uin: event.inner.uin,
@@ -251,17 +193,13 @@ async fn handle_friend_delete(event: rce::DeleteFriendEvent) -> PyDictRet {
 }
 
 async fn handle_mute(event: rce::GroupMuteEvent) -> PyDictRet {
-    let mut cache = cache(event.client).await;
     let event = event.inner;
-    cache.flush_group(event.group_code).await;
-    let group = fetch_group(&mut cache, event.group_code).await?;
-    let operator = fetch_member(&mut cache, event.group_code, event.operator_uin).await?;
 
     if event.target_uin == 0 {
         return dict_obj! {
             type_name: "GroupMute",
-            group: group,
-            operator: operator,
+            group: event.group_code,
+            operator: event.operator_uin,
             status: event.duration.as_secs() == 0
         };
     }
@@ -273,43 +211,34 @@ async fn handle_mute(event: rce::GroupMuteEvent) -> PyDictRet {
             false.into_py(py)
         })
     })?;
-    let target = fetch_member(&mut cache, event.group_code, event.target_uin).await?;
     dict_obj! {
         type_name: "MemberMute",
-        group: group,
-        operator: operator,
-        target: target,
+        group: event.group_code,
+        operator: event.operator_uin,
+        target: event.target_uin,
         duration: duration,
     }
 }
 
 async fn handle_permission_change(event: rce::MemberPermissionChangeEvent) -> PyDictRet {
-    let mut cache = cache(event.client).await;
     let event = event.inner;
-    cache.flush_member(event.group_code, event.member_uin).await;
-    let group = fetch_group(&mut cache, event.group_code).await?;
-    let target = fetch_member(&mut cache, event.group_code, event.member_uin).await?;
     dict_obj! {
         type_name: "MemberPermissionChange",
-        group: group,
-        target: target,
+        group: event.group_code,
+        target: event.member_uin,
         permission: event.new_permission as u8,
     }
 }
 
 async fn handle_group_info_update(event: rce::GroupNameUpdateEvent) -> PyDictRet {
-    let mut cache = cache(event.client).await;
     let event = event.inner;
-    cache.flush_group(event.group_code).await;
-    let group = fetch_group(&mut cache, event.group_code).await?;
-    let operator = fetch_member(&mut cache, event.group_code, event.operator_uin).await?;
     let info: Py<PyDict> = dict_obj! {
         name: event.group_name
     }?;
     dict_obj! {
         type_name: "GroupInfoUpdate",
-        group: group,
-        operator: operator,
+        group: event.group_code,
+        operator: event.operator_uin,
         info: info,
     }
 }
