@@ -34,7 +34,7 @@ bytes = "1"
 rqrr = "0.6"
 qrcode = "0.12"
 image = "0.24"
-async-trait = "0.1.68"
+async-trait = "0.1.69"
 serde = "1.0"
 pythonize = "0.18"
 pyo3-repr = { version = "0.1.0", path = "pyo3-repr" }
