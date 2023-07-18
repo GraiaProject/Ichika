@@ -27,7 +27,7 @@ use crate::message::convert::{
     serialize_forward,
 };
 use crate::message::elements::SealedAudio;
-use crate::utils::{py_future, py_none, py_try, py_use, to_py_gender, to_py_permission, AsPython};
+use crate::utils::{py_future, py_none, py_try, py_use, to_py_gender, AsPython};
 static RETRY_BUILDER: Lazy<ExponentialBuilder> = Lazy::new(|| {
     ExponentialBuilder::default()
         .with_factor(1.5)
@@ -324,28 +324,22 @@ impl PlumbingClient {
 
 #[pymethods]
 impl PlumbingClient {
-       pub fn get_member_list<'py>(
-           &self,
-           py: Python<'py>,
-           group_uin: i64,
-           group_owner_uin: i64
-       ) -> PyResult<&'py PyAny> {
-           let client = self.client.clone();
-           py_future(py, async move {
-               let members = client
-                   .get_group_member_list(group_uin, group_owner_uin)
-                   .await?;
-               let members = members
-                   .into_iter()
-                   .map(|m| {
-                       let m = Member::from(m);
-                       m
-                   })
-                   .collect::<Vec<_>>();
-               Ok(members)
-           })
-       }
-    
+    pub fn get_member_list<'py>(
+        &self,
+        py: Python<'py>,
+        group_uin: i64,
+        group_owner_uin: i64,
+    ) -> PyResult<&'py PyAny> {
+        let client = self.client.clone();
+        py_future(py, async move {
+            let members = client
+                .get_group_member_list(group_uin, group_owner_uin)
+                .await?;
+            let members = members.into_iter().map(Member::from).collect::<Vec<_>>();
+            Ok(members)
+        })
+    }
+
     pub fn nudge_member<'py>(
         &self,
         py: Python<'py>,
