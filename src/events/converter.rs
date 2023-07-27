@@ -1,11 +1,10 @@
-use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use ricq::client::event as rce;
 use ricq::handler::QEvent;
 
 use super::MessageSource;
-use crate::client::structs::{Friend, Group, Member};
+use crate::client::structs::Friend;
 use crate::dict_obj;
 use crate::exc::MapPyErr;
 use crate::message::convert::{serialize_as_py_chain, serialize_audio};

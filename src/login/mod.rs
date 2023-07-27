@@ -82,7 +82,7 @@ pub(crate) mod t544 {
         }
     }
 
-    pub(crate) async fn inject_t544(client: &mut Client) {
+    pub(crate) async fn inject_t544(client: &Client) {
         client.engine.write().await.ex_provider.t544 =
             Some(Box::new(NativeT544Provider::new(client).await));
     }
@@ -94,9 +94,9 @@ async fn prepare_client(
     app_ver: Version,
     handler: PyHandler,
 ) -> PyResult<(Arc<Client>, JoinHandle<()>)> {
-    let mut client = Client::new(device, app_ver, handler);
+    let client = Client::new(device, app_ver, handler);
 
-    t544::inject_t544(&mut client).await;
+    t544::inject_t544(&client).await;
 
     let client = Arc::new(client);
     let alive = tokio::spawn({
