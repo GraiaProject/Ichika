@@ -15,7 +15,7 @@ jobs:
     name: Lint Python
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: 3.8
@@ -28,7 +28,7 @@ jobs:
     name: Lint Rust
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Install Rust nightly
@@ -52,7 +52,7 @@ jobs:
     name: Build Documentation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: pdm-project/setup-pdm@v3
         name: Setup PDM
       - name: Install Dependencies
@@ -73,7 +73,7 @@ jobs:
     outputs:
       matrix: ${{ steps.configure.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: 3.11
@@ -91,7 +91,7 @@ jobs:
       matrix: ${{ fromJSON( needs.build-matrix.outputs.matrix ) }}
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: 3.8
@@ -139,7 +139,7 @@ jobs:
     environment: release
     permissions: write-all
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: pdm-project/setup-pdm@v3
         name: Setup PDM
       - name: Install Dependencies
