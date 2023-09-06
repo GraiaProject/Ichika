@@ -77,7 +77,7 @@ jobs:
 
       - name: Deploy to Netlify
         id: deploy
-        uses: nwtgck/actions-netlify@v2.0
+        uses: nwtgck/actions-netlify@v2.1
         with:
           publish-dir: "./build"
           production-deploy: ${{ github.event.workflow_run.event == 'workflow_dispatch' }}
